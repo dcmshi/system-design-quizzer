@@ -120,9 +120,10 @@ def update_status(
 def get_quiz(
     n: int = Query(5, ge=1, le=50),
     difficulty: str | None = Query(None),
+    document_id: str | None = Query(None),
     svc: QuizService = Depends(_get_service),
 ):
-    items = svc.get_quiz_sample(n, difficulty)
+    items = svc.get_quiz_sample(n, difficulty, document_id)
     return [
         QuestionSummary(
             id=q["id"],

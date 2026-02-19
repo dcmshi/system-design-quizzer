@@ -102,12 +102,21 @@ class QuestionRepository:
         rows = self._conn.execute("SELECT fingerprint FROM questions").fetchall()
         return {r["fingerprint"] for r in rows}
 
-    def get_random_sample(self, n: int, difficulty: str | None = None) -> list[dict]:
+    def get_random_sample(
+        self,
+        n: int,
+        difficulty: str | None = None,
+        document_id: str | None = None,
+    ) -> list[dict]:
+        filters: list[str] = []
         params: list = []
-        where = ""
         if difficulty:
-            where = "WHERE difficulty = ?"
+            filters.append("difficulty = ?")
             params.append(difficulty)
+        if document_id:
+            filters.append("source_document_id = ?")
+            params.append(document_id)
+        where = ("WHERE " + " AND ".join(filters)) if filters else ""
         params.append(n)
         rows = self._conn.execute(
             f"SELECT * FROM questions {where} ORDER BY RANDOM() LIMIT ?", params

@@ -45,8 +45,13 @@ class QuizService:
     def get_question(self, question_id: str) -> dict | None:
         return self.questions.get_by_id(question_id)
 
-    def get_quiz_sample(self, n: int, difficulty: str | None = None) -> list[dict]:
-        return self.questions.get_random_sample(n, difficulty)
+    def get_quiz_sample(
+        self,
+        n: int,
+        difficulty: str | None = None,
+        document_id: str | None = None,
+    ) -> list[dict]:
+        return self.questions.get_random_sample(n, difficulty, document_id)
 
     def check_answer(self, question_id: str, selected_index: int) -> dict | None:
         q = self.questions.get_by_id(question_id)

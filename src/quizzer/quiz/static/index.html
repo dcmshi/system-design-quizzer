@@ -296,6 +296,11 @@
       <h1>System Design Quiz</h1>
       <p class="subtitle">Test your knowledge of distributed systems & architecture</p>
 
+      <label for="input-doc">Question bank</label>
+      <select id="input-doc">
+        <option value="">All documents</option>
+      </select>
+
       <label for="input-n">Number of questions</label>
       <input type="number" id="input-n" value="5" min="1" max="50">
 
@@ -391,6 +396,7 @@
   };
 
   // ── DOM refs ──────────────────────────────────────────────────────────────
+  const inputDoc     = document.getElementById('input-doc');
   const inputN       = document.getElementById('input-n');
   const inputDiff    = document.getElementById('input-diff');
   const btnStart     = document.getElementById('btn-start');
@@ -433,9 +439,26 @@
   }
 
   // ── API calls ─────────────────────────────────────────────────────────────
-  async function fetchQuestions(n, difficulty) {
+  async function loadDocuments() {
+    try {
+      const res = await fetch('/api/v1/documents');
+      if (!res.ok) return;
+      const docs = await res.json();
+      docs.forEach(doc => {
+        const opt = document.createElement('option');
+        opt.value = doc.id;
+        opt.textContent = `${doc.title} (${doc.question_count} Q)`;
+        inputDoc.appendChild(opt);
+      });
+    } catch (_) {
+      // Non-fatal — dropdown just stays as "All documents"
+    }
+  }
+
+  async function fetchQuestions(n, difficulty, documentId) {
     let url = `/api/v1/quiz?n=${n}`;
     if (difficulty) url += `&difficulty=${encodeURIComponent(difficulty)}`;
+    if (documentId) url += `&document_id=${encodeURIComponent(documentId)}`;
     const res = await fetch(url);
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
@@ -463,7 +486,8 @@
     if (!n || n < 1) n = 1;
     n = Math.min(n, 50);
 
-    const difficulty = inputDiff.value.trim();
+    const difficulty  = inputDiff.value.trim();
+    const documentId  = inputDoc.value.trim();
 
     state.totalRequested = n;
     state.questions = [];
@@ -474,11 +498,13 @@
     showScreen('loading');
 
     try {
-      const questions = await fetchQuestions(n, difficulty);
+      const questions = await fetchQuestions(n, difficulty, documentId);
       if (!questions || questions.length === 0) {
+        const docLabel = inputDoc.options[inputDoc.selectedIndex]?.text;
+        const context = documentId ? ` in <strong>${docLabel}</strong>` : '';
         showError(
           'No questions found',
-          `No questions are available${difficulty ? ` for difficulty <strong>${difficulty}</strong>` : ''}. ` +
+          `No questions are available${context}${difficulty ? ` for difficulty <strong>${difficulty}</strong>` : ''}. ` +
           `Ingest some articles first:<br><br>` +
           `<code>uv run python scripts/ingest.py --source content/&lt;article&gt;.md --verbose</code>`
         );
@@ -594,11 +620,14 @@
   btnRetry.addEventListener('click', () => showScreen('setup'));
 
   // Allow Enter key in the setup inputs to start the quiz
-  [inputN, inputDiff].forEach(el => {
+  [inputDoc, inputN, inputDiff].forEach(el => {
     el.addEventListener('keydown', e => {
       if (e.key === 'Enter') startQuiz();
     });
   });
+
+  // Populate document dropdown on load
+  loadDocuments();
 </script>
 </body>
 </html>
