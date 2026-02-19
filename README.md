@@ -155,6 +155,8 @@ This starts both the REST API and the web UI:
 
 The web UI lets you choose a question count (1–50), filter by difficulty, and work through a quiz with immediate answer feedback and explanations. No build step — it's a single static HTML file served by FastAPI.
 
+![Quiz UI screenshot](docs/quiz_screenshot.png)
+
 ---
 
 ## API Reference
