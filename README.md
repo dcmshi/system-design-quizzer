@@ -49,6 +49,33 @@ Your article content here...
 
 A sample article is included at `content/example/consistent-hashing.md`.
 
+### 1b. Convert a saved HTML page to Markdown (ByteByteGo)
+
+If your source is a ByteByteGo article, save the page from your browser and convert it before ingesting.
+
+**Install the preprocessing extras first (one-time):**
+
+```bash
+uv sync --extra preprocessing
+```
+
+**Convert:**
+
+```bash
+# Default output: content/bytebytego/<stem>.md
+uv run python scripts/html_to_md.py content/some-article.html
+
+# Custom output path
+uv run python scripts/html_to_md.py content/some-article.html -o content/bytebytego/my-article.md
+```
+
+The script:
+- Targets the `<article>` element, falling back to `#content` → `<body>`
+- Strips nav, sidebars, footers, and pagination chrome
+- Replaces `<figure>`/`<img>` tags with `[Figure: <alt text>]` captions so diagrams are described in text
+- Unwraps `<a>` tags (ByteByteGo links point back to their site)
+- Emits a `.md` file with YAML frontmatter (`title`, `source: "ByteByteGo"`, `url`, `tags`) ready for ingestion
+
 ### 2. Run ingestion
 
 ```bash
