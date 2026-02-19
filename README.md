@@ -13,11 +13,12 @@ served through a FastAPI REST API.
 - Python 3.11+
 - [uv](https://docs.astral.sh/uv/) — `pip install uv`
 - [Ollama](https://ollama.com/) running locally on `http://localhost:11434`
-- A pulled model, e.g. `ollama pull mistral`
 
 ---
 
 ## Setup
+
+### 1. Install dependencies
 
 ```bash
 # Clone and enter the project
@@ -26,6 +27,43 @@ cd system_design_quizzer
 # Install all dependencies (including dev extras)
 uv sync --extra dev
 ```
+
+### 2. Set up Ollama
+
+[Download and install Ollama](https://ollama.com/download), then start the server:
+
+```bash
+ollama serve
+```
+
+Pull a model. `llama3.2` is a good default — fast and reliable for JSON MCQ generation:
+
+```bash
+ollama pull llama3.2
+```
+
+Check what you have locally at any time:
+
+```bash
+ollama list
+```
+
+> **Model recommendations:**
+> - `llama3.2` (2 GB) — fast, good JSON compliance, recommended default
+> - `mistral` (4.1 GB) — higher quality questions, still fast
+> - `llama3.1:8b` (4.9 GB) — best quality of the small models
+>
+> Avoid code-focused models (e.g. `qwen3-coder`) — they're tuned for code, not prose comprehension.
+
+### 3. Configure your model
+
+Create a `.env` file at the project root to set your model (and any other overrides):
+
+```bash
+QUIZZER_OLLAMA_MODEL=llama3.2
+```
+
+See the [Configuration](#configuration) section for all available settings.
 
 ---
 
@@ -91,8 +129,8 @@ uv run python scripts/ingest.py --source content/example/consistent-hashing.md -
 # Preview without writing to the database
 uv run python scripts/ingest.py --dry-run --verbose
 
-# Use a different model
-uv run python scripts/ingest.py --model llama3 --verbose
+# Use a different model (must match ollama list)
+uv run python scripts/ingest.py --model llama3.2 --verbose
 ```
 
 The pipeline for each article:
@@ -159,19 +197,26 @@ curl -X PATCH http://localhost:8000/api/v1/questions/<id>/status \
 ## Configuration
 
 All settings are read from environment variables with the `QUIZZER_` prefix.
-You can also place them in a `.env` file at the project root.
+The recommended approach is a `.env` file at the project root (already gitignored):
+
+```bash
+# .env
+QUIZZER_OLLAMA_MODEL=llama3.2
+```
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `QUIZZER_CONTENT_DIR` | `content` | Directory containing `.md` articles |
 | `QUIZZER_DB_PATH` | `data/quizzer.db` | SQLite database path |
 | `QUIZZER_OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server URL |
-| `QUIZZER_OLLAMA_MODEL` | `mistral` | Model name to use |
+| `QUIZZER_OLLAMA_MODEL` | `mistral` | Model name — must match `ollama list` exactly |
 | `QUIZZER_OLLAMA_TEMPERATURE` | `0.1` | Generation temperature |
 | `QUIZZER_OLLAMA_SEED` | `42` | Seed for reproducibility |
 | `QUIZZER_CHUNK_WORD_MIN` | `300` | Minimum words per chunk |
 | `QUIZZER_CHUNK_WORD_MAX` | `800` | Maximum words per chunk |
 | `QUIZZER_MIN_EXPLANATION_LENGTH` | `50` | Minimum characters in an explanation |
+
+> **Tip:** If ingestion logs a `404` from Ollama, the model name doesn't match. Run `ollama list` to see exact names and update `QUIZZER_OLLAMA_MODEL` accordingly.
 
 ---
 
