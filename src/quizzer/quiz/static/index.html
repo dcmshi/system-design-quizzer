@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Design Quizzer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3348;
+      --text: #e2e8f0;
+      --text-muted: #8892a4;
+      --accent: #6366f1;
+      --accent-hover: #4f51d9;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #eab308;
+      --radius: 10px;
+      --font: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    #app {
+      width: 100%;
+      max-width: 680px;
+    }
+
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+    }
+
+    /* ── Form elements ── */
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.4rem;
+    }
+
+    input[type="number"], select {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 0.6rem 0.8rem;
+      font-size: 1rem;
+      font-family: var(--font);
+      margin-bottom: 1.25rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type="number"]:focus, select:focus {
+      border-color: var(--accent);
+    }
+    select option { background: var(--surface2); }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-block;
+      padding: 0.65rem 1.5rem;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 600;
+      font-family: var(--font);
+      transition: background 0.15s, opacity 0.15s;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      width: 100%;
+    }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Loading spinner ── */
+    #screen-loading {
+      text-align: center;
+      padding: 3rem 0;
+    }
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 1rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color: var(--text-muted); }
+
+    /* ── Question screen ── */
+    .quiz-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    .score-display { font-weight: 600; }
+
+    .progress-bar {
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+
+    .difficulty-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      margin-bottom: 0.75rem;
+    }
+    .badge-easy   { background: #14532d; color: #86efac; }
+    .badge-medium { background: #713f12; color: #fde68a; }
+    .badge-hard   { background: #7f1d1d; color: #fca5a5; }
+    .badge-unknown { background: var(--surface2); color: var(--text-muted); }
+
+    .question-text {
+      font-size: 1.1rem;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+      font-weight: 500;
+    }
+
+    .options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .option-btn {
+      text-align: left;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 0.75rem 1rem;
+      font-size: 0.95rem;
+      font-family: var(--font);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      line-height: 1.4;
+    }
+    .option-btn:hover:not(:disabled) {
+      border-color: var(--accent);
+      background: var(--surface);
+    }
+    .option-btn:disabled { cursor: default; }
+    .option-btn.correct {
+      border-color: var(--green);
+      background: #14532d33;
+      color: #86efac;
+    }
+    .option-btn.wrong {
+      border-color: var(--red);
+      background: #7f1d1d33;
+      color: #fca5a5;
+    }
+
+    .explanation {
+      display: none;
+      background: var(--surface2);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 6px 6px 0;
+      padding: 0.9rem 1rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 1.25rem;
+    }
+    .explanation.visible { display: block; }
+    .explanation strong { color: var(--text); }
+
+    .next-row {
+      display: flex;
+      justify-content: flex-end;
+    }
+    #btn-next {
+      display: none;
+    }
+    #btn-next.visible {
+      display: inline-block;
+    }
+
+    /* ── End screen ── */
+    .end-score {
+      text-align: center;
+      padding: 1rem 0 1.5rem;
+    }
+    .score-big {
+      font-size: 4rem;
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+    }
+    .score-fraction {
+      font-size: 1rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+    .score-message {
+      font-size: 1.1rem;
+      margin-top: 1rem;
+      font-weight: 500;
+    }
+    .end-actions {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+    .end-actions .btn { flex: 1; }
+
+    /* ── Error screen ── */
+    .error-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+    .error-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .error-msg {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+    }
+    .error-msg code {
+      background: var(--surface2);
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Setup -->
+  <div id="screen-setup" class="screen active">
+    <div class="card">
+      <h1>System Design Quiz</h1>
+      <p class="subtitle">Test your knowledge of distributed systems & architecture</p>
+
+      <label for="input-n">Number of questions</label>
+      <input type="number" id="input-n" value="5" min="1" max="50">
+
+      <label for="input-diff">Difficulty</label>
+      <select id="input-diff">
+        <option value="">Any difficulty</option>
+        <option value="easy">Easy</option>
+        <option value="medium">Medium</option>
+        <option value="hard">Hard</option>
+      </select>
+
+      <button class="btn btn-primary" id="btn-start">Start Quiz</button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div id="screen-loading" class="screen">
+    <div class="spinner"></div>
+    <p class="loading-text">Loading questions&hellip;</p>
+  </div>
+
+  <!-- Question -->
+  <div id="screen-question" class="screen">
+    <div class="card">
+      <div class="quiz-header">
+        <span id="progress-label">Question 1 of 5</span>
+        <span class="score-display" id="score-label">Score: 0</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+      <span class="difficulty-badge" id="difficulty-badge"></span>
+      <p class="question-text" id="question-text"></p>
+      <div class="options" id="options-container"></div>
+      <div class="explanation" id="explanation"></div>
+      <div class="next-row">
+        <button class="btn btn-primary" id="btn-next">Next &rarr;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- End -->
+  <div id="screen-end" class="screen">
+    <div class="card">
+      <div class="end-score">
+        <div class="score-big" id="end-pct"></div>
+        <div class="score-fraction" id="end-fraction"></div>
+        <div class="score-message" id="end-msg"></div>
+      </div>
+      <div class="end-actions">
+        <button class="btn btn-secondary" id="btn-review">Back to Setup</button>
+        <button class="btn btn-primary" id="btn-play-again">Play Again</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div id="screen-error" class="screen">
+    <div class="card" style="text-align:center">
+      <div class="error-icon">&#9888;</div>
+      <div class="error-title" id="error-title">Something went wrong</div>
+      <p class="error-msg" id="error-msg"></p>
+      <button class="btn btn-primary" id="btn-retry">Try Again</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  'use strict';
+
+  // ── Screens ──────────────────────────────────────────────────────────────
+  const screens = {
+    setup:    document.getElementById('screen-setup'),
+    loading:  document.getElementById('screen-loading'),
+    question: document.getElementById('screen-question'),
+    end:      document.getElementById('screen-end'),
+    error:    document.getElementById('screen-error'),
+  };
+
+  function showScreen(name) {
+    Object.values(screens).forEach(s => s.classList.remove('active'));
+    screens[name].classList.add('active');
+  }
+
+  // ── State ─────────────────────────────────────────────────────────────────
+  const state = {
+    questions: [],
+    current: 0,
+    score: 0,
+    answered: false,
+    totalRequested: 5,
+  };
+
+  // ── DOM refs ──────────────────────────────────────────────────────────────
+  const inputN       = document.getElementById('input-n');
+  const inputDiff    = document.getElementById('input-diff');
+  const btnStart     = document.getElementById('btn-start');
+  const progressFill = document.getElementById('progress-fill');
+  const progressLbl  = document.getElementById('progress-label');
+  const scoreLbl     = document.getElementById('score-label');
+  const diffBadge    = document.getElementById('difficulty-badge');
+  const questionText = document.getElementById('question-text');
+  const optionsCont  = document.getElementById('options-container');
+  const explanation  = document.getElementById('explanation');
+  const btnNext      = document.getElementById('btn-next');
+  const endPct       = document.getElementById('end-pct');
+  const endFraction  = document.getElementById('end-fraction');
+  const endMsg       = document.getElementById('end-msg');
+  const btnPlayAgain = document.getElementById('btn-play-again');
+  const btnReview    = document.getElementById('btn-review');
+  const errorTitle   = document.getElementById('error-title');
+  const errorMsg     = document.getElementById('error-msg');
+  const btnRetry     = document.getElementById('btn-retry');
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  const LABELS = ['A', 'B', 'C', 'D'];
+
+  function difficultyClass(d) {
+    return { easy: 'badge-easy', medium: 'badge-medium', hard: 'badge-hard' }[d] || 'badge-unknown';
+  }
+
+  function scoreMessage(pct) {
+    if (pct === 100) return 'Perfect score!';
+    if (pct >= 80)  return 'Great work!';
+    if (pct >= 60)  return 'Good effort!';
+    if (pct >= 40)  return 'Keep practising.';
+    return 'Keep studying — you\'ll get there!';
+  }
+
+  function showError(title, msg) {
+    errorTitle.textContent = title;
+    errorMsg.innerHTML = msg;
+    showScreen('error');
+  }
+
+  // ── API calls ─────────────────────────────────────────────────────────────
+  async function fetchQuestions(n, difficulty) {
+    let url = `/api/v1/quiz?n=${n}`;
+    if (difficulty) url += `&difficulty=${encodeURIComponent(difficulty)}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail || `HTTP ${res.status}`);
+    }
+    return res.json();
+  }
+
+  async function submitAnswer(questionId, selectedIndex) {
+    const res = await fetch(`/api/v1/questions/${questionId}/answer`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ selected_index: selectedIndex }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail || `HTTP ${res.status}`);
+    }
+    return res.json();
+  }
+
+  // ── Quiz flow ─────────────────────────────────────────────────────────────
+  async function startQuiz() {
+    let n = parseInt(inputN.value, 10);
+    if (!n || n < 1) n = 1;
+    n = Math.min(n, 50);
+
+    const difficulty = inputDiff.value.trim();
+
+    state.totalRequested = n;
+    state.questions = [];
+    state.current = 0;
+    state.score = 0;
+    state.answered = false;
+
+    showScreen('loading');
+
+    try {
+      const questions = await fetchQuestions(n, difficulty);
+      if (!questions || questions.length === 0) {
+        showError(
+          'No questions found',
+          `No questions are available${difficulty ? ` for difficulty <strong>${difficulty}</strong>` : ''}. ` +
+          `Ingest some articles first:<br><br>` +
+          `<code>uv run python scripts/ingest.py --source content/&lt;article&gt;.md --verbose</code>`
+        );
+        return;
+      }
+      state.questions = questions;
+      renderQuestion();
+      showScreen('question');
+    } catch (err) {
+      showError('Failed to load questions', `Could not reach the API: ${err.message}`);
+    }
+  }
+
+  function renderQuestion() {
+    const q = state.questions[state.current];
+    const total = state.questions.length;
+    const idx = state.current;
+
+    state.answered = false;
+
+    // Header
+    progressLbl.textContent = `Question ${idx + 1} of ${total}`;
+    scoreLbl.textContent = `Score: ${state.score}`;
+    progressFill.style.width = `${(idx / total) * 100}%`;
+
+    // Difficulty badge
+    diffBadge.textContent = q.difficulty || 'unknown';
+    diffBadge.className = 'difficulty-badge ' + difficultyClass(q.difficulty);
+
+    // Question
+    questionText.textContent = q.question;
+
+    // Options
+    optionsCont.innerHTML = '';
+    q.options.forEach((opt, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.textContent = `${LABELS[i]}. ${opt}`;
+      btn.addEventListener('click', () => handleAnswer(i, btn));
+      optionsCont.appendChild(btn);
+    });
+
+    // Reset explanation + next
+    explanation.textContent = '';
+    explanation.classList.remove('visible');
+    btnNext.classList.remove('visible');
+  }
+
+  async function handleAnswer(selectedIndex, clickedBtn) {
+    if (state.answered) return;
+    state.answered = true;
+
+    // Disable all options immediately
+    const allBtns = optionsCont.querySelectorAll('.option-btn');
+    allBtns.forEach(b => { b.disabled = true; });
+
+    const q = state.questions[state.current];
+
+    try {
+      const result = await submitAnswer(q.id, selectedIndex);
+
+      // Colour feedback
+      allBtns[result.correct_index].classList.add('correct');
+      if (!result.correct) {
+        clickedBtn.classList.add('wrong');
+      }
+
+      if (result.correct) state.score++;
+
+      // Explanation
+      explanation.innerHTML = `<strong>Explanation:</strong> ${result.explanation}`;
+      explanation.classList.add('visible');
+
+      // Next / Finish button
+      btnNext.textContent = state.current + 1 < state.questions.length ? 'Next \u2192' : 'See Results';
+      btnNext.classList.add('visible');
+    } catch (err) {
+      // Re-enable so user can try again
+      state.answered = false;
+      allBtns.forEach(b => { b.disabled = false; });
+      showError('Answer submission failed', err.message);
+    }
+  }
+
+  function nextQuestion() {
+    state.current++;
+    if (state.current < state.questions.length) {
+      renderQuestion();
+    } else {
+      showEnd();
+    }
+  }
+
+  function showEnd() {
+    const total = state.questions.length;
+    const pct = total > 0 ? Math.round((state.score / total) * 100) : 0;
+
+    // Final progress fill
+    progressFill.style.width = '100%';
+
+    endPct.textContent = `${pct}%`;
+    endFraction.textContent = `${state.score} / ${total} correct`;
+    endMsg.textContent = scoreMessage(pct);
+
+    showScreen('end');
+  }
+
+  // ── Event listeners ───────────────────────────────────────────────────────
+  btnStart.addEventListener('click', startQuiz);
+  btnNext.addEventListener('click', nextQuestion);
+  btnPlayAgain.addEventListener('click', startQuiz);
+  btnReview.addEventListener('click', () => showScreen('setup'));
+  btnRetry.addEventListener('click', () => showScreen('setup'));
+
+  // Allow Enter key in the setup inputs to start the quiz
+  [inputN, inputDiff].forEach(el => {
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter') startQuiz();
+    });
+  });
+</script>
+</body>
+</html>
