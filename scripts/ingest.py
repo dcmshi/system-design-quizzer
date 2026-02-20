@@ -114,6 +114,10 @@ def main() -> None:
             stats["skipped_docs"] += 1
             continue
 
+        # Preserve the stored document ID so chunks' foreign key stays valid
+        if existing:
+            doc.id = existing.id
+
         chunks = chunk_document(doc)
         log.info("  %d chunk(s) from '%s'", len(chunks), doc.title)
 
