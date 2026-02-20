@@ -8,6 +8,7 @@ from quizzer.quiz.schemas import (
     PaginatedQuestions,
     QuestionAnswer,
     QuestionDetail,
+    QuestionEditRequest,
     QuestionSummary,
     StatusUpdateRequest,
 )
@@ -102,6 +103,26 @@ def submit_answer(
     if result is None:
         raise HTTPException(status_code=404, detail="Question not found")
     return AnswerResponse(**result)
+
+
+@router.put("/questions/{question_id}", response_model=QuestionDetail)
+def edit_question(
+    question_id: str,
+    body: QuestionEditRequest,
+    svc: QuizService = Depends(_get_service),
+):
+    updated = svc.edit_question(
+        question_id,
+        question=body.question,
+        options=body.options,
+        correct_index=body.correct_index,
+        explanation=body.explanation,
+        difficulty=body.difficulty,
+    )
+    if not updated:
+        raise HTTPException(status_code=404, detail="Question not found")
+    q = svc.get_question(question_id)
+    return QuestionDetail(**q)
 
 
 @router.patch("/questions/{question_id}/status", response_model=dict)

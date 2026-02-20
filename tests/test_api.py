@@ -167,3 +167,54 @@ def test_question_not_found(app_client):
     client, _, _ = app_client
     resp = client.get("/api/v1/questions/nonexistent")
     assert resp.status_code == 404
+
+
+def test_edit_question(app_client):
+    client, q_id, _ = app_client
+    payload = {
+        "question": "What is a load balancer?",
+        "options": ["Opt A", "Opt B", "Opt C", "Opt D"],
+        "correct_index": 2,
+        "explanation": "A load balancer distributes traffic.",
+        "difficulty": "easy",
+    }
+    resp = client.put(f"/api/v1/questions/{q_id}", json=payload)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "edited"
+    assert data["question"] == "What is a load balancer?"
+
+    # Verify answer details updated
+    ans = client.get(f"/api/v1/questions/{q_id}/answer").json()
+    assert ans["correct_index"] == 2
+    assert ans["explanation"] == "A load balancer distributes traffic."
+
+
+def test_edit_question_not_found(app_client):
+    client, _, _ = app_client
+    payload = {
+        "question": "Q?",
+        "options": ["A", "B", "C", "D"],
+        "correct_index": 0,
+        "explanation": "E.",
+        "difficulty": "easy",
+    }
+    resp = client.put("/api/v1/questions/nonexistent", json=payload)
+    assert resp.status_code == 404
+
+
+def test_reject_status(app_client):
+    client, q_id, _ = app_client
+    resp = client.patch(f"/api/v1/questions/{q_id}/status", json={"status": "rejected"})
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "rejected"
+
+
+def test_quiz_excludes_rejected(app_client):
+    client, q_id, _ = app_client
+    # Reject the only question
+    client.patch(f"/api/v1/questions/{q_id}/status", json={"status": "rejected"})
+    # Quiz should return no results
+    resp = client.get("/api/v1/quiz?n=5")
+    assert resp.status_code == 200
+    assert resp.json() == []

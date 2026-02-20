@@ -44,8 +44,16 @@ class AnswerResponse(BaseModel):
     explanation: str
 
 
+class QuestionEditRequest(BaseModel):
+    question: str
+    options: list[str] = Field(..., min_length=4, max_length=4)
+    correct_index: int = Field(..., ge=0, le=3)
+    explanation: str
+    difficulty: str
+
+
 class StatusUpdateRequest(BaseModel):
-    status: Literal["approved", "edited"]
+    status: Literal["approved", "edited", "rejected"]
 
 
 class DocumentSummary(BaseModel):

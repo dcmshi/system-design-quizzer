@@ -64,8 +64,30 @@ class QuizService:
             "explanation": q["explanation"],
         }
 
+    def edit_question(
+        self,
+        question_id: str,
+        *,
+        question: str,
+        options: list[str],
+        correct_index: int,
+        explanation: str,
+        difficulty: str,
+    ) -> bool:
+        updated = self.questions.update_question(
+            question_id,
+            question=question,
+            options=options,
+            correct_index=correct_index,
+            explanation=explanation,
+            difficulty=difficulty,
+        )
+        if updated:
+            self.questions.update_status(question_id, "edited")
+        return updated
+
     def update_status(
-        self, question_id: str, status: Literal["approved", "edited"]
+        self, question_id: str, status: Literal["approved", "edited", "rejected"]
     ) -> bool:
         return self.questions.update_status(question_id, status)
 

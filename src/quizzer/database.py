@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS questions (
     source_document_id TEXT NOT NULL REFERENCES documents(id),
     source_chunk_id    TEXT NOT NULL REFERENCES chunks(id),
     status             TEXT NOT NULL DEFAULT 'generated'
-                           CHECK (status IN ('generated','approved','edited')),
+                           CHECK (status IN ('generated','approved','edited','rejected')),
     fingerprint        TEXT NOT NULL UNIQUE,
     model              TEXT NOT NULL,
     prompt_version     TEXT NOT NULL,

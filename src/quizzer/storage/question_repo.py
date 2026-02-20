@@ -89,8 +89,26 @@ class QuestionRepository:
         ).fetchall()
         return [self._row_to_dict(r) for r in rows]
 
+    def update_question(
+        self,
+        question_id: str,
+        *,
+        question: str,
+        options: list[str],
+        correct_index: int,
+        explanation: str,
+        difficulty: str,
+    ) -> bool:
+        cur = self._conn.execute(
+            """UPDATE questions SET question=?, options=?, correct_index=?,
+               explanation=?, difficulty=? WHERE id=?""",
+            (question, json.dumps(options), correct_index, explanation, difficulty, question_id),
+        )
+        self._conn.commit()
+        return cur.rowcount > 0
+
     def update_status(
-        self, question_id: str, status: Literal["generated", "approved", "edited"]
+        self, question_id: str, status: Literal["generated", "approved", "edited", "rejected"]
     ) -> bool:
         cur = self._conn.execute(
             "UPDATE questions SET status = ? WHERE id = ?", (status, question_id)
@@ -108,7 +126,7 @@ class QuestionRepository:
         difficulty: str | None = None,
         document_id: str | None = None,
     ) -> list[dict]:
-        filters: list[str] = []
+        filters: list[str] = ["status != 'rejected'"]
         params: list = []
         if difficulty:
             filters.append("difficulty = ?")
