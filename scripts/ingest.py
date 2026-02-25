@@ -54,6 +54,16 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Enable debug logging",
     )
+    parser.add_argument(
+        "--list",
+        action="store_true",
+        help="List all ingested documents with question counts and exit",
+    )
+    parser.add_argument(
+        "--stats",
+        action="store_true",
+        help="Show DB summary statistics (counts by status/difficulty) and exit",
+    )
     return parser.parse_args()
 
 
@@ -64,6 +74,44 @@ def collect_md_files(source: Path | None) -> list[Path]:
     if base.is_dir():
         return sorted(base.rglob("*.md"))
     return []
+
+
+def cmd_list(doc_repo: DocumentRepository, q_repo: QuestionRepository) -> None:
+    docs = doc_repo.list_all()
+    if not docs:
+        print("No documents ingested yet.")
+        return
+    print(f"Documents in DB ({len(docs)}):\n")
+    for doc in docs:
+        q_count = q_repo.count_by_document(doc.id)
+        tags = ", ".join(doc.tags) if doc.tags else "—"
+        print(f"  {doc.title}")
+        print(f"    source   : {doc.source}")
+        print(f"    path     : {doc.source_path}")
+        print(f"    tags     : {tags}")
+        print(f"    questions: {q_count}")
+        print()
+
+
+def cmd_stats(doc_repo: DocumentRepository, q_repo: QuestionRepository) -> None:
+    docs = doc_repo.list_all()
+    total_docs = len(docs)
+    total_questions = sum(q_repo.count_by_document(d.id) for d in docs)
+    by_status = q_repo.counts_by_status()
+    by_diff = q_repo.counts_by_difficulty()
+
+    print("=== Database Summary ===\n")
+    print(f"  Documents  : {total_docs}")
+    print(f"  Questions  : {total_questions}")
+
+    print("\n  By status:")
+    for status in ("generated", "approved", "edited", "rejected"):
+        print(f"    {status:<12}: {by_status.get(status, 0)}")
+
+    print("\n  By difficulty:")
+    for diff in ("easy", "medium", "hard"):
+        print(f"    {diff:<12}: {by_diff.get(diff, 0)}")
+    print()
 
 
 def main() -> None:
@@ -78,6 +126,14 @@ def main() -> None:
     conn = get_connection()
     doc_repo = DocumentRepository(conn)
     q_repo = QuestionRepository(conn)
+
+    # Read-only commands — exit before touching Ollama
+    if args.list:
+        cmd_list(doc_repo, q_repo)
+        sys.exit(0)
+    if args.stats:
+        cmd_stats(doc_repo, q_repo)
+        sys.exit(0)
 
     model = args.model or settings.ollama_model
     ollama = OllamaClient(model=model)

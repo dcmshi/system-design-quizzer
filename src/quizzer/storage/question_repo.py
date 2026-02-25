@@ -116,6 +116,18 @@ class QuestionRepository:
         self._conn.commit()
         return cur.rowcount > 0
 
+    def counts_by_status(self) -> dict[str, int]:
+        rows = self._conn.execute(
+            "SELECT status, COUNT(*) as cnt FROM questions GROUP BY status"
+        ).fetchall()
+        return {r["status"]: r["cnt"] for r in rows}
+
+    def counts_by_difficulty(self) -> dict[str, int]:
+        rows = self._conn.execute(
+            "SELECT difficulty, COUNT(*) as cnt FROM questions GROUP BY difficulty"
+        ).fetchall()
+        return {r["difficulty"]: r["cnt"] for r in rows}
+
     def get_all_fingerprints(self) -> set[str]:
         rows = self._conn.execute("SELECT fingerprint FROM questions").fetchall()
         return {r["fingerprint"] for r in rows}

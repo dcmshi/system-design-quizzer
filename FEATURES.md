@@ -21,7 +21,7 @@ _(move items here when actively working on them)_
 - [ ] **Edit endpoint** — `PUT /questions/{id}` to update question text, options, `correct_index`, and `explanation` in place. Required to support the review UI above.
 - [ ] **Flag / reject questions** — mark a question as `rejected` so it never appears in quizzes. Add `rejected` to the status enum and filter it out of `GET /quiz`.
 - [ ] **Ingest progress output** — stream per-chunk progress to stdout during ingestion so long runs feel less like a black box. Could also add an ETA based on chunk count.
-- [ ] **`--list` and `--stats` CLI flags** — quick DB summary without starting the API (document count, question count, status breakdown).
+- [x] **`--list` and `--stats` CLI flags** — quick DB summary without starting the API (document count, question count, status breakdown).
 
 ### Quiz experience
 
@@ -61,6 +61,8 @@ _(move items here when actively working on them)_
 ## Completed
 
 - [x] Keyboard shortcuts — `1`–`4` select option, `Enter`/`Space` confirm or advance, `→` next
+- [x] `--list` — list ingested documents with per-doc question counts; exits without touching Ollama
+- [x] `--stats` — total questions + breakdown by status and difficulty; exits without touching Ollama
 - [x] Question review UI at `/review` — approve, edit inline, reject; status badges; paginated; filtered by status/doc/difficulty
 - [x] `PUT /questions/{id}` — edit question content (auto-sets status to `edited`)
 - [x] `rejected` status — excluded from `GET /quiz`, supported in `PATCH /status`
