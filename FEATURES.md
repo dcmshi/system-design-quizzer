@@ -26,7 +26,7 @@ _(move items here when actively working on them)_
 ### Quiz experience
 
 - [ ] **End-of-quiz review** — after the results screen, let the user scroll through all questions from the session showing what they answered vs. the correct answer + explanation. Currently results disappear once you leave the end screen.
-- [ ] **Keyboard shortcuts** — press `1`–`4` to select an option, `Enter`/`Space` to confirm, `→` for next. Speeds up power users significantly.
+- [x] **Keyboard shortcuts** — press `1`–`4` to select an option, `Enter`/`Space` to confirm, `→` for next. Speeds up power users significantly.
 - [ ] **Timer mode** — optional per-question countdown (e.g. 30 s). Adds pressure for exam prep.
 - [ ] **"Missed only" replay** — at the end of a quiz, offer to replay just the questions you got wrong with one click.
 
@@ -60,6 +60,7 @@ _(move items here when actively working on them)_
 
 ## Completed
 
+- [x] Keyboard shortcuts — `1`–`4` select option, `Enter`/`Space` confirm or advance, `→` next
 - [x] Question review UI at `/review` — approve, edit inline, reject; status badges; paginated; filtered by status/doc/difficulty
 - [x] `PUT /questions/{id}` — edit question content (auto-sets status to `edited`)
 - [x] `rejected` status — excluded from `GET /quiz`, supported in `PATCH /status`

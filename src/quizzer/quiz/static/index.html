@@ -205,6 +205,12 @@
       background: var(--surface);
     }
     .option-btn:disabled { cursor: default; }
+    .option-btn.focused:not(:disabled) {
+      border-color: var(--accent);
+      background: var(--surface);
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+    }
     .option-btn.correct {
       border-color: var(--green);
       background: #14532d33;
@@ -239,6 +245,15 @@
     }
     #btn-next.visible {
       display: inline-block;
+    }
+
+    .kb-hint {
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      opacity: 0.5;
+      margin-top: 0.75rem;
+      letter-spacing: 0.03em;
     }
 
     /* ── End screen ── */
@@ -344,6 +359,7 @@
       <div class="next-row">
         <button class="btn btn-primary" id="btn-next">Next &rarr;</button>
       </div>
+      <p class="kb-hint">1&ndash;4 select &middot; Enter confirm &middot; &rarr; next</p>
     </div>
   </div>
 
@@ -386,9 +402,12 @@
     error:    document.getElementById('screen-error'),
   };
 
+  let currentScreen = 'setup';
+
   function showScreen(name) {
     Object.values(screens).forEach(s => s.classList.remove('active'));
     screens[name].classList.add('active');
+    currentScreen = name;
   }
 
   // ── State ─────────────────────────────────────────────────────────────────
@@ -398,6 +417,7 @@
     score: 0,
     answered: false,
     totalRequested: 5,
+    keyboardFocus: null,
   };
 
   // ── DOM refs ──────────────────────────────────────────────────────────────
@@ -441,6 +461,57 @@
     errorTitle.textContent = title;
     errorMsg.innerHTML = msg;
     showScreen('error');
+  }
+
+  // ── Keyboard shortcuts ────────────────────────────────────────────────────
+  const KEY_TO_INDEX = { '1': 0, '2': 1, '3': 2, '4': 3 };
+
+  function setKeyboardFocus(idx) {
+    state.keyboardFocus = idx;
+    optionsCont.querySelectorAll('.option-btn').forEach((b, i) => {
+      b.classList.toggle('focused', i === idx);
+    });
+  }
+
+  function clearKeyboardFocus() {
+    state.keyboardFocus = null;
+    optionsCont.querySelectorAll('.option-btn').forEach(b => b.classList.remove('focused'));
+  }
+
+  function handleKeyDown(e) {
+    if (currentScreen !== 'question') return;
+
+    // 1–4: highlight option
+    const digit = KEY_TO_INDEX[e.key];
+    if (digit !== undefined) {
+      const btns = optionsCont.querySelectorAll('.option-btn');
+      if (digit < btns.length && !state.answered) {
+        e.preventDefault();
+        setKeyboardFocus(digit);
+      }
+      return;
+    }
+
+    // Enter / Space: confirm selection or advance
+    if (e.key === 'Enter' || e.key === ' ') {
+      // Let native button-click handle it when a <button> has DOM focus
+      if (document.activeElement?.tagName === 'BUTTON') return;
+      e.preventDefault();
+      if (!state.answered && state.keyboardFocus !== null) {
+        const btns = optionsCont.querySelectorAll('.option-btn');
+        handleAnswer(state.keyboardFocus, btns[state.keyboardFocus]);
+      } else if (state.answered && btnNext.classList.contains('visible')) {
+        nextQuestion();
+      }
+      return;
+    }
+
+    // →: advance to next question
+    if (e.key === 'ArrowRight') {
+      if (state.answered && btnNext.classList.contains('visible')) {
+        nextQuestion();
+      }
+    }
   }
 
   // ── API calls ─────────────────────────────────────────────────────────────
@@ -529,6 +600,7 @@
     const idx = state.current;
 
     state.answered = false;
+    state.keyboardFocus = null;
 
     // Header
     progressLbl.textContent = `Question ${idx + 1} of ${total}`;
@@ -562,9 +634,10 @@
     if (state.answered) return;
     state.answered = true;
 
-    // Disable all options immediately
+    // Disable all options immediately and clear keyboard focus highlight
     const allBtns = optionsCont.querySelectorAll('.option-btn');
     allBtns.forEach(b => { b.disabled = true; });
+    clearKeyboardFocus();
 
     const q = state.questions[state.current];
 
@@ -618,6 +691,8 @@
   }
 
   // ── Event listeners ───────────────────────────────────────────────────────
+  document.addEventListener('keydown', handleKeyDown);
+
   btnStart.addEventListener('click', startQuiz);
   btnNext.addEventListener('click', nextQuestion);
   btnPlayAgain.addEventListener('click', startQuiz);
