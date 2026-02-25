@@ -28,7 +28,7 @@ _(move items here when actively working on them)_
 - [x] **End-of-quiz review** — after the results screen, let the user scroll through all questions from the session showing what they answered vs. the correct answer + explanation. Currently results disappear once you leave the end screen.
 - [x] **Keyboard shortcuts** — press `1`–`4` to select an option, `Enter`/`Space` to confirm, `→` for next. Speeds up power users significantly.
 - [ ] **Timer mode** — optional per-question countdown (e.g. 30 s). Adds pressure for exam prep.
-- [ ] **"Missed only" replay** — at the end of a quiz, offer to replay just the questions you got wrong with one click.
+- [x] **"Missed only" replay** — at the end of a quiz, offer to replay just the questions you got wrong with one click.
 
 ### Filtering & discovery
 
@@ -60,6 +60,7 @@ _(move items here when actively working on them)_
 
 ## Completed
 
+- [x] "Missed only" replay — "Retry missed (N)" button on end screen replays wrong answers without an API call
 - [x] Question count guard — `GET /quiz` returns `{questions, requested, returned}`; UI shows amber notice when fewer questions served than requested
 - [x] End-of-quiz review — "Review Answers" button on end screen shows all Q&A with color-coded options + explanations
 - [x] Keyboard shortcuts — `1`–`4` select option, `Enter`/`Space` confirm or advance, `→` next

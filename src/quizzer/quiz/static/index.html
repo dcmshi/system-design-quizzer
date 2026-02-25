@@ -469,6 +469,7 @@
         <button class="btn btn-primary" id="btn-play-again">Play Again</button>
       </div>
       <button class="btn btn-secondary" id="btn-show-review" style="width:100%;margin-top:0.5rem;">Review Answers</button>
+      <button class="btn btn-secondary" id="btn-retry-missed" style="width:100%;margin-top:0.5rem;display:none;"></button>
     </div>
   </div>
 
@@ -545,6 +546,7 @@
   const btnPlayAgain   = document.getElementById('btn-play-again');
   const btnReview      = document.getElementById('btn-review');
   const btnShowReview  = document.getElementById('btn-show-review');
+  const btnRetryMissed = document.getElementById('btn-retry-missed');
   const btnBackEnd     = document.getElementById('btn-back-end');
   const reviewList     = document.getElementById('review-list');
   const errorTitle     = document.getElementById('error-title');
@@ -815,7 +817,29 @@
     endFraction.textContent = `${state.score} / ${total} correct`;
     endMsg.textContent = scoreMessage(pct);
 
+    // Show "Retry missed" only when there are wrong answers
+    const missedCount = state.results.filter(r => !r.correct).length;
+    if (missedCount > 0) {
+      btnRetryMissed.textContent = `Retry missed (${missedCount})`;
+      btnRetryMissed.style.display = 'block';
+    } else {
+      btnRetryMissed.style.display = 'none';
+    }
+
     showScreen('end');
+  }
+
+  function replayMissed() {
+    const missed = state.results.filter(r => !r.correct).map(r => r.question);
+    state.questions = missed;
+    state.current = 0;
+    state.score = 0;
+    state.answered = false;
+    state.results = [];
+    state.keyboardFocus = null;
+    shortfallNotice.classList.remove('visible');
+    renderQuestion();
+    showScreen('question');
   }
 
   function showReview() {
@@ -891,6 +915,7 @@
   btnPlayAgain.addEventListener('click', startQuiz);
   btnReview.addEventListener('click', () => showScreen('setup'));
   btnShowReview.addEventListener('click', showReview);
+  btnRetryMissed.addEventListener('click', replayMissed);
   btnBackEnd.addEventListener('click', () => { showScreen('end'); window.scrollTo({ top: 0, behavior: 'instant' }); });
   btnRetry.addEventListener('click', () => showScreen('setup'));
 
