@@ -131,6 +131,12 @@ uv run python scripts/ingest.py --dry-run --verbose
 
 # Use a different model (must match ollama list)
 uv run python scripts/ingest.py --model llama3.2 --verbose
+
+# List all ingested documents with question counts (no Ollama required)
+uv run python scripts/ingest.py --list
+
+# Show question counts broken down by status and difficulty (no Ollama required)
+uv run python scripts/ingest.py --stats
 ```
 
 The pipeline for each article:
