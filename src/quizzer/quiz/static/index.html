@@ -284,6 +284,85 @@
     }
     .end-actions .btn { flex: 1; }
 
+    /* ── Review screen ── */
+    .review-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .review-header h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+    #review-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .review-q-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    .review-q-num {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .review-result-badge {
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 0.18rem 0.55rem;
+      border-radius: 999px;
+    }
+    .review-result-badge.correct { background: #14532d; color: #86efac; }
+    .review-result-badge.wrong   { background: #7f1d1d; color: #fca5a5; }
+    .review-q-text {
+      font-size: 1rem;
+      font-weight: 500;
+      line-height: 1.55;
+      margin: 0.5rem 0 1rem;
+    }
+    .review-options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      margin-bottom: 1rem;
+    }
+    .review-option {
+      padding: 0.65rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+    .review-option.correct {
+      border-color: var(--green);
+      background: #14532d33;
+      color: #86efac;
+    }
+    .review-option.wrong {
+      border-color: var(--red);
+      background: #7f1d1d33;
+      color: #fca5a5;
+    }
+    .review-expl {
+      background: var(--surface2);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 6px 6px 0;
+      padding: 0.85rem 1rem;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .review-expl strong { color: var(--text); }
+
     /* ── Error screen ── */
     .error-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
     .error-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem; }
@@ -375,7 +454,17 @@
         <button class="btn btn-secondary" id="btn-review">Back to Setup</button>
         <button class="btn btn-primary" id="btn-play-again">Play Again</button>
       </div>
+      <button class="btn btn-secondary" id="btn-show-review" style="width:100%;margin-top:0.5rem;">Review Answers</button>
     </div>
+  </div>
+
+  <!-- Review -->
+  <div id="screen-review" class="screen">
+    <div class="review-header">
+      <h2>Quiz Review</h2>
+      <button class="btn btn-secondary" id="btn-back-end" style="padding:0.4rem 1rem;font-size:0.85rem;">&larr; Results</button>
+    </div>
+    <div id="review-list"></div>
   </div>
 
   <!-- Error -->
@@ -399,6 +488,7 @@
     loading:  document.getElementById('screen-loading'),
     question: document.getElementById('screen-question'),
     end:      document.getElementById('screen-end'),
+    review:   document.getElementById('screen-review'),
     error:    document.getElementById('screen-error'),
   };
 
@@ -418,6 +508,7 @@
     answered: false,
     totalRequested: 5,
     keyboardFocus: null,
+    results: [],
   };
 
   // ── DOM refs ──────────────────────────────────────────────────────────────
@@ -436,9 +527,12 @@
   const endPct       = document.getElementById('end-pct');
   const endFraction  = document.getElementById('end-fraction');
   const endMsg       = document.getElementById('end-msg');
-  const btnPlayAgain = document.getElementById('btn-play-again');
-  const btnReview    = document.getElementById('btn-review');
-  const errorTitle   = document.getElementById('error-title');
+  const btnPlayAgain   = document.getElementById('btn-play-again');
+  const btnReview      = document.getElementById('btn-review');
+  const btnShowReview  = document.getElementById('btn-show-review');
+  const btnBackEnd     = document.getElementById('btn-back-end');
+  const reviewList     = document.getElementById('review-list');
+  const errorTitle     = document.getElementById('error-title');
   const errorMsg     = document.getElementById('error-msg');
   const btnRetry     = document.getElementById('btn-retry');
 
@@ -570,6 +664,7 @@
     state.current = 0;
     state.score = 0;
     state.answered = false;
+    state.results = [];
 
     showScreen('loading');
 
@@ -652,6 +747,15 @@
 
       if (result.correct) state.score++;
 
+      // Record result for end-of-quiz review
+      state.results.push({
+        question:      q,
+        selectedIndex: selectedIndex,
+        correct:       result.correct,
+        correctIndex:  result.correct_index,
+        explanation:   result.explanation,
+      });
+
       // Explanation
       explanation.innerHTML = `<strong>Explanation:</strong> ${result.explanation}`;
       explanation.classList.add('visible');
@@ -690,6 +794,71 @@
     showScreen('end');
   }
 
+  function showReview() {
+    reviewList.innerHTML = '';
+
+    state.results.forEach((r, i) => {
+      const card = document.createElement('div');
+      card.className = 'card';
+
+      // Q number + result badge
+      const header = document.createElement('div');
+      header.className = 'review-q-header';
+
+      const qNum = document.createElement('span');
+      qNum.className = 'review-q-num';
+      qNum.textContent = `Question ${i + 1} of ${state.results.length}`;
+
+      const badge = document.createElement('span');
+      badge.className = `review-result-badge ${r.correct ? 'correct' : 'wrong'}`;
+      badge.textContent = r.correct ? '✓ Correct' : '✗ Incorrect';
+
+      header.appendChild(qNum);
+      header.appendChild(badge);
+      card.appendChild(header);
+
+      // Difficulty badge
+      const diff = document.createElement('span');
+      diff.className = 'difficulty-badge ' + difficultyClass(r.question.difficulty);
+      diff.textContent = r.question.difficulty || 'unknown';
+      card.appendChild(diff);
+
+      // Question text
+      const qText = document.createElement('p');
+      qText.className = 'review-q-text';
+      qText.textContent = r.question.question;
+      card.appendChild(qText);
+
+      // Options
+      const optsDiv = document.createElement('div');
+      optsDiv.className = 'review-options';
+      r.question.options.forEach((opt, oi) => {
+        const optDiv = document.createElement('div');
+        optDiv.className = 'review-option';
+        const isCorrect  = oi === r.correctIndex;
+        const isSelected = oi === r.selectedIndex;
+        if (isCorrect)       optDiv.classList.add('correct');
+        else if (isSelected) optDiv.classList.add('wrong');
+        let text = `${LABELS[oi]}. ${opt}`;
+        if (isSelected && !isCorrect) text += '  ← your answer';
+        optDiv.textContent = text;
+        optsDiv.appendChild(optDiv);
+      });
+      card.appendChild(optsDiv);
+
+      // Explanation
+      const expl = document.createElement('div');
+      expl.className = 'review-expl';
+      expl.innerHTML = `<strong>Explanation:</strong> ${r.explanation}`;
+      card.appendChild(expl);
+
+      reviewList.appendChild(card);
+    });
+
+    showScreen('review');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+
   // ── Event listeners ───────────────────────────────────────────────────────
   document.addEventListener('keydown', handleKeyDown);
 
@@ -697,6 +866,8 @@
   btnNext.addEventListener('click', nextQuestion);
   btnPlayAgain.addEventListener('click', startQuiz);
   btnReview.addEventListener('click', () => showScreen('setup'));
+  btnShowReview.addEventListener('click', showReview);
+  btnBackEnd.addEventListener('click', () => { showScreen('end'); window.scrollTo({ top: 0, behavior: 'instant' }); });
   btnRetry.addEventListener('click', () => showScreen('setup'));
 
   // Allow Enter key in the setup inputs to start the quiz

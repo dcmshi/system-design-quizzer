@@ -25,7 +25,7 @@ _(move items here when actively working on them)_
 
 ### Quiz experience
 
-- [ ] **End-of-quiz review** — after the results screen, let the user scroll through all questions from the session showing what they answered vs. the correct answer + explanation. Currently results disappear once you leave the end screen.
+- [x] **End-of-quiz review** — after the results screen, let the user scroll through all questions from the session showing what they answered vs. the correct answer + explanation. Currently results disappear once you leave the end screen.
 - [x] **Keyboard shortcuts** — press `1`–`4` to select an option, `Enter`/`Space` to confirm, `→` for next. Speeds up power users significantly.
 - [ ] **Timer mode** — optional per-question countdown (e.g. 30 s). Adds pressure for exam prep.
 - [ ] **"Missed only" replay** — at the end of a quiz, offer to replay just the questions you got wrong with one click.
@@ -60,6 +60,7 @@ _(move items here when actively working on them)_
 
 ## Completed
 
+- [x] End-of-quiz review — "Review Answers" button on end screen shows all Q&A with color-coded options + explanations
 - [x] Keyboard shortcuts — `1`–`4` select option, `Enter`/`Space` confirm or advance, `→` next
 - [x] `--list` — list ingested documents with per-doc question counts; exits without touching Ollama
 - [x] `--stats` — total questions + breakdown by status and difficulty; exits without touching Ollama
