@@ -10,6 +10,7 @@ from quizzer.quiz.schemas import (
     QuestionDetail,
     QuestionEditRequest,
     QuestionSummary,
+    QuizResponse,
     StatusUpdateRequest,
 )
 from quizzer.quiz.service import QuizService
@@ -137,7 +138,7 @@ def update_status(
     return {"id": question_id, "status": body.status}
 
 
-@router.get("/quiz", response_model=list[QuestionSummary])
+@router.get("/quiz", response_model=QuizResponse)
 def get_quiz(
     n: int = Query(5, ge=1, le=50),
     difficulty: str | None = Query(None),
@@ -145,7 +146,7 @@ def get_quiz(
     svc: QuizService = Depends(_get_service),
 ):
     items = svc.get_quiz_sample(n, difficulty, document_id)
-    return [
+    questions = [
         QuestionSummary(
             id=q["id"],
             question=q["question"],
@@ -156,6 +157,7 @@ def get_quiz(
         )
         for q in items
     ]
+    return QuizResponse(questions=questions, requested=n, returned=len(questions))
 
 
 @router.get("/documents", response_model=list[DocumentSummary])

@@ -247,6 +247,19 @@
       display: inline-block;
     }
 
+    .shortfall-notice {
+      font-size: 0.8rem;
+      color: #fde68a;
+      background: #71400833;
+      border: 1px solid #92400e;
+      border-radius: 6px;
+      padding: 0.4rem 0.75rem;
+      margin-bottom: 1rem;
+      text-align: center;
+      display: none;
+    }
+    .shortfall-notice.visible { display: block; }
+
     .kb-hint {
       text-align: center;
       font-size: 0.72rem;
@@ -431,6 +444,7 @@
       <div class="progress-bar">
         <div class="progress-fill" id="progress-fill" style="width:0%"></div>
       </div>
+      <div class="shortfall-notice" id="shortfall-notice"></div>
       <span class="difficulty-badge" id="difficulty-badge"></span>
       <p class="question-text" id="question-text"></p>
       <div class="options" id="options-container"></div>
@@ -516,8 +530,9 @@
   const inputN       = document.getElementById('input-n');
   const inputDiff    = document.getElementById('input-diff');
   const btnStart     = document.getElementById('btn-start');
-  const progressFill = document.getElementById('progress-fill');
-  const progressLbl  = document.getElementById('progress-label');
+  const progressFill     = document.getElementById('progress-fill');
+  const progressLbl      = document.getElementById('progress-label');
+  const shortfallNotice  = document.getElementById('shortfall-notice');
   const scoreLbl     = document.getElementById('score-label');
   const diffBadge    = document.getElementById('difficulty-badge');
   const questionText = document.getElementById('question-text');
@@ -669,8 +684,8 @@
     showScreen('loading');
 
     try {
-      const questions = await fetchQuestions(n, difficulty, documentId);
-      if (!questions || questions.length === 0) {
+      const data = await fetchQuestions(n, difficulty, documentId);
+      if (!data.questions || data.questions.length === 0) {
         const docLabel = inputDoc.options[inputDoc.selectedIndex]?.text;
         const context = documentId ? ` in <strong>${docLabel}</strong>` : '';
         showError(
@@ -681,7 +696,16 @@
         );
         return;
       }
-      state.questions = questions;
+      state.questions = data.questions;
+
+      if (data.returned < data.requested) {
+        shortfallNotice.textContent =
+          `Only ${data.returned} of ${data.requested} requested questions available with these filters.`;
+        shortfallNotice.classList.add('visible');
+      } else {
+        shortfallNotice.classList.remove('visible');
+      }
+
       renderQuestion();
       showScreen('question');
     } catch (err) {

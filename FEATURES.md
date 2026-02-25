@@ -34,7 +34,7 @@ _(move items here when actively working on them)_
 
 - [ ] **Tag-based filtering** — articles already carry tags in frontmatter; expose `GET /quiz?tag=…` and surface a tag selector on the setup screen. Requires propagating tags through chunks → questions at ingest time.
 - [ ] **Multi-document selection** — currently the document selector is single-select; allow picking multiple documents for a cross-topic quiz.
-- [ ] **Question count guard** — if the DB has fewer questions than the requested `n` for a given filter, return what's available and tell the user (`X of N requested`).
+- [x] **Question count guard** — if the DB has fewer questions than the requested `n` for a given filter, return what's available and tell the user (`X of N requested`).
 
 ### Progress tracking & spaced repetition
 
@@ -60,6 +60,7 @@ _(move items here when actively working on them)_
 
 ## Completed
 
+- [x] Question count guard — `GET /quiz` returns `{questions, requested, returned}`; UI shows amber notice when fewer questions served than requested
 - [x] End-of-quiz review — "Review Answers" button on end screen shows all Q&A with color-coded options + explanations
 - [x] Keyboard shortcuts — `1`–`4` select option, `Enter`/`Space` confirm or advance, `→` next
 - [x] `--list` — list ingested documents with per-doc question counts; exits without touching Ollama

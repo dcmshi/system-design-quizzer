@@ -139,9 +139,11 @@ def test_quiz_endpoint(app_client):
     resp = client.get("/api/v1/quiz?n=1")
     assert resp.status_code == 200
     data = resp.json()
-    assert len(data) >= 1
+    assert data["requested"] == 1
+    assert data["returned"] == len(data["questions"])
+    assert len(data["questions"]) >= 1
     # answers must not be in quiz response
-    for q in data:
+    for q in data["questions"]:
         assert "correct_index" not in q
 
 
@@ -214,7 +216,10 @@ def test_quiz_excludes_rejected(app_client):
     client, q_id, _ = app_client
     # Reject the only question
     client.patch(f"/api/v1/questions/{q_id}/status", json={"status": "rejected"})
-    # Quiz should return no results
+    # Quiz should return no results but still reflect the requested count
     resp = client.get("/api/v1/quiz?n=5")
     assert resp.status_code == 200
-    assert resp.json() == []
+    data = resp.json()
+    assert data["questions"] == []
+    assert data["requested"] == 5
+    assert data["returned"] == 0

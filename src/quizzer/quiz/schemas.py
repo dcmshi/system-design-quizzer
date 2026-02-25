@@ -77,3 +77,9 @@ class PaginatedQuestions(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class QuizResponse(BaseModel):
+    questions: list[QuestionSummary]
+    requested: int
+    returned: int
