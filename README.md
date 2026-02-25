@@ -169,6 +169,8 @@ The web UI lets you choose a question count (1–50), filter by difficulty, and 
 
 Base path: `/api/v1`
 
+### Quiz endpoints
+
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/questions` | List questions. Filters: `difficulty`, `status`, `document_id`, `limit`, `offset` |
@@ -176,9 +178,28 @@ Base path: `/api/v1`
 | `GET` | `/questions/{id}/answer` | Get question with correct answer + explanation |
 | `POST` | `/questions/{id}/answer` | Submit answer `{"selected_index": 0}` → `{correct, correct_index, explanation}` |
 | `PATCH` | `/questions/{id}/status` | Update status `{"status": "approved"\|"edited"}` |
-| `GET` | `/quiz` | Random sample. Params: `n` (default 5), `difficulty` |
+| `GET` | `/quiz` | Random sample. Params: `n` (default 5), `difficulty`, `document_id` |
 | `GET` | `/documents` | List documents with question counts |
 | `GET` | `/health` | DB + Ollama connectivity check |
+
+### Spaced repetition (SRS) endpoints
+
+The SRS layer implements the SM-2 algorithm (used by Anki). Questions are
+scheduled based on past performance — correct answers push the next review
+further out; wrong answers reset the interval to 1 day.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/srs/due` | Count of due and new questions. Params: `document_id` |
+| `POST` | `/srs/sessions` | Start a session — returns due/new questions ordered by urgency. Body: `{"n": 10, "document_id": null}` |
+| `POST` | `/srs/sessions/{id}/reviews` | Submit an answer — applies SM-2, returns next due date + new interval. Body: `{"question_id": "…", "selected_index": 2}` |
+| `POST` | `/srs/sessions/{id}/finish` | Close a session — returns correct/wrong counts |
+| `GET` | `/srs/sessions/{id}` | Session details + full review log |
+
+**SM-2 ratings used internally:**
+- `5` — correct answer (ease factor increases)
+- `3` — correct but hesitant (ease factor decreases slightly; reserved for future UI)
+- `0` — wrong answer (interval resets to 1 day, ease factor unchanged)
 
 ### Example session
 
@@ -186,7 +207,7 @@ Base path: `/api/v1`
 # Health check
 curl http://localhost:8000/api/v1/health
 
-# Get a 5-question quiz
+# Get a 5-question quiz (random)
 curl http://localhost:8000/api/v1/quiz?n=5
 
 # Submit an answer
@@ -198,6 +219,30 @@ curl -X POST http://localhost:8000/api/v1/questions/<id>/answer \
 curl -X PATCH http://localhost:8000/api/v1/questions/<id>/status \
   -H "Content-Type: application/json" \
   -d '{"status": "approved"}'
+```
+
+### Example SRS session
+
+```bash
+# Check how many cards are due or new
+curl http://localhost:8000/api/v1/srs/due
+
+# Start a 10-card SRS session
+curl -X POST http://localhost:8000/api/v1/srs/sessions \
+  -H "Content-Type: application/json" \
+  -d '{"n": 10}'
+# → {"session_id": "...", "questions": [...], "started_at": "..."}
+
+# Submit an answer for each question
+curl -X POST http://localhost:8000/api/v1/srs/sessions/<session_id>/reviews \
+  -H "Content-Type: application/json" \
+  -d '{"question_id": "<q_id>", "selected_index": 2}'
+# → {"correct": true, "correct_index": 2, "explanation": "...",
+#    "next_due": "2026-03-03", "interval_days": 1, "ease_factor": 2.6}
+
+# Finish the session
+curl -X POST http://localhost:8000/api/v1/srs/sessions/<session_id>/finish
+# → {"session_id": "...", "n_reviewed": 10, "n_correct": 8, "n_wrong": 2, ...}
 ```
 
 ---
@@ -234,8 +279,8 @@ QUIZZER_OLLAMA_MODEL=llama3.2
 uv run pytest tests/ -v
 ```
 
-41 tests covering: ingestion (loader, chunker), validation (normalizer, schema, dedup),
-generation (prompt, parser, generator), and the full API surface.
+67 tests covering: ingestion (loader, chunker), validation (normalizer, schema, dedup),
+generation (prompt, parser, generator), the full API surface, the SM-2 algorithm, and SRS API.
 
 ---
 
@@ -255,6 +300,12 @@ system_design_quizzer/
 │   ├── generation/             # ollama_client · prompt_builder · generator · models
 │   ├── validation/             # normalizer · schema_validator · duplicate_detector
 │   ├── storage/                # document_repo · question_repo
+│   ├── srs/                    # Spaced repetition (SM-2)
+│   │   ├── algorithm.py        # Pure SM-2 functions (apply_review, initial_state)
+│   │   ├── repository.py       # CRUD for srs_cards · srs_sessions · srs_reviews
+│   │   ├── schemas.py          # SRS request/response models
+│   │   ├── service.py          # Business logic (create_session, submit_review, …)
+│   │   └── router.py           # Routes under /api/v1/srs/
 │   └── quiz/
 │       ├── app.py              # FastAPI app factory + static file mount
 │       ├── router.py           # API routes (/api/v1/...)
@@ -268,7 +319,9 @@ system_design_quizzer/
     ├── test_chunker.py
     ├── test_validator.py
     ├── test_generator.py
-    └── test_api.py
+    ├── test_api.py
+    ├── test_srs_algorithm.py   # SM-2 unit tests
+    └── test_srs_api.py         # SRS API integration tests
 ```
 
 ---

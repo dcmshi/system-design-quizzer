@@ -44,6 +44,38 @@ CREATE TABLE IF NOT EXISTS questions (
 CREATE INDEX IF NOT EXISTS idx_questions_difficulty ON questions(difficulty);
 CREATE INDEX IF NOT EXISTS idx_questions_status     ON questions(status);
 CREATE INDEX IF NOT EXISTS idx_questions_document   ON questions(source_document_id);
+
+CREATE TABLE IF NOT EXISTS srs_cards (
+    question_id    TEXT PRIMARY KEY REFERENCES questions(id) ON DELETE CASCADE,
+    ease_factor    REAL    NOT NULL DEFAULT 2.5,
+    interval_days  INTEGER NOT NULL DEFAULT 0,
+    repetitions    INTEGER NOT NULL DEFAULT 0,
+    due_date       TEXT    NOT NULL,
+    last_reviewed  TEXT,
+    created_at     TEXT    NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS srs_sessions (
+    id             TEXT    PRIMARY KEY,
+    question_count INTEGER NOT NULL DEFAULT 0,
+    started_at     TEXT    NOT NULL,
+    finished_at    TEXT
+);
+
+CREATE TABLE IF NOT EXISTS srs_reviews (
+    id                TEXT    PRIMARY KEY,
+    session_id        TEXT    NOT NULL REFERENCES srs_sessions(id) ON DELETE CASCADE,
+    question_id       TEXT    NOT NULL REFERENCES questions(id),
+    rating            INTEGER NOT NULL CHECK(rating IN (0, 3, 5)),
+    was_correct       INTEGER NOT NULL CHECK(was_correct IN (0, 1)),
+    ease_factor_after REAL    NOT NULL,
+    interval_after    INTEGER NOT NULL,
+    reviewed_at       TEXT    NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_srs_cards_due       ON srs_cards(due_date);
+CREATE INDEX IF NOT EXISTS idx_srs_reviews_session  ON srs_reviews(session_id);
+CREATE INDEX IF NOT EXISTS idx_srs_reviews_question ON srs_reviews(question_id);
 """
 
 
