@@ -137,20 +137,36 @@ class QuestionRepository:
         n: int,
         difficulty: str | None = None,
         document_id: str | None = None,
+        tag: str | None = None,
     ) -> list[dict]:
-        filters: list[str] = ["status != 'rejected'"]
+        filters: list[str] = ["q.status != 'rejected'"]
         params: list = []
+
         if difficulty:
-            filters.append("difficulty = ?")
+            filters.append("q.difficulty = ?")
             params.append(difficulty)
         if document_id:
-            filters.append("source_document_id = ?")
+            filters.append("q.source_document_id = ?")
             params.append(document_id)
-        where = ("WHERE " + " AND ".join(filters)) if filters else ""
+        if tag:
+            filters.append(
+                "EXISTS (SELECT 1 FROM json_each(d.tags) WHERE value = ?)"
+            )
+            params.append(tag)
+
+        where = "WHERE " + " AND ".join(filters)
         params.append(n)
-        rows = self._conn.execute(
-            f"SELECT * FROM questions {where} ORDER BY RANDOM() LIMIT ?", params
-        ).fetchall()
+
+        if tag:
+            sql = (
+                f"SELECT q.* FROM questions q "
+                f"JOIN documents d ON q.source_document_id = d.id "
+                f"{where} ORDER BY RANDOM() LIMIT ?"
+            )
+        else:
+            sql = f"SELECT q.* FROM questions q {where} ORDER BY RANDOM() LIMIT ?"
+
+        rows = self._conn.execute(sql, params).fetchall()
         return [self._row_to_dict(r) for r in rows]
 
     def count_by_document(self, document_id: str) -> int:

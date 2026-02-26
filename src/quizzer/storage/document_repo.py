@@ -83,6 +83,12 @@ class DocumentRepository:
             for r in rows
         ]
 
+    def list_all_tags(self) -> list[str]:
+        rows = self._conn.execute(
+            "SELECT DISTINCT value FROM documents, json_each(documents.tags) ORDER BY value"
+        ).fetchall()
+        return [r["value"] for r in rows]
+
     def list_chunks(self, document_id: str) -> list[Chunk]:
         rows = self._conn.execute(
             "SELECT * FROM chunks WHERE document_id = ? ORDER BY chunk_index", (document_id,)

@@ -32,7 +32,7 @@ _(move items here when actively working on them)_
 
 ### Filtering & discovery
 
-- [ ] **Tag-based filtering** — articles already carry tags in frontmatter; expose `GET /quiz?tag=…` and surface a tag selector on the setup screen. Requires propagating tags through chunks → questions at ingest time.
+- [x] **Tag-based filtering** — articles already carry tags in frontmatter; expose `GET /quiz?tag=…` and surface a tag selector on the setup screen. Requires propagating tags through chunks → questions at ingest time.
 - [ ] **Multi-document selection** — currently the document selector is single-select; allow picking multiple documents for a cross-topic quiz.
 - [x] **Question count guard** — if the DB has fewer questions than the requested `n` for a given filter, return what's available and tell the user (`X of N requested`).
 
@@ -41,7 +41,7 @@ _(move items here when actively working on them)_
 - [ ] **Session history** — persist quiz results (question ID, selected index, correct, timestamp) to a `sessions` table. Enables all analytics below.
 - [ ] **Per-question hit rate** — track how often each question is answered correctly. Surface this in the review UI and use it to inform difficulty calibration.
 - [ ] **Weak-topic replay** — surface questions from topics you've historically scored worst on. Simple heuristic: sort by ascending hit rate, pick bottom quartile.
-- [ ] **Spaced repetition mode** — SM-2 or a simple interval-based scheduler so high-confidence questions surface less often. Depends on session history.
+- [x] **Spaced repetition mode** — SM-2 backend (`srs_cards`, `srs_sessions`, `srs_reviews` tables; `algorithm.py` pure functions; `/api/v1/srs/` routes) + frontend SRS mode (mode toggle, per-answer "Next review: in X days", session summary, stats dashboard with per-document due/new table).
 
 ### Export & interop
 
@@ -79,4 +79,5 @@ _(move items here when actively working on them)_
 - [x] Vanilla JS quiz UI (setup → loading → question → end → error screens)
 - [x] Document selector on setup screen
 - [x] Difficulty filter in quiz setup and API
+- [x] Tag-based filtering — `GET /tags` + `GET /quiz?tag=…`; tag selector dropdown in random-mode setup (hidden when no tags exist)
 - [x] `html_to_md.py` preprocessor for ByteByteGo HTML pages

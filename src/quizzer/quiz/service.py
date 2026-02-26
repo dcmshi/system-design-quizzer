@@ -50,8 +50,12 @@ class QuizService:
         n: int,
         difficulty: str | None = None,
         document_id: str | None = None,
+        tag: str | None = None,
     ) -> list[dict]:
-        return self.questions.get_random_sample(n, difficulty, document_id)
+        return self.questions.get_random_sample(n, difficulty, document_id, tag)
+
+    def list_tags(self) -> list[str]:
+        return self.documents.list_all_tags()
 
     def check_answer(self, question_id: str, selected_index: int) -> dict | None:
         q = self.questions.get_by_id(question_id)

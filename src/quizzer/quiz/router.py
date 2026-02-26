@@ -138,14 +138,20 @@ def update_status(
     return {"id": question_id, "status": body.status}
 
 
+@router.get("/tags", response_model=list[str])
+def list_tags(svc: QuizService = Depends(_get_service)):
+    return svc.list_tags()
+
+
 @router.get("/quiz", response_model=QuizResponse)
 def get_quiz(
     n: int = Query(5, ge=1, le=50),
     difficulty: str | None = Query(None),
     document_id: str | None = Query(None),
+    tag: str | None = Query(None),
     svc: QuizService = Depends(_get_service),
 ):
-    items = svc.get_quiz_sample(n, difficulty, document_id)
+    items = svc.get_quiz_sample(n, difficulty, document_id, tag)
     questions = [
         QuestionSummary(
             id=q["id"],

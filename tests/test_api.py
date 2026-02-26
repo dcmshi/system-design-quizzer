@@ -32,7 +32,7 @@ def app_client(tmp_path: Path, monkeypatch):
     conn.execute(
         "INSERT INTO documents (id, title, source, content, tags, source_path, created_at) "
         "VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (doc_id, "Test Doc", "blog", "Content.", "[]", "test/doc.md", datetime.now(timezone.utc).isoformat()),
+        (doc_id, "Test Doc", "blog", "Content.", json.dumps(["caching", "distributed"]), "test/doc.md", datetime.now(timezone.utc).isoformat()),
     )
     conn.execute(
         "INSERT INTO chunks (id, document_id, content, word_count, chunk_index, created_at) "
@@ -222,4 +222,32 @@ def test_quiz_excludes_rejected(app_client):
     data = resp.json()
     assert data["questions"] == []
     assert data["requested"] == 5
+    assert data["returned"] == 0
+
+
+def test_tags_endpoint(app_client):
+    client, _, _ = app_client
+    resp = client.get("/api/v1/tags")
+    assert resp.status_code == 200
+    tags = resp.json()
+    assert "caching" in tags
+    assert "distributed" in tags
+    assert tags == sorted(tags)
+
+
+def test_quiz_tag_filter_match(app_client):
+    client, q_id, _ = app_client
+    resp = client.get("/api/v1/quiz?n=5&tag=caching")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data["questions"]) >= 1
+    assert any(q["id"] == q_id for q in data["questions"])
+
+
+def test_quiz_tag_filter_no_match(app_client):
+    client, _, _ = app_client
+    resp = client.get("/api/v1/quiz?n=5&tag=nonexistent")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["questions"] == []
     assert data["returned"] == 0

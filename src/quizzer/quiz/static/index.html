@@ -606,6 +606,11 @@
         <label for="input-n">Number of questions</label>
         <input type="number" id="input-n" value="5" min="1" max="50">
 
+        <label for="input-tag" id="label-tag" style="display:none;">Tag</label>
+        <select id="input-tag" style="display:none;">
+          <option value="">Any tag</option>
+        </select>
+
         <label for="input-diff">Difficulty</label>
         <select id="input-diff">
           <option value="">Any difficulty</option>
@@ -782,6 +787,7 @@
   // ── DOM refs ──────────────────────────────────────────────────────────────
   const inputDoc     = document.getElementById('input-doc');
   const inputN       = document.getElementById('input-n');
+  const inputTag     = document.getElementById('input-tag');
   const inputDiff    = document.getElementById('input-diff');
   const inputSrsN    = document.getElementById('input-srs-n');
   const labelSrsN    = document.getElementById('label-srs-n');
@@ -950,10 +956,28 @@
     }
   }
 
-  async function fetchQuestions(n, difficulty, documentId) {
+  async function loadTags() {
+    try {
+      const res = await fetch('/api/v1/tags');
+      if (!res.ok) return;
+      const tags = await res.json();
+      if (tags.length === 0) return;
+      tags.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t;
+        opt.textContent = t;
+        inputTag.appendChild(opt);
+      });
+      document.getElementById('label-tag').style.display = 'block';
+      inputTag.style.display = 'block';
+    } catch (_) {}
+  }
+
+  async function fetchQuestions(n, difficulty, documentId, tag) {
     let url = `/api/v1/quiz?n=${n}`;
     if (difficulty) url += `&difficulty=${encodeURIComponent(difficulty)}`;
     if (documentId) url += `&document_id=${encodeURIComponent(documentId)}`;
+    if (tag) url += `&tag=${encodeURIComponent(tag)}`;
     const res = await fetch(url);
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
@@ -1042,6 +1066,7 @@
 
     const difficulty = inputDiff.value.trim();
     const documentId = inputDoc.value.trim();
+    const tag = inputTag.value.trim();
 
     state.totalRequested = n;
     state.questions = [];
@@ -1055,7 +1080,7 @@
     showScreen('loading');
 
     try {
-      const data = await fetchQuestions(n, difficulty, documentId);
+      const data = await fetchQuestions(n, difficulty, documentId, tag);
       if (!data.questions || data.questions.length === 0) {
         const docLabel = inputDoc.options[inputDoc.selectedIndex]?.text;
         const context = documentId ? ` in <strong>${docLabel}</strong>` : '';
@@ -1460,8 +1485,9 @@
     });
   });
 
-  // Populate document dropdown on load
+  // Populate document and tag dropdowns on load
   loadDocuments();
+  loadTags();
 </script>
 </body>
 </html>
