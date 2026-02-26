@@ -392,6 +392,187 @@
       font-size: 0.85rem;
       color: var(--accent);
     }
+
+    /* ── Mode toggle ── */
+    .mode-toggle {
+      display: flex;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 3px;
+      margin-bottom: 1.75rem;
+      gap: 3px;
+    }
+    .mode-btn {
+      flex: 1;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      font-family: var(--font);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      color: var(--text-muted);
+      background: transparent;
+    }
+    .mode-btn.active {
+      background: var(--accent);
+      color: #fff;
+    }
+    .mode-btn:not(.active):hover {
+      color: var(--text);
+    }
+
+    /* ── Due info pill (SRS mode) ── */
+    .due-info {
+      display: none;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.65rem 1rem;
+      margin-bottom: 1.25rem;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+    .due-info.visible { display: block; }
+    .due-info .due-count {
+      font-weight: 700;
+      color: var(--yellow);
+    }
+    .due-info .new-count {
+      font-weight: 700;
+      color: var(--green);
+    }
+    .due-info .due-sep {
+      margin: 0 0.4rem;
+      opacity: 0.5;
+    }
+
+    /* ── SRS next-review info (question screen) ── */
+    .srs-next-info {
+      display: none;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.55rem 0.9rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 1.25rem;
+      text-align: center;
+    }
+    .srs-next-info.visible { display: block; }
+    .srs-interval {
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    /* ── SRS end info (end screen) ── */
+    .srs-end-info {
+      display: none;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.65rem 1rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 0.75rem;
+    }
+    .srs-end-info.visible { display: block; }
+    .srs-end-info .srs-correct { font-weight: 700; color: var(--green); }
+    .srs-end-info .srs-wrong   { font-weight: 700; color: var(--red); }
+
+    /* ── Stats screen ── */
+    #screen-stats .stats-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.75rem;
+    }
+    #screen-stats .stats-header h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1.75rem;
+    }
+    .stat-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+      margin-bottom: 0.35rem;
+    }
+    .stat-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .stats-section-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 0.6rem;
+    }
+    .doc-table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+    }
+    .doc-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    .doc-table thead tr {
+      background: var(--surface2);
+    }
+    .doc-table th {
+      padding: 0.55rem 0.9rem;
+      text-align: left;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border-bottom: 1px solid var(--border);
+    }
+    .doc-table th:not(:first-child) { text-align: right; }
+    .doc-table td {
+      padding: 0.6rem 0.9rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+    .doc-table td:not(:first-child) { text-align: right; }
+    .doc-table tr:last-child td { border-bottom: none; }
+    .doc-table .td-due   { font-weight: 700; color: var(--yellow); }
+    .doc-table .td-new   { font-weight: 700; color: var(--green); }
+    .doc-table .td-total { color: var(--text-muted); }
+    .doc-table .td-none  { color: var(--border); }
+    #stats-empty {
+      text-align: center;
+      color: var(--text-muted);
+      padding: 1.5rem 0;
+      font-size: 0.9rem;
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -401,28 +582,49 @@
   <div id="screen-setup" class="screen active">
     <div class="card">
       <h1>System Design Quiz</h1>
-      <p class="subtitle">Test your knowledge of distributed systems & architecture</p>
+      <p class="subtitle">Test your knowledge of distributed systems &amp; architecture</p>
+
+      <!-- Mode toggle -->
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="btn-mode-random">Random Quiz</button>
+        <button class="mode-btn" id="btn-mode-srs">SRS Review</button>
+      </div>
 
       <label for="input-doc">Question bank</label>
       <select id="input-doc">
         <option value="">All documents</option>
       </select>
 
-      <label for="input-n">Number of questions</label>
-      <input type="number" id="input-n" value="5" min="1" max="50">
+      <!-- Due info pill (SRS only) -->
+      <div class="due-info" id="due-info">
+        <span class="due-count" id="due-count">0</span> due
+        <span class="due-sep">·</span>
+        <span class="new-count" id="new-count">0</span> new
+      </div>
 
-      <label for="input-diff">Difficulty</label>
-      <select id="input-diff">
-        <option value="">Any difficulty</option>
-        <option value="easy">Easy</option>
-        <option value="medium">Medium</option>
-        <option value="hard">Hard</option>
-      </select>
+      <div id="random-only-fields">
+        <label for="input-n">Number of questions</label>
+        <input type="number" id="input-n" value="5" min="1" max="50">
+
+        <label for="input-diff">Difficulty</label>
+        <select id="input-diff">
+          <option value="">Any difficulty</option>
+          <option value="easy">Easy</option>
+          <option value="medium">Medium</option>
+          <option value="hard">Hard</option>
+        </select>
+      </div>
+
+      <label for="input-srs-n" id="label-srs-n" style="display:none;">Cards per session</label>
+      <input type="number" id="input-srs-n" value="10" min="1" max="100" style="display:none;">
 
       <button class="btn btn-primary" id="btn-start">Start Quiz</button>
-      <p style="text-align:center;margin-top:1rem;">
+      <p style="text-align:center;margin-top:1rem;display:flex;justify-content:center;gap:1.5rem;">
         <a href="/review/" style="color:var(--text-muted);font-size:0.85rem;text-decoration:none;">
           Review questions &rarr;
+        </a>
+        <a href="#" id="link-stats" style="color:var(--text-muted);font-size:0.85rem;text-decoration:none;">
+          SRS Stats &rarr;
         </a>
       </p>
     </div>
@@ -449,6 +651,9 @@
       <p class="question-text" id="question-text"></p>
       <div class="options" id="options-container"></div>
       <div class="explanation" id="explanation"></div>
+      <div class="srs-next-info" id="srs-next-info">
+        Next review: <span class="srs-interval" id="srs-interval-text"></span>
+      </div>
       <div class="next-row">
         <button class="btn btn-primary" id="btn-next">Next &rarr;</button>
       </div>
@@ -464,6 +669,7 @@
         <div class="score-fraction" id="end-fraction"></div>
         <div class="score-message" id="end-msg"></div>
       </div>
+      <div class="srs-end-info" id="srs-end-info">Finishing session&hellip;</div>
       <div class="end-actions">
         <button class="btn btn-secondary" id="btn-review">Back to Setup</button>
         <button class="btn btn-primary" id="btn-play-again">Play Again</button>
@@ -480,6 +686,49 @@
       <button class="btn btn-secondary" id="btn-back-end" style="padding:0.4rem 1rem;font-size:0.85rem;">&larr; Results</button>
     </div>
     <div id="review-list"></div>
+  </div>
+
+  <!-- Stats -->
+  <div id="screen-stats" class="screen">
+    <div class="card">
+      <div class="stats-header">
+        <button class="btn btn-secondary" id="btn-stats-back" style="padding:0.4rem 0.9rem;font-size:0.85rem;">&larr; Back</button>
+        <h2>SRS Progress</h2>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="stats-due">—</div>
+          <div class="stat-label">Due Today</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stats-new">—</div>
+          <div class="stat-label">New Cards</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stats-total">—</div>
+          <div class="stat-label">Actionable</div>
+        </div>
+      </div>
+
+      <div class="stats-section-title">By Document</div>
+      <div class="doc-table-wrap">
+        <table class="doc-table">
+          <thead>
+            <tr>
+              <th>Document</th>
+              <th>Due</th>
+              <th>New</th>
+              <th>Total Q</th>
+            </tr>
+          </thead>
+          <tbody id="doc-table-body"></tbody>
+        </table>
+        <div id="stats-empty">No documents found. Ingest articles to get started.</div>
+      </div>
+
+      <button class="btn btn-primary" id="btn-stats-start-srs">Start SRS Session &rarr;</button>
+    </div>
   </div>
 
   <!-- Error -->
@@ -504,6 +753,7 @@
     question: document.getElementById('screen-question'),
     end:      document.getElementById('screen-end'),
     review:   document.getElementById('screen-review'),
+    stats:    document.getElementById('screen-stats'),
     error:    document.getElementById('screen-error'),
   };
 
@@ -524,13 +774,24 @@
     totalRequested: 5,
     keyboardFocus: null,
     results: [],
+    mode: 'random',        // 'random' | 'srs'
+    srsSessionId: null,
+    srsFinishData: null,
   };
 
   // ── DOM refs ──────────────────────────────────────────────────────────────
   const inputDoc     = document.getElementById('input-doc');
   const inputN       = document.getElementById('input-n');
   const inputDiff    = document.getElementById('input-diff');
+  const inputSrsN    = document.getElementById('input-srs-n');
+  const labelSrsN    = document.getElementById('label-srs-n');
+  const randomOnlyFields = document.getElementById('random-only-fields');
   const btnStart     = document.getElementById('btn-start');
+  const btnModeRandom = document.getElementById('btn-mode-random');
+  const btnModeSrs   = document.getElementById('btn-mode-srs');
+  const dueInfo      = document.getElementById('due-info');
+  const dueCount     = document.getElementById('due-count');
+  const newCount     = document.getElementById('new-count');
   const progressFill     = document.getElementById('progress-fill');
   const progressLbl      = document.getElementById('progress-label');
   const shortfallNotice  = document.getElementById('shortfall-notice');
@@ -539,10 +800,13 @@
   const questionText = document.getElementById('question-text');
   const optionsCont  = document.getElementById('options-container');
   const explanation  = document.getElementById('explanation');
+  const srsNextInfo  = document.getElementById('srs-next-info');
+  const srsIntervalText = document.getElementById('srs-interval-text');
   const btnNext      = document.getElementById('btn-next');
   const endPct       = document.getElementById('end-pct');
   const endFraction  = document.getElementById('end-fraction');
   const endMsg       = document.getElementById('end-msg');
+  const srsEndInfo   = document.getElementById('srs-end-info');
   const btnPlayAgain   = document.getElementById('btn-play-again');
   const btnReview      = document.getElementById('btn-review');
   const btnShowReview  = document.getElementById('btn-show-review');
@@ -552,6 +816,13 @@
   const errorTitle     = document.getElementById('error-title');
   const errorMsg     = document.getElementById('error-msg');
   const btnRetry     = document.getElementById('btn-retry');
+  const btnStatsBack    = document.getElementById('btn-stats-back');
+  const btnStatsStartSrs = document.getElementById('btn-stats-start-srs');
+  const statsDue     = document.getElementById('stats-due');
+  const statsNew     = document.getElementById('stats-new');
+  const statsTotal   = document.getElementById('stats-total');
+  const docTableBody = document.getElementById('doc-table-body');
+  const statsEmpty   = document.getElementById('stats-empty');
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   const LABELS = ['A', 'B', 'C', 'D'];
@@ -568,10 +839,51 @@
     return 'Keep studying — you\'ll get there!';
   }
 
+  function formatInterval(days) {
+    if (days <= 0) return 'today';
+    if (days === 1) return 'in 1 day';
+    return `in ${days} days`;
+  }
+
   function showError(title, msg) {
     errorTitle.textContent = title;
     errorMsg.innerHTML = msg;
     showScreen('error');
+  }
+
+  // ── Mode switching ─────────────────────────────────────────────────────────
+  function setMode(mode) {
+    state.mode = mode;
+    btnModeRandom.classList.toggle('active', mode === 'random');
+    btnModeSrs.classList.toggle('active', mode === 'srs');
+
+    if (mode === 'random') {
+      randomOnlyFields.style.display = 'block';
+      labelSrsN.style.display = 'none';
+      inputSrsN.style.display = 'none';
+      dueInfo.classList.remove('visible');
+      btnStart.textContent = 'Start Quiz';
+    } else {
+      randomOnlyFields.style.display = 'none';
+      labelSrsN.style.display = 'block';
+      inputSrsN.style.display = 'block';
+      dueInfo.classList.add('visible');
+      btnStart.textContent = 'Start SRS Session';
+      refreshDueInfo();
+    }
+  }
+
+  async function refreshDueInfo() {
+    if (state.mode !== 'srs') return;
+    try {
+      const docId = inputDoc.value.trim();
+      const data = await loadDueInfo(docId || null);
+      dueCount.textContent = data.due_count;
+      newCount.textContent = data.new_count;
+    } catch (_) {
+      dueCount.textContent = '?';
+      newCount.textContent = '?';
+    }
   }
 
   // ── Keyboard shortcuts ────────────────────────────────────────────────────
@@ -592,7 +904,6 @@
   function handleKeyDown(e) {
     if (currentScreen !== 'question') return;
 
-    // 1–4: highlight option
     const digit = KEY_TO_INDEX[e.key];
     if (digit !== undefined) {
       const btns = optionsCont.querySelectorAll('.option-btn');
@@ -603,9 +914,7 @@
       return;
     }
 
-    // Enter / Space: confirm selection or advance
     if (e.key === 'Enter' || e.key === ' ') {
-      // Let native button-click handle it when a <button> has DOM focus
       if (document.activeElement?.tagName === 'BUTTON') return;
       e.preventDefault();
       if (!state.answered && state.keyboardFocus !== null) {
@@ -617,7 +926,6 @@
       return;
     }
 
-    // →: advance to next question
     if (e.key === 'ArrowRight') {
       if (state.answered && btnNext.classList.contains('visible')) {
         nextQuestion();
@@ -638,7 +946,7 @@
         inputDoc.appendChild(opt);
       });
     } catch (_) {
-      // Non-fatal — dropdown just stays as "All documents"
+      // Non-fatal
     }
   }
 
@@ -667,14 +975,73 @@
     return res.json();
   }
 
+  async function startSrsSession(n, documentId) {
+    const body = { n };
+    if (documentId) body.document_id = documentId;
+    const res = await fetch('/api/v1/srs/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const b = await res.json().catch(() => ({}));
+      throw new Error(b.detail || `HTTP ${res.status}`);
+    }
+    return res.json();
+  }
+
+  async function submitSrsReview(sessionId, questionId, selectedIndex) {
+    const res = await fetch(`/api/v1/srs/sessions/${sessionId}/reviews`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question_id: questionId, selected_index: selectedIndex }),
+    });
+    if (!res.ok) {
+      const b = await res.json().catch(() => ({}));
+      throw new Error(b.detail || `HTTP ${res.status}`);
+    }
+    return res.json();
+  }
+
+  async function finishSrsSession(sessionId) {
+    const res = await fetch(`/api/v1/srs/sessions/${sessionId}/finish`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!res.ok) {
+      const b = await res.json().catch(() => ({}));
+      throw new Error(b.detail || `HTTP ${res.status}`);
+    }
+    return res.json();
+  }
+
+  async function loadDueInfo(documentId) {
+    let url = '/api/v1/srs/due';
+    if (documentId) url += `?document_id=${encodeURIComponent(documentId)}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      const b = await res.json().catch(() => ({}));
+      throw new Error(b.detail || `HTTP ${res.status}`);
+    }
+    return res.json();
+  }
+
   // ── Quiz flow ─────────────────────────────────────────────────────────────
   async function startQuiz() {
+    if (state.mode === 'srs') {
+      await startSrsFlow();
+    } else {
+      await startRandomFlow();
+    }
+  }
+
+  async function startRandomFlow() {
     let n = parseInt(inputN.value, 10);
     if (!n || n < 1) n = 1;
     n = Math.min(n, 50);
 
-    const difficulty  = inputDiff.value.trim();
-    const documentId  = inputDoc.value.trim();
+    const difficulty = inputDiff.value.trim();
+    const documentId = inputDoc.value.trim();
 
     state.totalRequested = n;
     state.questions = [];
@@ -682,6 +1049,8 @@
     state.score = 0;
     state.answered = false;
     state.results = [];
+    state.srsSessionId = null;
+    state.srsFinishData = null;
 
     showScreen('loading');
 
@@ -715,6 +1084,46 @@
     }
   }
 
+  async function startSrsFlow() {
+    let n = parseInt(inputSrsN.value, 10);
+    if (!n || n < 1) n = 1;
+    n = Math.min(n, 100);
+
+    const documentId = inputDoc.value.trim();
+
+    state.totalRequested = n;
+    state.questions = [];
+    state.current = 0;
+    state.score = 0;
+    state.answered = false;
+    state.results = [];
+    state.srsSessionId = null;
+    state.srsFinishData = null;
+
+    showScreen('loading');
+
+    try {
+      const data = await startSrsSession(n, documentId || null);
+
+      if (!data.questions || data.questions.length === 0) {
+        showError(
+          'No cards due',
+          `No cards are due for review right now. Come back later or ingest more articles.`
+        );
+        return;
+      }
+
+      state.srsSessionId = data.session_id;
+      state.questions = data.questions;
+      shortfallNotice.classList.remove('visible');
+
+      renderQuestion();
+      showScreen('question');
+    } catch (err) {
+      showError('Failed to start SRS session', `Could not reach the API: ${err.message}`);
+    }
+  }
+
   function renderQuestion() {
     const q = state.questions[state.current];
     const total = state.questions.length;
@@ -745,9 +1154,10 @@
       optionsCont.appendChild(btn);
     });
 
-    // Reset explanation + next
+    // Reset explanation + next + srs info
     explanation.textContent = '';
     explanation.classList.remove('visible');
+    srsNextInfo.classList.remove('visible');
     btnNext.classList.remove('visible');
   }
 
@@ -755,7 +1165,6 @@
     if (state.answered) return;
     state.answered = true;
 
-    // Disable all options immediately and clear keyboard focus highlight
     const allBtns = optionsCont.querySelectorAll('.option-btn');
     allBtns.forEach(b => { b.disabled = true; });
     clearKeyboardFocus();
@@ -763,7 +1172,13 @@
     const q = state.questions[state.current];
 
     try {
-      const result = await submitAnswer(q.id, selectedIndex);
+      let result;
+
+      if (state.mode === 'srs' && state.srsSessionId) {
+        result = await submitSrsReview(state.srsSessionId, q.id, selectedIndex);
+      } else {
+        result = await submitAnswer(q.id, selectedIndex);
+      }
 
       // Colour feedback
       allBtns[result.correct_index].classList.add('correct');
@@ -773,7 +1188,6 @@
 
       if (result.correct) state.score++;
 
-      // Record result for end-of-quiz review
       state.results.push({
         question:      q,
         selectedIndex: selectedIndex,
@@ -786,11 +1200,16 @@
       explanation.innerHTML = `<strong>Explanation:</strong> ${result.explanation}`;
       explanation.classList.add('visible');
 
+      // SRS next-review info
+      if (state.mode === 'srs' && result.interval_days !== undefined) {
+        srsIntervalText.textContent = formatInterval(result.interval_days);
+        srsNextInfo.classList.add('visible');
+      }
+
       // Next / Finish button
       btnNext.textContent = state.current + 1 < state.questions.length ? 'Next \u2192' : 'See Results';
       btnNext.classList.add('visible');
     } catch (err) {
-      // Re-enable so user can try again
       state.answered = false;
       allBtns.forEach(b => { b.disabled = false; });
       showError('Answer submission failed', err.message);
@@ -806,27 +1225,48 @@
     }
   }
 
-  function showEnd() {
+  async function showEnd() {
     const total = state.questions.length;
     const pct = total > 0 ? Math.round((state.score / total) * 100) : 0;
 
-    // Final progress fill
     progressFill.style.width = '100%';
 
     endPct.textContent = `${pct}%`;
     endFraction.textContent = `${state.score} / ${total} correct`;
     endMsg.textContent = scoreMessage(pct);
 
-    // Show "Retry missed" only when there are wrong answers
     const missedCount = state.results.filter(r => !r.correct).length;
-    if (missedCount > 0) {
+    if (missedCount > 0 && state.mode === 'random') {
       btnRetryMissed.textContent = `Retry missed (${missedCount})`;
       btnRetryMissed.style.display = 'block';
     } else {
       btnRetryMissed.style.display = 'none';
     }
 
+    btnPlayAgain.textContent = state.mode === 'srs' ? 'New SRS Session' : 'Play Again';
+
+    // SRS end info
+    if (state.mode === 'srs' && state.srsSessionId) {
+      srsEndInfo.textContent = 'Finishing session\u2026';
+      srsEndInfo.classList.add('visible');
+    } else {
+      srsEndInfo.classList.remove('visible');
+    }
+
     showScreen('end');
+
+    // Finish SRS session asynchronously after screen is shown
+    if (state.mode === 'srs' && state.srsSessionId) {
+      try {
+        const data = await finishSrsSession(state.srsSessionId);
+        state.srsFinishData = data;
+        srsEndInfo.innerHTML =
+          `Session: <span class="srs-correct">${data.n_correct} correct</span>` +
+          ` &middot; <span class="srs-wrong">${data.n_wrong} wrong</span>`;
+      } catch (_) {
+        srsEndInfo.textContent = 'Session complete.';
+      }
+    }
   }
 
   function replayMissed() {
@@ -849,7 +1289,6 @@
       const card = document.createElement('div');
       card.className = 'card';
 
-      // Q number + result badge
       const header = document.createElement('div');
       header.className = 'review-q-header';
 
@@ -865,19 +1304,16 @@
       header.appendChild(badge);
       card.appendChild(header);
 
-      // Difficulty badge
       const diff = document.createElement('span');
       diff.className = 'difficulty-badge ' + difficultyClass(r.question.difficulty);
       diff.textContent = r.question.difficulty || 'unknown';
       card.appendChild(diff);
 
-      // Question text
       const qText = document.createElement('p');
       qText.className = 'review-q-text';
       qText.textContent = r.question.question;
       card.appendChild(qText);
 
-      // Options
       const optsDiv = document.createElement('div');
       optsDiv.className = 'review-options';
       r.question.options.forEach((opt, oi) => {
@@ -888,13 +1324,12 @@
         if (isCorrect)       optDiv.classList.add('correct');
         else if (isSelected) optDiv.classList.add('wrong');
         let text = `${LABELS[oi]}. ${opt}`;
-        if (isSelected && !isCorrect) text += '  ← your answer';
+        if (isSelected && !isCorrect) text += '  \u2190 your answer';
         optDiv.textContent = text;
         optsDiv.appendChild(optDiv);
       });
       card.appendChild(optsDiv);
 
-      // Explanation
       const expl = document.createElement('div');
       expl.className = 'review-expl';
       expl.innerHTML = `<strong>Explanation:</strong> ${r.explanation}`;
@@ -907,20 +1342,119 @@
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
+  // ── Stats screen ──────────────────────────────────────────────────────────
+  async function showStats() {
+    // Reset stats display
+    statsDue.textContent = '—';
+    statsNew.textContent = '—';
+    statsTotal.textContent = '—';
+    docTableBody.innerHTML = '';
+    statsEmpty.style.display = 'none';
+    showScreen('stats');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+
+    try {
+      // Overall counts
+      const overall = await loadDueInfo(null);
+      statsDue.textContent = overall.due_count;
+      statsNew.textContent = overall.new_count;
+      statsTotal.textContent = overall.total_actionable;
+
+      // Per-document counts
+      const docsRes = await fetch('/api/v1/documents');
+      if (!docsRes.ok) return;
+      const docs = await docsRes.json();
+
+      if (docs.length === 0) {
+        statsEmpty.style.display = 'block';
+        return;
+      }
+
+      // Fetch per-doc due info in parallel
+      const perDoc = await Promise.all(
+        docs.map(async doc => {
+          try {
+            const info = await loadDueInfo(doc.id);
+            return { doc, due: info.due_count, new: info.new_count };
+          } catch (_) {
+            return { doc, due: 0, new: 0 };
+          }
+        })
+      );
+
+      // Sort by (due + new) descending
+      perDoc.sort((a, b) => (b.due + b.new) - (a.due + a.new));
+
+      perDoc.forEach(({ doc, due, new: newC }) => {
+        const tr = document.createElement('tr');
+
+        const tdTitle = document.createElement('td');
+        tdTitle.textContent = doc.title;
+        tr.appendChild(tdTitle);
+
+        const tdDue = document.createElement('td');
+        tdDue.textContent = due;
+        tdDue.className = due > 0 ? 'td-due' : 'td-none';
+        tr.appendChild(tdDue);
+
+        const tdNew = document.createElement('td');
+        tdNew.textContent = newC;
+        tdNew.className = newC > 0 ? 'td-new' : 'td-none';
+        tr.appendChild(tdNew);
+
+        const tdTotal = document.createElement('td');
+        tdTotal.textContent = doc.question_count;
+        tdTotal.className = 'td-total';
+        tr.appendChild(tdTotal);
+
+        docTableBody.appendChild(tr);
+      });
+    } catch (err) {
+      statsDue.textContent = '!';
+      statsNew.textContent = '!';
+      statsTotal.textContent = '!';
+    }
+  }
+
   // ── Event listeners ───────────────────────────────────────────────────────
   document.addEventListener('keydown', handleKeyDown);
 
+  btnModeRandom.addEventListener('click', () => setMode('random'));
+  btnModeSrs.addEventListener('click', () => setMode('srs'));
+
+  // Refresh due count when document selection changes in SRS mode
+  inputDoc.addEventListener('change', () => {
+    if (state.mode === 'srs') refreshDueInfo();
+  });
+
   btnStart.addEventListener('click', startQuiz);
   btnNext.addEventListener('click', nextQuestion);
-  btnPlayAgain.addEventListener('click', startQuiz);
+  btnPlayAgain.addEventListener('click', () => {
+    if (state.mode === 'srs') {
+      showScreen('setup');
+    } else {
+      startQuiz();
+    }
+  });
   btnReview.addEventListener('click', () => showScreen('setup'));
   btnShowReview.addEventListener('click', showReview);
   btnRetryMissed.addEventListener('click', replayMissed);
   btnBackEnd.addEventListener('click', () => { showScreen('end'); window.scrollTo({ top: 0, behavior: 'instant' }); });
   btnRetry.addEventListener('click', () => showScreen('setup'));
 
+  document.getElementById('link-stats').addEventListener('click', e => {
+    e.preventDefault();
+    showStats();
+  });
+
+  btnStatsBack.addEventListener('click', () => showScreen('setup'));
+  btnStatsStartSrs.addEventListener('click', () => {
+    setMode('srs');
+    showScreen('setup');
+  });
+
   // Allow Enter key in the setup inputs to start the quiz
-  [inputDoc, inputN, inputDiff].forEach(el => {
+  [inputDoc, inputN, inputDiff, inputSrsN].forEach(el => {
     el.addEventListener('keydown', e => {
       if (e.key === 'Enter') startQuiz();
     });
