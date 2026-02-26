@@ -20,7 +20,7 @@ _(move items here when actively working on them)_
 - [ ] **Question review UI** — a separate screen (or page) to browse generated questions, approve/reject, and edit text/options/answer. The `status` column (`generated → approved → edited`) and `PATCH /questions/{id}/status` already exist; the UI just isn't wired up. This is the highest-leverage quality improvement.
 - [ ] **Edit endpoint** — `PUT /questions/{id}` to update question text, options, `correct_index`, and `explanation` in place. Required to support the review UI above.
 - [ ] **Flag / reject questions** — mark a question as `rejected` so it never appears in quizzes. Add `rejected` to the status enum and filter it out of `GET /quiz`.
-- [ ] **Ingest progress output** — stream per-chunk progress to stdout during ingestion so long runs feel less like a black box. Could also add an ETA based on chunk count.
+- [x] **Ingest progress output** — stream per-chunk progress to stdout during ingestion so long runs feel less like a black box. Could also add an ETA based on chunk count.
 - [x] **`--list` and `--stats` CLI flags** — quick DB summary without starting the API (document count, question count, status breakdown).
 
 ### Quiz experience
@@ -80,4 +80,5 @@ _(move items here when actively working on them)_
 - [x] Document selector on setup screen
 - [x] Difficulty filter in quiz setup and API
 - [x] Tag-based filtering — `GET /tags` + `GET /quiz?tag=…`; tag selector dropdown in random-mode setup (hidden when no tags exist)
+- [x] Ingest progress output — per-chunk `[i/n] heading  Xw  Y Q  Z.Zs` lines with `\r` overwrite while generating; ETA shown from second chunk onward
 - [x] `html_to_md.py` preprocessor for ByteByteGo HTML pages

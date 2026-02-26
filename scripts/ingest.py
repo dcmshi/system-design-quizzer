@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -65,6 +66,17 @@ def parse_args() -> argparse.Namespace:
         help="Show DB summary statistics (counts by status/difficulty) and exit",
     )
     return parser.parse_args()
+
+
+def _format_eta(chunk_times: list[float], remaining: int) -> str:
+    """Return a human-readable ETA based on average chunk time so far."""
+    if not chunk_times or remaining == 0:
+        return ""
+    avg = sum(chunk_times) / len(chunk_times)
+    eta_s = int(avg * remaining)
+    if eta_s < 60:
+        return f"ETA ~{eta_s}s"
+    return f"ETA ~{eta_s // 60}m {eta_s % 60:02d}s"
 
 
 def collect_md_files(source: Path | None) -> list[Path]:
@@ -156,8 +168,9 @@ def main() -> None:
 
     stats = {"documents": 0, "chunks": 0, "questions": 0, "skipped_docs": 0, "skipped_q": 0}
 
-    for md_path in files:
-        log.info("Processing %s", md_path)
+    total_files = len(files)
+
+    for file_idx, md_path in enumerate(files, 1):
         try:
             doc = load_document(md_path)
         except Exception as exc:
@@ -166,7 +179,7 @@ def main() -> None:
 
         existing = doc_repo.get_by_source_path(doc.source_path)
         if existing and not args.force:
-            log.info("  Already ingested (source_path=%s) — skipping (use --force)", doc.source_path)
+            print(f"[{file_idx}/{total_files}] '{doc.title}' — already ingested, skipping")
             stats["skipped_docs"] += 1
             continue
 
@@ -175,7 +188,8 @@ def main() -> None:
             doc.id = existing.id
 
         chunks = chunk_document(doc)
-        log.info("  %d chunk(s) from '%s'", len(chunks), doc.title)
+        n_chunks = len(chunks)
+        print(f"\n[{file_idx}/{total_files}] '{doc.title}'  ({n_chunks} chunk(s))")
 
         if not args.dry_run:
             doc_repo.upsert(doc)
@@ -183,26 +197,41 @@ def main() -> None:
                 doc_repo.upsert_chunk(chunk)
 
         stats["documents"] += 1
-        stats["chunks"] += len(chunks)
+        stats["chunks"] += n_chunks
 
-        for chunk in chunks:
-            log.debug("    Chunk %d (%d words) → generating …", chunk.chunk_index, chunk.word_count)
+        chunk_times: list[float] = []
+
+        for i, chunk in enumerate(chunks, 1):
+            n_added = 0
+            heading = (chunk.heading or f"chunk {i}")[:32]
+            eta = _format_eta(chunk_times, n_chunks - i)
+            prefix = f"  [{i}/{n_chunks}] {heading:<32} {chunk.word_count:>4}w"
+            print(f"{prefix}  generating…  {eta:<10}", end="\r", flush=True)
+
+            log.debug("Chunk %d (%d words) → generating …", chunk.chunk_index, chunk.word_count)
+            t0 = time.monotonic()
             try:
                 result = generator.generate_for_chunk(chunk, doc.id)
             except Exception as exc:
-                log.error("    Generation failed for chunk %s: %s", chunk.id, exc)
+                elapsed = time.monotonic() - t0
+                chunk_times.append(elapsed)
+                log.error("Generation failed for chunk %s: %s", chunk.id, exc)
+                print(f"{prefix}  FAILED        {elapsed:.1f}s{' ' * 10}")
                 continue
+
+            elapsed = time.monotonic() - t0
+            chunk_times.append(elapsed)
 
             for raw_mcq in result.questions:
                 mcq = normalize_mcq(raw_mcq)
                 errors = validate_mcq(mcq)
                 if errors:
-                    log.warning("    Validation failed: %s", errors)
+                    log.warning("Validation failed: %s", errors)
                     continue
 
                 fp = fingerprint(mcq.question)
                 if is_duplicate(mcq.question, existing_fingerprints):
-                    log.debug("    Duplicate question skipped")
+                    log.debug("Duplicate question skipped")
                     stats["skipped_q"] += 1
                     continue
 
@@ -223,12 +252,15 @@ def main() -> None:
                             created_at=datetime.now(timezone.utc).isoformat(),
                         )
                     except Exception as exc:
-                        log.error("    Insert failed: %s", exc)
+                        log.error("Insert failed: %s", exc)
                         continue
 
                 existing_fingerprints.add(fp)
                 stats["questions"] += 1
-                log.debug("    + question: %s", mcq.question[:60])
+                n_added += 1
+                log.debug("+ question: %s", mcq.question[:60])
+
+            print(f"{prefix}  {n_added} Q        {elapsed:.1f}s{' ' * 10}")
 
     ollama.close()
 
