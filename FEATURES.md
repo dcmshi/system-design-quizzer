@@ -33,7 +33,7 @@ _(move items here when actively working on them)_
 ### Filtering & discovery
 
 - [x] **Tag-based filtering** — articles already carry tags in frontmatter; expose `GET /quiz?tag=…` and surface a tag selector on the setup screen. Requires propagating tags through chunks → questions at ingest time.
-- [ ] **Multi-document selection** — currently the document selector is single-select; allow picking multiple documents for a cross-topic quiz.
+- [x] **Multi-document selection** — currently the document selector is single-select; allow picking multiple documents for a cross-topic quiz.
 - [x] **Question count guard** — if the DB has fewer questions than the requested `n` for a given filter, return what's available and tell the user (`X of N requested`).
 
 ### Progress tracking & spaced repetition
@@ -82,3 +82,4 @@ _(move items here when actively working on them)_
 - [x] Tag-based filtering — `GET /tags` + `GET /quiz?tag=…`; tag selector dropdown in random-mode setup (hidden when no tags exist)
 - [x] Ingest progress output — per-chunk `[i/n] heading  Xw  Y Q  Z.Zs` lines with `\r` overwrite while generating; ETA shown from second chunk onward
 - [x] `html_to_md.py` preprocessor for ByteByteGo HTML pages
+- [x] Multi-document selection — `<select multiple>` on setup screen; `GET /quiz` accepts repeated `document_id` params collected into `list[str]`; nothing selected = all documents; SRS mode uses first selected doc
