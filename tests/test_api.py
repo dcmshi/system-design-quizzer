@@ -251,3 +251,63 @@ def test_quiz_tag_filter_no_match(app_client):
     data = resp.json()
     assert data["questions"] == []
     assert data["returned"] == 0
+
+
+def test_quiz_multi_document_filter(app_client):
+    """Passing two document_id params returns questions from both documents."""
+    client, q_id, doc_id = app_client
+    # Access the underlying connection via the service
+    import quizzer.quiz.app as app_module
+    conn = app_module._service.questions._conn
+
+    doc_id2 = str(ULID())
+    chunk_id2 = str(ULID())
+    q_id2 = str(ULID())
+    conn.execute(
+        "INSERT INTO documents (id, title, source, content, tags, source_path, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (doc_id2, "Test Doc 2", "blog", "Content 2.", json.dumps([]), "test/doc2.md",
+         datetime.now(timezone.utc).isoformat()),
+    )
+    conn.execute(
+        "INSERT INTO chunks (id, document_id, content, word_count, chunk_index, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (chunk_id2, doc_id2, "Chunk 2.", 2, 0, datetime.now(timezone.utc).isoformat()),
+    )
+    conn.execute(
+        "INSERT INTO questions (id, question, options, correct_index, explanation, difficulty, "
+        "source_document_id, source_chunk_id, status, fingerprint, model, prompt_version, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            q_id2,
+            "What is a load balancer?",
+            json.dumps(["A", "B", "C", "D"]),
+            0,
+            "Distributes traffic.",
+            "easy",
+            doc_id2,
+            chunk_id2,
+            "generated",
+            "fingerprint_doc2",
+            "test-model",
+            "v1",
+            datetime.now(timezone.utc).isoformat(),
+        ),
+    )
+    conn.commit()
+
+    resp = client.get(f"/api/v1/quiz?n=10&document_id={doc_id}&document_id={doc_id2}")
+    assert resp.status_code == 200
+    returned_ids = {q["id"] for q in resp.json()["questions"]}
+    assert q_id in returned_ids
+    assert q_id2 in returned_ids
+
+
+def test_quiz_single_document_id_still_works(app_client):
+    """Single document_id param (list of 1) still filters correctly."""
+    client, q_id, doc_id = app_client
+    resp = client.get(f"/api/v1/quiz?n=5&document_id={doc_id}")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data["questions"]) >= 1
+    assert all(q["source_document_id"] == doc_id for q in data["questions"])

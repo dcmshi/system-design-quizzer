@@ -136,7 +136,7 @@ class QuestionRepository:
         self,
         n: int,
         difficulty: str | None = None,
-        document_id: str | None = None,
+        document_ids: list[str] | None = None,
         tag: str | None = None,
     ) -> list[dict]:
         filters: list[str] = ["q.status != 'rejected'"]
@@ -145,9 +145,10 @@ class QuestionRepository:
         if difficulty:
             filters.append("q.difficulty = ?")
             params.append(difficulty)
-        if document_id:
-            filters.append("q.source_document_id = ?")
-            params.append(document_id)
+        if document_ids:
+            placeholders = ",".join(["?"] * len(document_ids))
+            filters.append(f"q.source_document_id IN ({placeholders})")
+            params.extend(document_ids)
         if tag:
             filters.append(
                 "EXISTS (SELECT 1 FROM json_each(d.tags) WHERE value = ?)"

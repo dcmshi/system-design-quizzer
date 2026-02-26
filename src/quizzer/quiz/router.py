@@ -147,11 +147,11 @@ def list_tags(svc: QuizService = Depends(_get_service)):
 def get_quiz(
     n: int = Query(5, ge=1, le=50),
     difficulty: str | None = Query(None),
-    document_id: str | None = Query(None),
+    document_id: list[str] | None = Query(default=None),
     tag: str | None = Query(None),
     svc: QuizService = Depends(_get_service),
 ):
-    items = svc.get_quiz_sample(n, difficulty, document_id, tag)
+    items = svc.get_quiz_sample(n, difficulty, document_id or None, tag)
     questions = [
         QuestionSummary(
             id=q["id"],

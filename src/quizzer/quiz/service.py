@@ -49,10 +49,10 @@ class QuizService:
         self,
         n: int,
         difficulty: str | None = None,
-        document_id: str | None = None,
+        document_ids: list[str] | None = None,
         tag: str | None = None,
     ) -> list[dict]:
-        return self.questions.get_random_sample(n, difficulty, document_id, tag)
+        return self.questions.get_random_sample(n, difficulty, document_ids, tag)
 
     def list_tags(self) -> list[str]:
         return self.documents.list_all_tags()
