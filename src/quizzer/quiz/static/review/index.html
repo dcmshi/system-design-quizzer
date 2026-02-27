@@ -141,6 +141,19 @@
     }
     .card-explanation strong { color: var(--text); }
 
+    .card-meta {
+      margin-top: 0.6rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      opacity: 0.7;
+    }
+    .card-meta code {
+      background: var(--surface2);
+      border-radius: 4px;
+      padding: 0.1em 0.35em;
+      font-size: 0.72rem;
+    }
+
     /* ── Buttons ── */
     .btn {
       border: none;
@@ -341,18 +354,28 @@ async function loadPage() {
     return;
   }
 
-  // Fetch answer details in parallel (correct_index + explanation for review)
-  const answers = await Promise.all(
-    data.items.map(q =>
-      fetch(`/api/v1/questions/${q.id}/answer`)
-        .then(r => r.ok ? r.json() : { correct_index: 0, explanation: '' })
-    )
-  );
+  // Fetch answer details + full detail in parallel
+  const [answers, details] = await Promise.all([
+    Promise.all(
+      data.items.map(q =>
+        fetch(`/api/v1/questions/${q.id}/answer`)
+          .then(r => r.ok ? r.json() : { correct_index: 0, explanation: '' })
+      )
+    ),
+    Promise.all(
+      data.items.map(q =>
+        fetch(`/api/v1/questions/${q.id}`)
+          .then(r => r.ok ? r.json() : { model: '', prompt_version: '' })
+      )
+    ),
+  ]);
 
   const questions = data.items.map((q, i) => ({
     ...q,
-    correct_index: answers[i].correct_index,
-    explanation:   answers[i].explanation,
+    correct_index:  answers[i].correct_index,
+    explanation:    answers[i].explanation,
+    model:          details[i].model,
+    prompt_version: details[i].prompt_version,
   }));
 
   listEl.innerHTML = '';
@@ -440,7 +463,13 @@ function buildCardView(q) {
   explText.textContent = q.explanation;
   expl.append(explLabel, explText);
 
-  view.append(top, qText, opts, expl);
+  const meta = document.createElement('div');
+  meta.className = 'card-meta';
+  meta.innerHTML =
+    `Model: <code>${q.model || '—'}</code>&ensp;` +
+    `Prompt: <code>${q.prompt_version || '—'}</code>`;
+
+  view.append(top, qText, opts, expl, meta);
   return view;
 }
 

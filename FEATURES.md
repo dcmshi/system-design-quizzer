@@ -54,7 +54,7 @@ _(move items here when actively working on them)_
 
 - [ ] **Per-model quality comparison** — ingest the same document with two different Ollama models and compare question output side-by-side. Helps choose the best model.
 - [ ] **Difficulty calibration** — after enough session data, auto-adjust `difficulty` labels based on observed hit rates (e.g. >80% correct → easy, <40% → hard).
-- [ ] **Prompt versioning in review UI** — show which `prompt_version` and `model` generated each question in the review UI so bad batches can be identified and purged.
+- [x] **Prompt versioning in review UI** — show which `prompt_version` and `model` generated each question in the review UI so bad batches can be identified and purged.
 - [ ] **Re-generate for a chunk** — CLI flag `--rechunk <doc>` to re-run generation on a specific document's chunks without re-ingesting the document itself.
 
 ---
@@ -86,3 +86,4 @@ _(move items here when actively working on them)_
 - [x] Multi-document selection — `<select multiple>` on setup screen; `GET /quiz` accepts repeated `document_id` params collected into `list[str]`; nothing selected = all documents; SRS mode uses first selected doc
 - [x] JSON/CSV export + JSON import — `GET /questions/export?format=json|csv`; `POST /questions/import`; round-trip fidelity via embedded documents and synthetic chunk placeholders
 - [x] Random quiz session history — `quiz_sessions` + `quiz_answers` tables; `POST /quiz/sessions`, `/answers`, `/finish`, `GET /quiz/sessions/{id}`; frontend random flow wired through session API; 84 tests pass
+- [x] Prompt versioning in review UI — model + prompt_version shown as muted `<code>` tags on each question card in `/review/`; parallel fetch of `GET /questions/{id}` alongside existing answer fetch; no backend changes
