@@ -231,6 +231,9 @@ def get_question(
         model=q["model"],
         prompt_version=q["prompt_version"],
         created_at=q["created_at"],
+        times_answered=q.get("times_answered", 0),
+        times_correct=q.get("times_correct", 0),
+        hit_rate=q.get("hit_rate"),
     )
 
 

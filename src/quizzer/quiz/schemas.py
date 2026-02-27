@@ -23,6 +23,9 @@ class QuestionDetail(BaseModel):
     model: str
     prompt_version: str
     created_at: str
+    times_answered: int = 0
+    times_correct: int = 0
+    hit_rate: float | None = None
 
 
 class QuestionAnswer(BaseModel):

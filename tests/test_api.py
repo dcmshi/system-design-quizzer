@@ -103,6 +103,73 @@ def test_get_question_no_answer(app_client):
     assert "correct_index" not in data  # not included in detail
 
 
+def test_hit_rate_zero_before_any_answer(app_client):
+    client, q_id, _ = app_client
+    resp = client.get(f"/api/v1/questions/{q_id}")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["times_answered"] == 0
+    assert data["times_correct"] == 0
+    assert data["hit_rate"] is None
+
+
+def test_hit_rate_updates_after_quiz_session_answer(app_client):
+    client, q_id, _ = app_client
+    import quizzer.quiz.app as app_module
+    from quizzer.quiz.session_service import QuizSessionService
+    from quizzer.storage.session_repo import SessionRepository
+    from quizzer.storage.question_repo import QuestionRepository
+
+    conn = app_module._service.questions._conn
+    session_svc = QuizSessionService(
+        session_repo=SessionRepository(conn),
+        question_repo=QuestionRepository(conn),
+    )
+    app_module._quiz_session_service = session_svc
+
+    # Start a session and answer correctly
+    sess = client.post("/api/v1/quiz/sessions", json={"n": 1}).json()
+    session_id = sess["session_id"]
+    client.post(
+        f"/api/v1/quiz/sessions/{session_id}/answers",
+        json={"question_id": q_id, "selected_index": 1},  # correct_index is 1
+    )
+
+    resp = client.get(f"/api/v1/questions/{q_id}")
+    data = resp.json()
+    assert data["times_answered"] == 1
+    assert data["times_correct"] == 1
+    assert data["hit_rate"] == 1.0
+
+
+def test_hit_rate_wrong_answer(app_client):
+    client, q_id, _ = app_client
+    import quizzer.quiz.app as app_module
+    from quizzer.quiz.session_service import QuizSessionService
+    from quizzer.storage.session_repo import SessionRepository
+    from quizzer.storage.question_repo import QuestionRepository
+
+    conn = app_module._service.questions._conn
+    session_svc = QuizSessionService(
+        session_repo=SessionRepository(conn),
+        question_repo=QuestionRepository(conn),
+    )
+    app_module._quiz_session_service = session_svc
+
+    sess = client.post("/api/v1/quiz/sessions", json={"n": 1}).json()
+    session_id = sess["session_id"]
+    client.post(
+        f"/api/v1/quiz/sessions/{session_id}/answers",
+        json={"question_id": q_id, "selected_index": 0},  # wrong
+    )
+
+    resp = client.get(f"/api/v1/questions/{q_id}")
+    data = resp.json()
+    assert data["times_answered"] == 1
+    assert data["times_correct"] == 0
+    assert data["hit_rate"] == 0.0
+
+
 def test_get_question_answer(app_client):
     client, q_id, _ = app_client
     resp = client.get(f"/api/v1/questions/{q_id}/answer")

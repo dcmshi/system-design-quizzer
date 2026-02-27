@@ -45,7 +45,10 @@ class QuizService:
         return items, len(all_items)
 
     def get_question(self, question_id: str) -> dict | None:
-        return self.questions.get_by_id(question_id)
+        q = self.questions.get_by_id(question_id)
+        if q is None:
+            return None
+        return {**q, **self.questions.get_hit_rate(question_id)}
 
     def get_quiz_sample(
         self,

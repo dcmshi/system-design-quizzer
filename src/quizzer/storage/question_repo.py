@@ -190,6 +190,36 @@ class QuestionRepository:
         ).fetchall()
         return [self._row_to_dict(r) for r in rows]
 
+    def get_hit_rate(self, question_id: str) -> dict:
+        """Return answer counts across both quiz_answers and srs_reviews."""
+        row = self._conn.execute(
+            """
+            SELECT
+                COALESCE(SUM(cnt), 0)     AS times_answered,
+                COALESCE(SUM(correct), 0) AS times_correct
+            FROM (
+                SELECT COUNT(*)        AS cnt,
+                       SUM(is_correct) AS correct
+                FROM quiz_answers
+                WHERE question_id = ?
+                UNION ALL
+                SELECT COUNT(*)         AS cnt,
+                       SUM(was_correct) AS correct
+                FROM srs_reviews
+                WHERE question_id = ?
+            )
+            """,
+            (question_id, question_id),
+        ).fetchone()
+        times_answered = row["times_answered"] if row else 0
+        times_correct  = row["times_correct"]  if row else 0
+        hit_rate = (times_correct / times_answered) if times_answered > 0 else None
+        return {
+            "times_answered": times_answered,
+            "times_correct":  times_correct,
+            "hit_rate":       hit_rate,
+        }
+
     def count_by_document(self, document_id: str) -> int:
         row = self._conn.execute(
             "SELECT COUNT(*) as cnt FROM questions WHERE source_document_id = ?",

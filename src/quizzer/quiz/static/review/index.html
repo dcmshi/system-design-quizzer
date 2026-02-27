@@ -154,6 +154,19 @@
       font-size: 0.72rem;
     }
 
+    .hit-rate {
+      display: inline-block;
+      margin-top: 0.5rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 0.15em 0.6em;
+      border-radius: 999px;
+    }
+    .hit-rate-none    { background: var(--surface2); color: var(--text-muted); font-weight: 400; }
+    .hit-rate-good    { background: #14532d; color: #86efac; }
+    .hit-rate-mid     { background: #713f12; color: #fde68a; }
+    .hit-rate-bad     { background: #7f1d1d; color: #fca5a5; }
+
     /* ── Buttons ── */
     .btn {
       border: none;
@@ -463,13 +476,24 @@ function buildCardView(q) {
   explText.textContent = q.explanation;
   expl.append(explLabel, explText);
 
+  const hitRate = document.createElement('div');
+  if (q.times_answered > 0) {
+    const pct = Math.round(q.hit_rate * 100);
+    const cls = pct >= 80 ? 'hit-rate-good' : pct >= 50 ? 'hit-rate-mid' : 'hit-rate-bad';
+    hitRate.className = `hit-rate ${cls}`;
+    hitRate.textContent = `${pct}% hit rate (${q.times_correct}/${q.times_answered})`;
+  } else {
+    hitRate.className = 'hit-rate hit-rate-none';
+    hitRate.textContent = 'Never attempted';
+  }
+
   const meta = document.createElement('div');
   meta.className = 'card-meta';
   meta.innerHTML =
     `Model: <code>${q.model || '—'}</code>&ensp;` +
     `Prompt: <code>${q.prompt_version || '—'}</code>`;
 
-  view.append(top, qText, opts, expl, meta);
+  view.append(top, qText, opts, expl, hitRate, meta);
   return view;
 }
 
