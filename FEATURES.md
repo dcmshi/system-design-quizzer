@@ -17,9 +17,9 @@ _(move items here when actively working on them)_
 
 ### Admin & data quality
 
-- [ ] **Question review UI** — a separate screen (or page) to browse generated questions, approve/reject, and edit text/options/answer. The `status` column (`generated → approved → edited`) and `PATCH /questions/{id}/status` already exist; the UI just isn't wired up. This is the highest-leverage quality improvement.
-- [ ] **Edit endpoint** — `PUT /questions/{id}` to update question text, options, `correct_index`, and `explanation` in place. Required to support the review UI above.
-- [ ] **Flag / reject questions** — mark a question as `rejected` so it never appears in quizzes. Add `rejected` to the status enum and filter it out of `GET /quiz`.
+- [x] **Question review UI** — a separate screen (or page) to browse generated questions, approve/reject, and edit text/options/answer. The `status` column (`generated → approved → edited`) and `PATCH /questions/{id}/status` already exist; the UI just isn't wired up. This is the highest-leverage quality improvement.
+- [x] **Edit endpoint** — `PUT /questions/{id}` to update question text, options, `correct_index`, and `explanation` in place. Required to support the review UI above.
+- [x] **Flag / reject questions** — mark a question as `rejected` so it never appears in quizzes. Add `rejected` to the status enum and filter it out of `GET /quiz`.
 - [x] **Ingest progress output** — stream per-chunk progress to stdout during ingestion so long runs feel less like a black box. Could also add an ETA based on chunk count.
 - [x] **`--list` and `--stats` CLI flags** — quick DB summary without starting the API (document count, question count, status breakdown).
 
