@@ -40,7 +40,7 @@ _(move items here when actively working on them)_
 
 - [x] **Session history** — persist quiz results (question ID, selected index, correct, timestamp) to a `sessions` table. Enables all analytics below.
 - [x] **Per-question hit rate** — track how often each question is answered correctly. Surface this in the review UI and use it to inform difficulty calibration.
-- [ ] **Weak-topic replay** — surface questions from topics you've historically scored worst on. Simple heuristic: sort by ascending hit rate, pick bottom quartile.
+- [x] **Weak-topic replay** — surface questions from topics you've historically scored worst on. Simple heuristic: sort by ascending hit rate, pick bottom quartile.
 - [x] **Spaced repetition mode** — SM-2 backend (`srs_cards`, `srs_sessions`, `srs_reviews` tables; `algorithm.py` pure functions; `/api/v1/srs/` routes) + frontend SRS mode (mode toggle, per-answer "Next review: in X days", session summary, stats dashboard with per-document due/new table).
 
 ### Export & interop
@@ -89,3 +89,4 @@ _(move items here when actively working on them)_
 - [x] Prompt versioning in review UI — model + prompt_version shown as muted `<code>` tags on each question card in `/review/`; parallel fetch of `GET /questions/{id}` alongside existing answer fetch; no backend changes
 - [x] Per-model quality comparison — `scripts/compare_models.py --source <doc> --models m1 m2 [m3…] [--chunks N]`; dry run, no DB writes; per-chunk question display with validity markers; summary table of valid/invalid/parse-errors/time per model
 - [x] Per-question hit rate — `get_hit_rate()` aggregates `quiz_answers` + `srs_reviews`; exposed on `GET /questions/{id}` as `times_answered`, `times_correct`, `hit_rate`; colour-coded pill on review UI cards (green ≥80%, amber 50–79%, red <50%, muted "Never attempted"); 87 tests pass
+- [x] Weak-topic replay — `get_weak_sample/count()` queries `quiz_answers ∪ srs_reviews`, sorts by hit rate asc, bottom quartile; `weak: bool` on `StartQuizSessionRequest`; `GET /quiz/weak-count`; "Weak Topics" third mode pill on setup screen with pool-size info; 90 tests pass

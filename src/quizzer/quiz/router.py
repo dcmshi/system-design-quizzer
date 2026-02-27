@@ -24,6 +24,7 @@ from quizzer.quiz.schemas import (
     QuizSessionResponse,
     StartQuizSessionRequest,
     StatusUpdateRequest,
+    WeakCountResponse,
 )
 from quizzer.quiz.service import QuizService
 from quizzer.quiz.session_service import QuizSessionService
@@ -42,6 +43,16 @@ def _get_quiz_session_service() -> QuizSessionService:
     return get_quiz_session_service()
 
 
+@router.get("/quiz/weak-count", response_model=WeakCountResponse)
+def get_weak_count(
+    difficulty: str | None = Query(None),
+    document_id: list[str] | None = Query(default=None),
+    svc: QuizSessionService = Depends(_get_quiz_session_service),
+):
+    count = svc.get_weak_count(difficulty, document_id or None)
+    return WeakCountResponse(weak_count=count)
+
+
 @router.post("/quiz/sessions", response_model=QuizSessionResponse, status_code=201)
 def create_quiz_session(
     body: StartQuizSessionRequest,
@@ -52,6 +63,7 @@ def create_quiz_session(
         body.difficulty,
         body.document_ids or None,
         body.tag,
+        weak=body.weak,
     )
     questions = [
         QuestionSummary(

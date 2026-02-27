@@ -132,6 +132,11 @@ class StartQuizSessionRequest(BaseModel):
     difficulty: str | None = None
     tag: str | None = None
     document_ids: list[str] = Field(default_factory=list)
+    weak: bool = False
+
+
+class WeakCountResponse(BaseModel):
+    weak_count: int
 
 
 class QuizSessionResponse(BaseModel):

@@ -646,3 +646,53 @@ def test_finish_nonexistent_session(quiz_session_client):
     client, _, _ = quiz_session_client
     resp = client.post("/api/v1/quiz/sessions/nonexistent/finish")
     assert resp.status_code == 404
+
+
+# ── Weak-topic replay tests ───────────────────────────────────────────────────
+
+def test_weak_count_zero_with_no_history(quiz_session_client):
+    client, _, _ = quiz_session_client
+    resp = client.get("/api/v1/quiz/weak-count")
+    assert resp.status_code == 200
+    assert resp.json()["weak_count"] == 0
+
+
+def test_weak_session_empty_with_no_history(quiz_session_client):
+    client, _, _ = quiz_session_client
+    resp = client.post("/api/v1/quiz/sessions", json={"n": 5, "weak": True})
+    assert resp.status_code == 201
+    assert resp.json()["questions"] == []
+
+
+def test_weak_count_and_session_after_wrong_answer(quiz_session_client):
+    client, q_id, _ = quiz_session_client
+    import quizzer.quiz.app as app_module
+    from quizzer.quiz.session_service import QuizSessionService
+    from quizzer.storage.session_repo import SessionRepository
+    from quizzer.storage.question_repo import QuestionRepository
+
+    conn = app_module._service.questions._conn
+    session_svc = QuizSessionService(
+        session_repo=SessionRepository(conn),
+        question_repo=QuestionRepository(conn),
+    )
+    app_module._quiz_session_service = session_svc
+
+    # Answer wrong so the question lands in the weak pool
+    sess = client.post("/api/v1/quiz/sessions", json={"n": 1}).json()
+    client.post(
+        f"/api/v1/quiz/sessions/{sess['session_id']}/answers",
+        json={"question_id": q_id, "selected_index": 0},  # wrong
+    )
+
+    # Weak count should now be 1
+    count_resp = client.get("/api/v1/quiz/weak-count")
+    assert count_resp.status_code == 200
+    assert count_resp.json()["weak_count"] == 1
+
+    # Weak session should return the poorly-answered question
+    weak_resp = client.post("/api/v1/quiz/sessions", json={"n": 5, "weak": True})
+    assert weak_resp.status_code == 201
+    data = weak_resp.json()
+    assert len(data["questions"]) == 1
+    assert data["questions"][0]["id"] == q_id

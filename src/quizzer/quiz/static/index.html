@@ -424,6 +424,24 @@
       color: var(--text);
     }
 
+    /* ── Weak info pill (Weak Topics mode) ── */
+    .weak-info {
+      display: none;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.65rem 1rem;
+      margin-bottom: 1.25rem;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+    .weak-info.visible { display: block; }
+    .weak-info .weak-count {
+      font-weight: 700;
+      color: var(--red);
+    }
+
     /* ── Due info pill (SRS mode) ── */
     .due-info {
       display: none;
@@ -603,11 +621,17 @@
       <div class="mode-toggle">
         <button class="mode-btn active" id="btn-mode-random">Random Quiz</button>
         <button class="mode-btn" id="btn-mode-srs">SRS Review</button>
+        <button class="mode-btn" id="btn-mode-weak">Weak Topics</button>
       </div>
 
       <label for="input-doc">Question bank</label>
       <select id="input-doc" multiple size="5"></select>
       <p class="input-hint">Nothing selected = all documents</p>
+
+      <!-- Weak pool pill (Weak Topics only) -->
+      <div class="weak-info" id="weak-info">
+        <span class="weak-count" id="weak-pool-count">0</span> questions in your weak pool
+      </div>
 
       <!-- Due info pill (SRS only) -->
       <div class="due-info" id="due-info">
@@ -625,7 +649,7 @@
           <option value="">Any tag</option>
         </select>
 
-        <label for="input-diff">Difficulty</label>
+        <label for="input-diff" id="label-diff">Difficulty</label>
         <select id="input-diff">
           <option value="">Any difficulty</option>
           <option value="easy">Easy</option>
@@ -810,7 +834,10 @@
   const btnStart     = document.getElementById('btn-start');
   const btnModeRandom = document.getElementById('btn-mode-random');
   const btnModeSrs   = document.getElementById('btn-mode-srs');
+  const btnModeWeak  = document.getElementById('btn-mode-weak');
   const dueInfo      = document.getElementById('due-info');
+  const weakInfo     = document.getElementById('weak-info');
+  const weakPoolCount = document.getElementById('weak-pool-count');
   const dueCount     = document.getElementById('due-count');
   const newCount     = document.getElementById('new-count');
   const progressFill     = document.getElementById('progress-fill');
@@ -877,20 +904,39 @@
     state.mode = mode;
     btnModeRandom.classList.toggle('active', mode === 'random');
     btnModeSrs.classList.toggle('active', mode === 'srs');
+    btnModeWeak.classList.toggle('active', mode === 'weak');
+
+    // Reset all mode-specific UI first
+    randomOnlyFields.style.display = 'none';
+    labelSrsN.style.display = 'none';
+    inputSrsN.style.display = 'none';
+    dueInfo.classList.remove('visible');
+    weakInfo.classList.remove('visible');
+
+    const labelDiff = document.getElementById('label-diff');
 
     if (mode === 'random') {
       randomOnlyFields.style.display = 'block';
-      labelSrsN.style.display = 'none';
-      inputSrsN.style.display = 'none';
-      dueInfo.classList.remove('visible');
+      labelDiff.style.display = 'block';
+      inputDiff.style.display = 'block';
       btnStart.textContent = 'Start Quiz';
-    } else {
-      randomOnlyFields.style.display = 'none';
+    } else if (mode === 'srs') {
       labelSrsN.style.display = 'block';
       inputSrsN.style.display = 'block';
       dueInfo.classList.add('visible');
       btnStart.textContent = 'Start SRS Session';
       refreshDueInfo();
+    } else {
+      // weak — show n input but hide tag/diff (selected by history, not filter)
+      randomOnlyFields.style.display = 'block';
+      document.getElementById('label-tag').style.display = 'none';
+      inputTag.style.display = 'none';
+      inputDiff.value = '';
+      labelDiff.style.display = 'none';
+      inputDiff.style.display = 'none';
+      weakInfo.classList.add('visible');
+      btnStart.textContent = 'Start Weak Topics Quiz';
+      refreshWeakCount();
     }
   }
 
@@ -904,6 +950,23 @@
     } catch (_) {
       dueCount.textContent = '?';
       newCount.textContent = '?';
+    }
+  }
+
+  async function refreshWeakCount() {
+    if (state.mode !== 'weak') return;
+    try {
+      const documentIds = Array.from(inputDoc.selectedOptions).map(o => o.value).filter(Boolean);
+      let url = '/api/v1/quiz/weak-count';
+      const params = documentIds.map(id => `document_id=${encodeURIComponent(id)}`);
+      if (params.length) url += '?' + params.join('&');
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        weakPoolCount.textContent = data.weak_count;
+      }
+    } catch (_) {
+      weakPoolCount.textContent = '?';
     }
   }
 
@@ -1139,20 +1202,34 @@
 
     showScreen('loading');
 
+    const isWeak = state.mode === 'weak';
     try {
-      const data = await createQuizSession(n, difficulty, documentIds, tag);
+      const data = await createQuizSession(
+        n,
+        isWeak ? null : difficulty,
+        documentIds,
+        isWeak ? null : tag,
+        isWeak,
+      );
       if (!data.questions || data.questions.length === 0) {
-        const context = documentIds.length === 1
-          ? ` in <strong>${inputDoc.selectedOptions[0].text}</strong>`
-          : documentIds.length > 1
-            ? ` across <strong>${documentIds.length} selected documents</strong>`
-            : '';
-        showError(
-          'No questions found',
-          `No questions are available${context}${difficulty ? ` for difficulty <strong>${difficulty}</strong>` : ''}. ` +
-          `Ingest some articles first:<br><br>` +
-          `<code>uv run python scripts/ingest.py --source content/&lt;article&gt;.md --verbose</code>`
-        );
+        if (isWeak) {
+          showError(
+            'No weak-topic questions yet',
+            `Answer some questions first to build a history, then come back to drill your weak spots.`
+          );
+        } else {
+          const context = documentIds.length === 1
+            ? ` in <strong>${inputDoc.selectedOptions[0].text}</strong>`
+            : documentIds.length > 1
+              ? ` across <strong>${documentIds.length} selected documents</strong>`
+              : '';
+          showError(
+            'No questions found',
+            `No questions are available${context}${difficulty ? ` for difficulty <strong>${difficulty}</strong>` : ''}. ` +
+            `Ingest some articles first:<br><br>` +
+            `<code>uv run python scripts/ingest.py --source content/&lt;article&gt;.md --verbose</code>`
+          );
+        }
         return;
       }
       state.quizSessionId = data.session_id;
@@ -1520,10 +1597,12 @@
 
   btnModeRandom.addEventListener('click', () => setMode('random'));
   btnModeSrs.addEventListener('click', () => setMode('srs'));
+  btnModeWeak.addEventListener('click', () => setMode('weak'));
 
-  // Refresh due count when document selection changes in SRS mode
+  // Refresh mode-specific counts when document selection changes
   inputDoc.addEventListener('change', () => {
     if (state.mode === 'srs') refreshDueInfo();
+    if (state.mode === 'weak') refreshWeakCount();
   });
 
   btnStart.addEventListener('click', startQuiz);

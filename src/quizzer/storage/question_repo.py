@@ -1,4 +1,5 @@
 import json
+import random as _random
 import sqlite3
 from typing import Literal
 
@@ -189,6 +190,78 @@ class QuestionRepository:
             f"SELECT * FROM questions {where} ORDER BY created_at", params
         ).fetchall()
         return [self._row_to_dict(r) for r in rows]
+
+    def _weak_filters(
+        self,
+        difficulty: str | None,
+        document_ids: list[str] | None,
+    ) -> tuple[str, list]:
+        filters: list[str] = ["q.status != 'rejected'"]
+        params: list = []
+        if difficulty:
+            filters.append("q.difficulty = ?")
+            params.append(difficulty)
+        if document_ids:
+            placeholders = ",".join(["?"] * len(document_ids))
+            filters.append(f"q.source_document_id IN ({placeholders})")
+            params.extend(document_ids)
+        return "WHERE " + " AND ".join(filters), params
+
+    _WEAK_CTE = """
+        WITH combined AS (
+            SELECT question_id, is_correct  AS correct FROM quiz_answers
+            UNION ALL
+            SELECT question_id, was_correct AS correct FROM srs_reviews
+        ),
+        hit_rates AS (
+            SELECT question_id,
+                   COUNT(*)                            AS times_answered,
+                   SUM(correct)                        AS times_correct,
+                   CAST(SUM(correct) AS REAL) / COUNT(*) AS hit_rate
+            FROM combined
+            GROUP BY question_id
+        )
+    """
+
+    def get_weak_sample(
+        self,
+        n: int,
+        difficulty: str | None = None,
+        document_ids: list[str] | None = None,
+    ) -> list[dict]:
+        """Return up to n questions from the bottom-quartile by hit rate."""
+        where, params = self._weak_filters(difficulty, document_ids)
+        rows = self._conn.execute(
+            f"{self._WEAK_CTE}"
+            f"SELECT q.* FROM questions q "
+            f"JOIN hit_rates h ON q.id = h.question_id "
+            f"{where} ORDER BY h.hit_rate ASC",
+            params,
+        ).fetchall()
+        all_q = [self._row_to_dict(r) for r in rows]
+        if not all_q:
+            return []
+        cutoff = max(1, len(all_q) // 4)
+        pool = all_q[:cutoff]
+        _random.shuffle(pool)
+        return pool[:n]
+
+    def get_weak_count(
+        self,
+        difficulty: str | None = None,
+        document_ids: list[str] | None = None,
+    ) -> int:
+        """Return the size of the bottom-quartile pool (0 if no history)."""
+        where, params = self._weak_filters(difficulty, document_ids)
+        row = self._conn.execute(
+            f"{self._WEAK_CTE}"
+            f"SELECT COUNT(*) AS total FROM questions q "
+            f"JOIN hit_rates h ON q.id = h.question_id "
+            f"{where}",
+            params,
+        ).fetchone()
+        total = row["total"] if row else 0
+        return max(1, total // 4) if total > 0 else 0
 
     def get_hit_rate(self, question_id: str) -> dict:
         """Return answer counts across both quiz_answers and srs_reviews."""

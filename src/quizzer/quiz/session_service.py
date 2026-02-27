@@ -15,16 +15,29 @@ class QuizSessionService:
         self._sessions = session_repo
         self._questions = question_repo
 
+    def get_weak_count(
+        self,
+        difficulty: str | None = None,
+        document_ids: list[str] | None = None,
+    ) -> int:
+        return self._questions.get_weak_count(difficulty, document_ids or None)
+
     def create_session(
         self,
         n: int,
         difficulty: str | None,
         document_ids: list[str] | None,
         tag: str | None,
+        weak: bool = False,
     ) -> dict:
-        questions = self._questions.get_random_sample(
-            n, difficulty, document_ids or None, tag
-        )
+        if weak:
+            questions = self._questions.get_weak_sample(
+                n, difficulty, document_ids or None
+            )
+        else:
+            questions = self._questions.get_random_sample(
+                n, difficulty, document_ids or None, tag
+            )
         session_id = str(ULID())
         started_at = datetime.now(timezone.utc).isoformat()
         self._sessions.create_session(
