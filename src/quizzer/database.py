@@ -76,6 +76,28 @@ CREATE TABLE IF NOT EXISTS srs_reviews (
 CREATE INDEX IF NOT EXISTS idx_srs_cards_due       ON srs_cards(due_date);
 CREATE INDEX IF NOT EXISTS idx_srs_reviews_session  ON srs_reviews(session_id);
 CREATE INDEX IF NOT EXISTS idx_srs_reviews_question ON srs_reviews(question_id);
+
+CREATE TABLE IF NOT EXISTS quiz_sessions (
+    id             TEXT PRIMARY KEY,
+    question_count INTEGER NOT NULL DEFAULT 0,
+    difficulty     TEXT,
+    tag            TEXT,
+    document_ids   TEXT,
+    started_at     TEXT NOT NULL,
+    finished_at    TEXT
+);
+
+CREATE TABLE IF NOT EXISTS quiz_answers (
+    id             TEXT PRIMARY KEY,
+    session_id     TEXT NOT NULL REFERENCES quiz_sessions(id) ON DELETE CASCADE,
+    question_id    TEXT NOT NULL REFERENCES questions(id),
+    selected_index INTEGER NOT NULL,
+    is_correct     INTEGER NOT NULL CHECK(is_correct IN (0, 1)),
+    answered_at    TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_quiz_answers_session  ON quiz_answers(session_id);
+CREATE INDEX IF NOT EXISTS idx_quiz_answers_question ON quiz_answers(question_id);
 """
 
 

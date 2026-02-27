@@ -17,10 +17,16 @@ from quizzer.quiz.schemas import (
     QuestionDetail,
     QuestionEditRequest,
     QuestionSummary,
+    QuizAnswerRequest,
+    QuizAnswerResponse,
+    QuizFinishResponse,
     QuizResponse,
+    QuizSessionResponse,
+    StartQuizSessionRequest,
     StatusUpdateRequest,
 )
 from quizzer.quiz.service import QuizService
+from quizzer.quiz.session_service import QuizSessionService
 
 router = APIRouter(prefix="/api/v1")
 
@@ -29,6 +35,74 @@ def _get_service() -> QuizService:
     # Imported here to avoid circular imports; app.py sets this on startup
     from quizzer.quiz.app import get_service
     return get_service()
+
+
+def _get_quiz_session_service() -> QuizSessionService:
+    from quizzer.quiz.app import get_quiz_session_service
+    return get_quiz_session_service()
+
+
+@router.post("/quiz/sessions", response_model=QuizSessionResponse, status_code=201)
+def create_quiz_session(
+    body: StartQuizSessionRequest,
+    svc: QuizSessionService = Depends(_get_quiz_session_service),
+):
+    result = svc.create_session(
+        body.n,
+        body.difficulty,
+        body.document_ids or None,
+        body.tag,
+    )
+    questions = [
+        QuestionSummary(
+            id=q["id"],
+            question=q["question"],
+            options=q["options"],
+            difficulty=q["difficulty"],
+            source_document_id=q["source_document_id"],
+            status=q["status"],
+        )
+        for q in result["questions"]
+    ]
+    return QuizSessionResponse(
+        session_id=result["session_id"],
+        questions=questions,
+        started_at=result["started_at"],
+    )
+
+
+@router.post("/quiz/sessions/{session_id}/answers", response_model=QuizAnswerResponse)
+def submit_quiz_answer(
+    session_id: str,
+    body: QuizAnswerRequest,
+    svc: QuizSessionService = Depends(_get_quiz_session_service),
+):
+    result = svc.submit_answer(session_id, body.question_id, body.selected_index)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Session or question not found")
+    return QuizAnswerResponse(**result)
+
+
+@router.post("/quiz/sessions/{session_id}/finish", response_model=QuizFinishResponse)
+def finish_quiz_session(
+    session_id: str,
+    svc: QuizSessionService = Depends(_get_quiz_session_service),
+):
+    result = svc.finish_session(session_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return QuizFinishResponse(**result)
+
+
+@router.get("/quiz/sessions/{session_id}", response_model=dict)
+def get_quiz_session(
+    session_id: str,
+    svc: QuizSessionService = Depends(_get_quiz_session_service),
+):
+    result = svc.get_session(session_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return result
 
 
 @router.get("/questions", response_model=PaginatedQuestions)

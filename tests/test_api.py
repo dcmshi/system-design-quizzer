@@ -13,8 +13,10 @@ from quizzer.database import init_db, get_connection
 from quizzer.generation.ollama_client import OllamaClient
 from quizzer.quiz.app import create_app
 from quizzer.quiz.service import QuizService
+from quizzer.quiz.session_service import QuizSessionService
 from quizzer.storage.document_repo import DocumentRepository
 from quizzer.storage.question_repo import QuestionRepository
+from quizzer.storage.session_repo import SessionRepository
 from ulid import ULID
 
 
@@ -420,3 +422,160 @@ def test_import_creates_synthetic_chunks(app_client):
     # Synthetic chunk row must exist in DB
     row = conn.execute("SELECT id FROM chunks WHERE id = ?", (new_chunk_id,)).fetchone()
     assert row is not None
+
+
+# ── Quiz Session tests ────────────────────────────────────────────────────────
+
+@pytest.fixture()
+def quiz_session_client(tmp_path: Path, monkeypatch):
+    """Isolated DB with one question, services wired for quiz session tests."""
+    db_path = tmp_path / "test_session.db"
+    init_db(db_path)
+    conn = get_connection(db_path)
+
+    doc_id = str(ULID())
+    chunk_id = str(ULID())
+    q_id = str(ULID())
+    conn.execute(
+        "INSERT INTO documents (id, title, source, content, tags, source_path, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (doc_id, "Session Doc", "blog", "Content.", json.dumps([]), "test/session_doc.md",
+         datetime.now(timezone.utc).isoformat()),
+    )
+    conn.execute(
+        "INSERT INTO chunks (id, document_id, content, word_count, chunk_index, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (chunk_id, doc_id, "Chunk.", 1, 0, datetime.now(timezone.utc).isoformat()),
+    )
+    conn.execute(
+        "INSERT INTO questions (id, question, options, correct_index, explanation, difficulty, "
+        "source_document_id, source_chunk_id, status, fingerprint, model, prompt_version, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            q_id,
+            "What is a CDN?",
+            json.dumps(["Opt A", "Opt B", "Opt C", "Opt D"]),
+            2,
+            "A CDN caches content closer to users.",
+            "easy",
+            doc_id,
+            chunk_id,
+            "generated",
+            "session_fp_abc123",
+            "test-model",
+            "v1",
+            datetime.now(timezone.utc).isoformat(),
+        ),
+    )
+    conn.commit()
+
+    from unittest.mock import MagicMock
+    mock_ollama = MagicMock(spec=OllamaClient)
+
+    svc = QuizService(
+        question_repo=QuestionRepository(conn),
+        document_repo=DocumentRepository(conn),
+        ollama_client=mock_ollama,
+    )
+    session_svc = QuizSessionService(
+        session_repo=SessionRepository(conn),
+        question_repo=QuestionRepository(conn),
+    )
+
+    import quizzer.quiz.app as app_module
+    monkeypatch.setattr(app_module, "_service", svc)
+    monkeypatch.setattr(app_module, "_quiz_session_service", session_svc)
+
+    app = create_app()
+    with TestClient(app, raise_server_exceptions=True) as client:
+        monkeypatch.setattr(app_module, "_service", svc)
+        monkeypatch.setattr(app_module, "_quiz_session_service", session_svc)
+        yield client, q_id, doc_id
+
+
+def test_create_quiz_session(quiz_session_client):
+    client, q_id, _ = quiz_session_client
+    resp = client.post("/api/v1/quiz/sessions", json={"n": 1})
+    assert resp.status_code == 201
+    data = resp.json()
+    assert "session_id" in data
+    assert "started_at" in data
+    assert len(data["questions"]) == 1
+    q = data["questions"][0]
+    assert "correct_index" not in q
+    assert q["id"] == q_id
+
+
+def test_submit_correct_quiz_answer(quiz_session_client):
+    client, q_id, _ = quiz_session_client
+    sess = client.post("/api/v1/quiz/sessions", json={"n": 1}).json()
+    session_id = sess["session_id"]
+
+    resp = client.post(
+        f"/api/v1/quiz/sessions/{session_id}/answers",
+        json={"question_id": q_id, "selected_index": 2},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["correct"] is True
+    assert data["correct_index"] == 2
+    assert "explanation" in data
+
+
+def test_submit_wrong_quiz_answer(quiz_session_client):
+    client, q_id, _ = quiz_session_client
+    sess = client.post("/api/v1/quiz/sessions", json={"n": 1}).json()
+    session_id = sess["session_id"]
+
+    resp = client.post(
+        f"/api/v1/quiz/sessions/{session_id}/answers",
+        json={"question_id": q_id, "selected_index": 0},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["correct"] is False
+    assert data["correct_index"] == 2
+
+
+def test_finish_quiz_session(quiz_session_client):
+    client, q_id, _ = quiz_session_client
+    sess = client.post("/api/v1/quiz/sessions", json={"n": 1}).json()
+    session_id = sess["session_id"]
+    client.post(
+        f"/api/v1/quiz/sessions/{session_id}/answers",
+        json={"question_id": q_id, "selected_index": 2},
+    )
+
+    resp = client.post(f"/api/v1/quiz/sessions/{session_id}/finish")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["session_id"] == session_id
+    assert "finished_at" in data
+    assert data["n_answered"] == 1
+    assert data["n_correct"] == 1
+    assert data["n_wrong"] == 0
+    assert data["n_skipped"] == 0
+
+
+def test_get_quiz_session(quiz_session_client):
+    client, q_id, _ = quiz_session_client
+    sess = client.post("/api/v1/quiz/sessions", json={"n": 1}).json()
+    session_id = sess["session_id"]
+    client.post(
+        f"/api/v1/quiz/sessions/{session_id}/answers",
+        json={"question_id": q_id, "selected_index": 0},
+    )
+
+    resp = client.get(f"/api/v1/quiz/sessions/{session_id}")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["id"] == session_id
+    assert len(data["answers"]) == 1
+    assert data["answers"][0]["question_id"] == q_id
+    assert data["answers"][0]["is_correct"] is False
+
+
+def test_finish_nonexistent_session(quiz_session_client):
+    client, _, _ = quiz_session_client
+    resp = client.post("/api/v1/quiz/sessions/nonexistent/finish")
+    assert resp.status_code == 404

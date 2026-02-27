@@ -122,3 +122,36 @@ class ImportResult(BaseModel):
     imported: int
     skipped: int
     errors: list[str]
+
+
+class StartQuizSessionRequest(BaseModel):
+    n: int = Field(5, ge=1, le=50)
+    difficulty: str | None = None
+    tag: str | None = None
+    document_ids: list[str] = Field(default_factory=list)
+
+
+class QuizSessionResponse(BaseModel):
+    session_id: str
+    questions: list[QuestionSummary]
+    started_at: str
+
+
+class QuizAnswerRequest(BaseModel):
+    question_id: str
+    selected_index: int = Field(..., ge=0, le=3)
+
+
+class QuizAnswerResponse(BaseModel):
+    correct: bool
+    correct_index: int
+    explanation: str
+
+
+class QuizFinishResponse(BaseModel):
+    session_id: str
+    finished_at: str
+    n_answered: int
+    n_correct: int
+    n_wrong: int
+    n_skipped: int

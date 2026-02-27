@@ -38,7 +38,7 @@ _(move items here when actively working on them)_
 
 ### Progress tracking & spaced repetition
 
-- [ ] **Session history** — persist quiz results (question ID, selected index, correct, timestamp) to a `sessions` table. Enables all analytics below.
+- [x] **Session history** — persist quiz results (question ID, selected index, correct, timestamp) to a `sessions` table. Enables all analytics below.
 - [ ] **Per-question hit rate** — track how often each question is answered correctly. Surface this in the review UI and use it to inform difficulty calibration.
 - [ ] **Weak-topic replay** — surface questions from topics you've historically scored worst on. Simple heuristic: sort by ascending hit rate, pick bottom quartile.
 - [x] **Spaced repetition mode** — SM-2 backend (`srs_cards`, `srs_sessions`, `srs_reviews` tables; `algorithm.py` pure functions; `/api/v1/srs/` routes) + frontend SRS mode (mode toggle, per-answer "Next review: in X days", session summary, stats dashboard with per-document due/new table).
@@ -85,3 +85,4 @@ _(move items here when actively working on them)_
 - [x] `html_to_md.py` preprocessor for ByteByteGo HTML pages
 - [x] Multi-document selection — `<select multiple>` on setup screen; `GET /quiz` accepts repeated `document_id` params collected into `list[str]`; nothing selected = all documents; SRS mode uses first selected doc
 - [x] JSON/CSV export + JSON import — `GET /questions/export?format=json|csv`; `POST /questions/import`; round-trip fidelity via embedded documents and synthetic chunk placeholders
+- [x] Random quiz session history — `quiz_sessions` + `quiz_answers` tables; `POST /quiz/sessions`, `/answers`, `/finish`, `GET /quiz/sessions/{id}`; frontend random flow wired through session API; 84 tests pass

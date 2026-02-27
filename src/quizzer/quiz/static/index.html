@@ -796,6 +796,7 @@
     mode: 'random',        // 'random' | 'srs'
     srsSessionId: null,
     srsFinishData: null,
+    quizSessionId: null,
   };
 
   // ── DOM refs ──────────────────────────────────────────────────────────────
@@ -1054,6 +1055,49 @@
     return res.json();
   }
 
+  async function createQuizSession(n, difficulty, documentIds, tag) {
+    const res = await fetch('/api/v1/quiz/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        n,
+        difficulty: difficulty || null,
+        tag: tag || null,
+        document_ids: documentIds,
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail || `HTTP ${res.status}`);
+    }
+    return res.json();
+  }
+
+  async function submitQuizAnswer(sessionId, questionId, selectedIndex) {
+    const res = await fetch(`/api/v1/quiz/sessions/${sessionId}/answers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question_id: questionId, selected_index: selectedIndex }),
+    });
+    if (!res.ok) {
+      const b = await res.json().catch(() => ({}));
+      throw new Error(b.detail || `HTTP ${res.status}`);
+    }
+    return res.json();
+  }
+
+  async function finishQuizSession(sessionId) {
+    const res = await fetch(`/api/v1/quiz/sessions/${sessionId}/finish`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!res.ok) {
+      const b = await res.json().catch(() => ({}));
+      throw new Error(b.detail || `HTTP ${res.status}`);
+    }
+    return res.json();
+  }
+
   async function loadDueInfo(documentId) {
     let url = '/api/v1/srs/due';
     if (documentId) url += `?document_id=${encodeURIComponent(documentId)}`;
@@ -1091,11 +1135,12 @@
     state.results = [];
     state.srsSessionId = null;
     state.srsFinishData = null;
+    state.quizSessionId = null;
 
     showScreen('loading');
 
     try {
-      const data = await fetchQuestions(n, difficulty, documentIds, tag);
+      const data = await createQuizSession(n, difficulty, documentIds, tag);
       if (!data.questions || data.questions.length === 0) {
         const context = documentIds.length === 1
           ? ` in <strong>${inputDoc.selectedOptions[0].text}</strong>`
@@ -1110,11 +1155,12 @@
         );
         return;
       }
+      state.quizSessionId = data.session_id;
       state.questions = data.questions;
 
-      if (data.returned < data.requested) {
+      if (data.questions.length < n) {
         shortfallNotice.textContent =
-          `Only ${data.returned} of ${data.requested} requested questions available with these filters.`;
+          `Only ${data.questions.length} of ${n} requested questions available with these filters.`;
         shortfallNotice.classList.add('visible');
       } else {
         shortfallNotice.classList.remove('visible');
@@ -1142,6 +1188,7 @@
     state.results = [];
     state.srsSessionId = null;
     state.srsFinishData = null;
+    state.quizSessionId = null;
 
     showScreen('loading');
 
@@ -1219,6 +1266,8 @@
 
       if (state.mode === 'srs' && state.srsSessionId) {
         result = await submitSrsReview(state.srsSessionId, q.id, selectedIndex);
+      } else if (state.quizSessionId) {
+        result = await submitQuizAnswer(state.quizSessionId, q.id, selectedIndex);
       } else {
         result = await submitAnswer(q.id, selectedIndex);
       }
@@ -1288,8 +1337,8 @@
 
     btnPlayAgain.textContent = state.mode === 'srs' ? 'New SRS Session' : 'Play Again';
 
-    // SRS end info
-    if (state.mode === 'srs' && state.srsSessionId) {
+    // Session end info
+    if ((state.mode === 'srs' && state.srsSessionId) || state.quizSessionId) {
       srsEndInfo.textContent = 'Finishing session\u2026';
       srsEndInfo.classList.add('visible');
     } else {
@@ -1308,6 +1357,13 @@
           ` &middot; <span class="srs-wrong">${data.n_wrong} wrong</span>`;
       } catch (_) {
         srsEndInfo.textContent = 'Session complete.';
+      }
+    } else if (state.quizSessionId) {
+      try {
+        await finishQuizSession(state.quizSessionId);
+        srsEndInfo.classList.remove('visible');
+      } catch (_) {
+        srsEndInfo.classList.remove('visible');
       }
     }
   }
