@@ -114,6 +114,47 @@ The script:
 - Unwraps `<a>` tags (ByteByteGo links point back to their site)
 - Emits a `.md` file with YAML frontmatter (`title`, `source: "ByteByteGo"`, `url`, `tags`) ready for ingestion
 
+### 1c. Compare models before ingesting (optional)
+
+If you're unsure which model to use, run a quick side-by-side comparison on a single
+article before committing to a full ingest. Nothing is written to the database.
+
+```bash
+# Compare two models across a full article
+uv run python scripts/compare_models.py \
+    --source content/example/consistent-hashing.md \
+    --models llama3.2 mistral
+
+# Quick check — first 2 chunks only (much faster)
+uv run python scripts/compare_models.py \
+    --source content/example/consistent-hashing.md \
+    --models llama3.2 mistral \
+    --chunks 2
+
+# Compare three models at once
+uv run python scripts/compare_models.py \
+    --source content/example/consistent-hashing.md \
+    --models llama3.2 mistral llama3.1:8b
+```
+
+The script prints each model's questions per chunk (with ✓/✗ validity markers), then a
+summary table:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Summary
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Model                Valid Qs  Invalid  Parse errs    Time
+  ──────────────────── ──────── ──────── ─────────── ───────
+  llama3.2                   12        1           0   45.2s
+  mistral                    15        0           0   62.1s
+
+  → Most questions : mistral (15 valid)
+  → Fastest        : llama3.2 (45.2s)
+```
+
+Use the winner's name as `QUIZZER_OLLAMA_MODEL` in your `.env` before running ingestion.
+
 ### 2. Run ingestion
 
 ```bash
@@ -316,8 +357,8 @@ QUIZZER_OLLAMA_MODEL=llama3.2
 uv run pytest tests/ -v
 ```
 
-78 tests covering: ingestion (loader, chunker), validation (normalizer, schema, dedup),
-generation (prompt, parser, generator), the full API surface (including export/import), the SM-2 algorithm, and SRS API.
+84 tests covering: ingestion (loader, chunker), validation (normalizer, schema, dedup),
+generation (prompt, parser, generator), the full API surface (including export/import, quiz sessions), the SM-2 algorithm, and SRS API.
 
 ---
 
@@ -329,7 +370,9 @@ system_design_quizzer/
 │   └── <source>/<slug>.md
 ├── data/                       # SQLite DB (gitignored)
 ├── scripts/
-│   └── ingest.py               # CLI pipeline
+│   ├── ingest.py               # CLI pipeline
+│   ├── compare_models.py       # Dry-run model quality comparison
+│   └── html_to_md.py           # ByteByteGo HTML → Markdown preprocessor
 ├── src/quizzer/
 │   ├── config.py               # Pydantic settings
 │   ├── database.py             # Schema DDL + connection factory
