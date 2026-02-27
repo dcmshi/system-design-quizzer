@@ -170,6 +170,26 @@ class QuestionRepository:
         rows = self._conn.execute(sql, params).fetchall()
         return [self._row_to_dict(r) for r in rows]
 
+    def list_all_for_export(
+        self,
+        status: str | None = None,
+        document_ids: list[str] | None = None,
+    ) -> list[dict]:
+        filters: list[str] = ["status != 'rejected'"]
+        params: list = []
+        if status:
+            filters.append("status = ?")
+            params.append(status)
+        if document_ids:
+            placeholders = ",".join(["?"] * len(document_ids))
+            filters.append(f"source_document_id IN ({placeholders})")
+            params.extend(document_ids)
+        where = "WHERE " + " AND ".join(filters)
+        rows = self._conn.execute(
+            f"SELECT * FROM questions {where} ORDER BY created_at", params
+        ).fetchall()
+        return [self._row_to_dict(r) for r in rows]
+
     def count_by_document(self, document_id: str) -> int:
         row = self._conn.execute(
             "SELECT COUNT(*) as cnt FROM questions WHERE source_document_id = ?",

@@ -83,6 +83,26 @@ class DocumentRepository:
             for r in rows
         ]
 
+    def get_by_ids(self, ids: list[str]) -> list[Document]:
+        if not ids:
+            return []
+        placeholders = ",".join(["?"] * len(ids))
+        rows = self._conn.execute(
+            f"SELECT * FROM documents WHERE id IN ({placeholders})", ids
+        ).fetchall()
+        return [
+            Document(
+                id=r["id"],
+                title=r["title"],
+                source=r["source"],
+                content=r["content"],
+                tags=json.loads(r["tags"]),
+                source_path=r["source_path"],
+                created_at=r["created_at"],
+            )
+            for r in rows
+        ]
+
     def list_all_tags(self) -> list[str]:
         rows = self._conn.execute(
             "SELECT DISTINCT value FROM documents, json_each(documents.tags) ORDER BY value"

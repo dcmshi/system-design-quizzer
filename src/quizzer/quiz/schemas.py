@@ -83,3 +83,42 @@ class QuizResponse(BaseModel):
     questions: list[QuestionSummary]
     requested: int
     returned: int
+
+
+class ExportDocument(BaseModel):
+    id: str
+    title: str
+    source: str
+    content: str
+    tags: list[str]
+    source_path: str
+    created_at: str
+
+
+class ExportQuestion(BaseModel):
+    id: str
+    question: str
+    options: list[str]
+    correct_index: int
+    explanation: str
+    difficulty: str
+    source_document_id: str
+    source_chunk_id: str
+    status: str
+    fingerprint: str
+    model: str
+    prompt_version: str
+    created_at: str
+
+
+class ExportPayload(BaseModel):
+    version: str
+    exported_at: str
+    documents: list[ExportDocument]
+    questions: list[ExportQuestion]
+
+
+class ImportResult(BaseModel):
+    imported: int
+    skipped: int
+    errors: list[str]

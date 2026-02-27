@@ -45,9 +45,10 @@ _(move items here when actively working on them)_
 
 ### Export & interop
 
-- [ ] **JSON export** — `GET /questions/export?format=json` dumps all approved questions. Useful for backups or sharing.
+- [x] **JSON export** — `GET /questions/export?format=json` dumps all questions (filterable by status/document). Includes embedded documents for full-fidelity round-trip.
+- [x] **CSV export** — `GET /questions/export?format=csv` — flat spreadsheet with denormalised `document_title`; export-only.
+- [x] **JSON import** — `POST /questions/import` restores from a JSON export; upserts documents, creates synthetic chunk placeholders, skips fingerprint duplicates.
 - [ ] **Anki deck export** — convert approved questions to an `.apkg` file. `genanki` is the standard library for this.
-- [ ] **CSV export** — flat spreadsheet of questions for manual review or import into other tools.
 
 ### Generation & pipeline
 
@@ -83,3 +84,4 @@ _(move items here when actively working on them)_
 - [x] Ingest progress output — per-chunk `[i/n] heading  Xw  Y Q  Z.Zs` lines with `\r` overwrite while generating; ETA shown from second chunk onward
 - [x] `html_to_md.py` preprocessor for ByteByteGo HTML pages
 - [x] Multi-document selection — `<select multiple>` on setup screen; `GET /quiz` accepts repeated `document_id` params collected into `list[str]`; nothing selected = all documents; SRS mode uses first selected doc
+- [x] JSON/CSV export + JSON import — `GET /questions/export?format=json|csv`; `POST /questions/import`; round-trip fidelity via embedded documents and synthetic chunk placeholders

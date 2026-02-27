@@ -311,3 +311,112 @@ def test_quiz_single_document_id_still_works(app_client):
     data = resp.json()
     assert len(data["questions"]) >= 1
     assert all(q["source_document_id"] == doc_id for q in data["questions"])
+
+
+def test_export_json(app_client):
+    client, q_id, doc_id = app_client
+    resp = client.get("/api/v1/questions/export")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "documents" in data
+    assert "questions" in data
+    assert "version" in data
+    assert len(data["questions"]) >= 1
+    q = data["questions"][0]
+    assert q["id"] == q_id
+    assert "correct_index" in q
+    assert "explanation" in q
+
+
+def test_export_csv(app_client):
+    client, q_id, _ = app_client
+    resp = client.get("/api/v1/questions/export?format=csv")
+    assert resp.status_code == 200
+    assert "text/csv" in resp.headers["content-type"]
+    import csv as _csv, io
+    reader = _csv.DictReader(io.StringIO(resp.text))
+    rows = list(reader)
+    assert len(rows) >= 1
+    assert "option_a" in reader.fieldnames
+    assert "option_d" in reader.fieldnames
+    assert rows[0]["id"] == q_id
+
+
+def test_export_status_filter(app_client):
+    client, _, _ = app_client
+    resp = client.get("/api/v1/questions/export?status=approved")
+    assert resp.status_code == 200
+    data = resp.json()
+    # Seeded question has status='generated', so approved filter returns empty
+    assert data["questions"] == []
+
+
+def test_import_roundtrip(app_client):
+    client, q_id, _ = app_client
+    # Export the data
+    export_resp = client.get("/api/v1/questions/export")
+    assert export_resp.status_code == 200
+    payload = export_resp.json()
+    # Import it back
+    import_resp = client.post("/api/v1/questions/import", json=payload)
+    assert import_resp.status_code == 200
+    result = import_resp.json()
+    assert result["imported"] == 0   # fingerprint already exists
+    assert result["skipped"] == 1
+    assert result["errors"] == []
+    # Original question still present
+    assert client.get(f"/api/v1/questions/{q_id}").status_code == 200
+
+
+def test_import_skips_duplicates(app_client):
+    client, _, _ = app_client
+    export_resp = client.get("/api/v1/questions/export")
+    payload = export_resp.json()
+    # First import: already in DB → all skipped
+    r1 = client.post("/api/v1/questions/import", json=payload).json()
+    assert r1["skipped"] == 1
+    assert r1["imported"] == 0
+    # Second import: same result
+    r2 = client.post("/api/v1/questions/import", json=payload).json()
+    assert r2["skipped"] == 1
+    assert r2["imported"] == 0
+
+
+def test_import_creates_synthetic_chunks(app_client):
+    import quizzer.quiz.app as app_module
+    client, _, doc_id = app_client
+    conn = app_module._service.questions._conn
+
+    new_q_id = str(ULID())
+    new_chunk_id = str(ULID())
+    new_fp = "unique_fingerprint_synthetic_chunk_test"
+    payload = {
+        "version": "1",
+        "exported_at": datetime.now(timezone.utc).isoformat(),
+        "documents": [],
+        "questions": [
+            {
+                "id": new_q_id,
+                "question": "What is a synthetic chunk?",
+                "options": ["A", "B", "C", "D"],
+                "correct_index": 0,
+                "explanation": "A placeholder chunk created on import.",
+                "difficulty": "easy",
+                "source_document_id": doc_id,
+                "source_chunk_id": new_chunk_id,
+                "status": "generated",
+                "fingerprint": new_fp,
+                "model": "test-model",
+                "prompt_version": "v1",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ],
+    }
+    resp = client.post("/api/v1/questions/import", json=payload)
+    assert resp.status_code == 200
+    result = resp.json()
+    assert result["imported"] == 1
+    assert result["errors"] == []
+    # Synthetic chunk row must exist in DB
+    row = conn.execute("SELECT id FROM chunks WHERE id = ?", (new_chunk_id,)).fetchone()
+    assert row is not None

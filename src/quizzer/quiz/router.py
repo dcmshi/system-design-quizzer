@@ -1,10 +1,17 @@
+import csv
+import io
+import json as _json
+
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 
 from quizzer.quiz.schemas import (
     AnswerRequest,
     AnswerResponse,
     DocumentSummary,
+    ExportPayload,
     HealthResponse,
+    ImportResult,
     PaginatedQuestions,
     QuestionAnswer,
     QuestionDetail,
@@ -52,6 +59,65 @@ def list_questions(
         for q in items
     ]
     return PaginatedQuestions(items=summaries, total=total, limit=limit, offset=offset)
+
+
+@router.get("/questions/export")
+def export_questions(
+    format: str = Query("json", pattern="^(json|csv)$"),
+    status: str | None = Query(None),
+    document_id: list[str] | None = Query(default=None),
+    svc: QuizService = Depends(_get_service),
+):
+    data = svc.export_data(status, document_id or None)
+    if format == "csv":
+        output = io.StringIO()
+        writer = csv.DictWriter(output, fieldnames=[
+            "id", "question", "option_a", "option_b", "option_c", "option_d",
+            "correct_index", "explanation", "difficulty", "status",
+            "source_document_id", "document_title",
+            "fingerprint", "model", "prompt_version", "created_at",
+        ])
+        writer.writeheader()
+        doc_map = {d["id"]: d["title"] for d in data["documents"]}
+        for q in data["questions"]:
+            opts = q["options"]
+            writer.writerow({
+                "id": q["id"],
+                "question": q["question"],
+                "option_a": opts[0],
+                "option_b": opts[1],
+                "option_c": opts[2],
+                "option_d": opts[3],
+                "correct_index": q["correct_index"],
+                "explanation": q["explanation"],
+                "difficulty": q["difficulty"],
+                "status": q["status"],
+                "source_document_id": q["source_document_id"],
+                "document_title": doc_map.get(q["source_document_id"], ""),
+                "fingerprint": q["fingerprint"],
+                "model": q["model"],
+                "prompt_version": q["prompt_version"],
+                "created_at": q["created_at"],
+            })
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": 'attachment; filename="quizzer-export.csv"'},
+        )
+    return StreamingResponse(
+        iter([_json.dumps(data, indent=2)]),
+        media_type="application/json",
+        headers={"Content-Disposition": 'attachment; filename="quizzer-export.json"'},
+    )
+
+
+@router.post("/questions/import", response_model=ImportResult)
+def import_questions(
+    payload: ExportPayload,
+    svc: QuizService = Depends(_get_service),
+):
+    result = svc.import_data(payload.model_dump())
+    return ImportResult(**result)
 
 
 @router.get("/questions/{question_id}/answer", response_model=QuestionAnswer)
