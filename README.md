@@ -178,9 +178,18 @@ Base path: `/api/v1`
 | `GET` | `/questions/{id}/answer` | Get question with correct answer + explanation |
 | `POST` | `/questions/{id}/answer` | Submit answer `{"selected_index": 0}` → `{correct, correct_index, explanation}` |
 | `PATCH` | `/questions/{id}/status` | Update status `{"status": "approved"\|"edited"}` |
-| `GET` | `/quiz` | Random sample. Params: `n` (default 5), `difficulty`, `document_id` |
+| `PUT` | `/questions/{id}` | Edit question content `{question, options, correct_index, explanation, difficulty}` |
+| `GET` | `/quiz` | Random sample. Params: `n` (default 5), `difficulty`, `document_id`, `tag` |
+| `GET` | `/tags` | Sorted list of unique tags across all documents |
 | `GET` | `/documents` | List documents with question counts |
 | `GET` | `/health` | DB + Ollama connectivity check |
+
+### Export & import endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/questions/export` | Download questions as JSON or CSV. Params: `format` (`json`\|`csv`, default `json`), `status`, `document_id` (repeatable) |
+| `POST` | `/questions/import` | Import from a JSON export payload → `{imported, skipped, errors}` |
 
 ### Spaced repetition (SRS) endpoints
 
@@ -220,6 +229,34 @@ curl -X PATCH http://localhost:8000/api/v1/questions/<id>/status \
   -H "Content-Type: application/json" \
   -d '{"status": "approved"}'
 ```
+
+### Example export & import
+
+```bash
+# Export all questions as JSON (downloads quizzer-export.json)
+curl -O http://localhost:8000/api/v1/questions/export
+
+# Export only approved questions
+curl -O "http://localhost:8000/api/v1/questions/export?status=approved"
+
+# Export questions from specific documents (repeat param for multiple)
+curl -O "http://localhost:8000/api/v1/questions/export?document_id=<id1>&document_id=<id2>"
+
+# Export as CSV (flat spreadsheet, no import support)
+curl -O "http://localhost:8000/api/v1/questions/export?format=csv"
+
+# Import from a JSON export (e.g. restore a backup or load on a new machine)
+curl -X POST http://localhost:8000/api/v1/questions/import \
+  -H "Content-Type: application/json" \
+  -d @quizzer-export.json
+# → {"imported": 42, "skipped": 3, "errors": []}
+```
+
+**How import works:**
+- Documents in the payload are upserted (safe to run repeatedly).
+- Questions already in the database (matched by fingerprint) are skipped — not duplicated.
+- Errors on individual questions are collected and returned; the rest still import.
+- The JSON format is the canonical round-trip format; CSV is export-only.
 
 ### Example SRS session
 
@@ -279,8 +316,8 @@ QUIZZER_OLLAMA_MODEL=llama3.2
 uv run pytest tests/ -v
 ```
 
-67 tests covering: ingestion (loader, chunker), validation (normalizer, schema, dedup),
-generation (prompt, parser, generator), the full API surface, the SM-2 algorithm, and SRS API.
+78 tests covering: ingestion (loader, chunker), validation (normalizer, schema, dedup),
+generation (prompt, parser, generator), the full API surface (including export/import), the SM-2 algorithm, and SRS API.
 
 ---
 
