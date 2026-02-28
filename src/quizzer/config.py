@@ -15,9 +15,9 @@ class Settings(BaseSettings):
 
     # Google AI Studio (Gemini)
     gemini_api_key: str | None = None
-    gemini_model: str = "gemini-2.0-flash"
-    # Free tier: 15 RPM → 4s/request keeps you just under the limit
-    gemini_request_delay: float = 4.0
+    gemini_model: str = "gemini-2.5-flash"
+    # Free tier: 10 RPM → 7s/request keeps you just under the limit
+    gemini_request_delay: float = 7.0
     # Retries on 429 — waits the API-suggested retryDelay between attempts
     gemini_max_retries: int = 3
 

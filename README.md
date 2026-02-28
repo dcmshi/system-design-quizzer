@@ -4,7 +4,7 @@ Converts locally stored system design articles into structured multiple-choice q
 via a local Ollama LLM. The pipeline is deterministic and batch-oriented. Questions are
 served through a FastAPI REST API.
 
-**Stack:** Python · uv · Ollama · SQLite · FastAPI
+**Stack:** Python · uv · Gemini 2.5 Flash (Google AI Studio) · Ollama (fallback) · SQLite · FastAPI
 
 ---
 
@@ -12,7 +12,7 @@ served through a FastAPI REST API.
 
 - Python 3.11+
 - [uv](https://docs.astral.sh/uv/) — `pip install uv`
-- [Ollama](https://ollama.com/) running locally on `http://localhost:11434`
+- A [Google AI Studio](https://aistudio.google.com/) API key **or** [Ollama](https://ollama.com/) running locally (fallback)
 
 ---
 
@@ -28,9 +28,27 @@ cd system_design_quizzer
 uv sync --extra dev
 ```
 
-### 2. Set up Ollama
+### 2. Set up Gemini (recommended)
 
-[Download and install Ollama](https://ollama.com/download), then start the server:
+Gemini 2.5 Flash is the default LLM provider — faster than local models and requires no GPU.
+
+1. Go to [https://aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+2. Sign in with a Google account and click **Create API key**
+3. Copy the key and add it to your `.env` file:
+
+```bash
+QUIZZER_GEMINI_API_KEY=your_key_here
+```
+
+That's it. The provider defaults to `auto`, which picks Gemini automatically when a key is present.
+
+> **Free tier limits (Gemini 2.5 Flash):** 10 RPM · 500 RPD · 250 000 TPM
+> The default `QUIZZER_GEMINI_REQUEST_DELAY=7.0` keeps requests safely under the 10 RPM cap.
+> See [Google AI rate limits](https://ai.google.dev/gemini-api/docs/rate-limits) for full details.
+
+### 2b. Set up Ollama (local fallback)
+
+If you don't have a Gemini API key, or want to run fully offline, [download and install Ollama](https://ollama.com/download) and start the server:
 
 ```bash
 ollama serve
@@ -55,13 +73,7 @@ ollama list
 >
 > Avoid code-focused models (e.g. `qwen3-coder`) — they're tuned for code, not prose comprehension.
 
-### 3. Configure your model
-
-Create a `.env` file at the project root to set your model (and any other overrides):
-
-```bash
-QUIZZER_OLLAMA_MODEL=llama3.2
-```
+To force Ollama even when a Gemini key is present, set `QUIZZER_LLM_PROVIDER=ollama` in your `.env`.
 
 See the [Configuration](#configuration) section for all available settings.
 
@@ -183,7 +195,7 @@ uv run python scripts/ingest.py --stats
 The pipeline for each article:
 1. Parse frontmatter → normalize text
 2. Chunk by headings (300–800 words per chunk)
-3. Send each chunk to Ollama → receive JSON MCQs
+3. Send each chunk to the LLM (Gemini or Ollama) → receive JSON MCQs
 4. Validate + deduplicate → insert into SQLite
 
 ### 3. Start the server
@@ -335,18 +347,40 @@ All settings are read from environment variables with the `QUIZZER_` prefix.
 The recommended approach is a `.env` file at the project root (already gitignored):
 
 ```bash
-# .env
-QUIZZER_OLLAMA_MODEL=llama3.2
+# .env — minimal Gemini setup
+QUIZZER_GEMINI_API_KEY=your_key_here
 ```
+
+#### LLM provider
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `QUIZZER_LLM_PROVIDER` | `auto` | `auto` — Gemini if key is set, else Ollama; `gemini` — always Gemini; `ollama` — always local |
+
+#### Gemini (Google AI Studio)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `QUIZZER_GEMINI_API_KEY` | _(none)_ | API key from [aistudio.google.com/apikey](https://aistudio.google.com/apikey) |
+| `QUIZZER_GEMINI_MODEL` | `gemini-2.5-flash` | Model name — see [Google AI rate limits](https://ai.google.dev/gemini-api/docs/rate-limits) |
+| `QUIZZER_GEMINI_REQUEST_DELAY` | `7.0` | Seconds between requests — free tier is 10 RPM, so 7s keeps you under |
+| `QUIZZER_GEMINI_MAX_RETRIES` | `3` | Retries on 429 — waits the API-suggested `retryDelay` between attempts |
+
+#### Ollama (local fallback)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `QUIZZER_OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server URL |
+| `QUIZZER_OLLAMA_MODEL` | `llama3.1:8b` | Model name — must match `ollama list` exactly |
+| `QUIZZER_OLLAMA_TEMPERATURE` | `0.1` | Generation temperature |
+| `QUIZZER_OLLAMA_SEED` | `42` | Seed for reproducibility |
+
+#### Pipeline
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `QUIZZER_CONTENT_DIR` | `content` | Directory containing `.md` articles |
 | `QUIZZER_DB_PATH` | `data/quizzer.db` | SQLite database path |
-| `QUIZZER_OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server URL |
-| `QUIZZER_OLLAMA_MODEL` | `mistral` | Model name — must match `ollama list` exactly |
-| `QUIZZER_OLLAMA_TEMPERATURE` | `0.1` | Generation temperature |
-| `QUIZZER_OLLAMA_SEED` | `42` | Seed for reproducibility |
 | `QUIZZER_CHUNK_WORD_MIN` | `300` | Minimum words per chunk |
 | `QUIZZER_CHUNK_WORD_MAX` | `800` | Maximum words per chunk |
 | `QUIZZER_MIN_EXPLANATION_LENGTH` | `50` | Minimum characters in an explanation |
@@ -416,7 +450,7 @@ system_design_quizzer/
 .md file
   └─ load_document()       parse frontmatter, clean text
       └─ chunk_document()  split by headings → paragraph fallback
-          └─ generate_for_chunk()   prompt Ollama → JSON MCQs
+          └─ generate_for_chunk()   prompt LLM → JSON MCQs
               └─ normalize_mcq()   strip, capitalize, punctuate
                   └─ validate_mcq()   4 options, length, no dupes
                       └─ fingerprint()   SHA-256 dedup guard

@@ -24,8 +24,8 @@ class GeminiClient:
     def __init__(
         self,
         api_key: str,
-        model: str = "gemini-2.0-flash",
-        request_delay: float = 4.0,
+        model: str = "gemini-2.5-flash",
+        request_delay: float = 7.0,
         max_retries: int = 3,
     ) -> None:
         self._client = genai.Client(api_key=api_key)

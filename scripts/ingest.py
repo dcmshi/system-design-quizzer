@@ -183,7 +183,7 @@ def main() -> None:
 
     generator = MCQGenerator(client)
 
-    stats = {"documents": 0, "chunks": 0, "questions": 0, "skipped_docs": 0, "skipped_q": 0}
+    stats = {"documents": 0, "chunks": 0, "chunks_failed": 0, "questions": 0, "skipped_docs": 0, "skipped_q": 0}
 
     total_files = len(files)
 
@@ -234,6 +234,7 @@ def main() -> None:
                 chunk_times.append(elapsed)
                 log.error("Generation failed for chunk %s: %s", chunk.id, exc)
                 print(f"{prefix}  FAILED        {elapsed:.1f}s{' ' * 10}")
+                stats["chunks_failed"] += 1
                 continue
 
             elapsed = time.monotonic() - t0
@@ -285,6 +286,7 @@ def main() -> None:
     print(f"  Documents ingested : {stats['documents']}")
     print(f"  Documents skipped  : {stats['skipped_docs']}")
     print(f"  Chunks processed   : {stats['chunks']}")
+    print(f"  Chunks failed      : {stats['chunks_failed']}")
     print(f"  Questions stored   : {stats['questions']}")
     print(f"  Duplicates skipped : {stats['skipped_q']}")
     if args.dry_run:
