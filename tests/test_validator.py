@@ -111,6 +111,51 @@ def test_validate_explanation_no_letter_reference_no_error():
     assert errors == []
 
 
+def test_validate_explanation_numeric_index_mismatch():
+    # LLM wrote "Option 2" (0-indexed C) but correct_index=1 (B)
+    mcq = _make_mcq(
+        correct_index=1,
+        explanation="Option 2 is correct because it distributes load while minimizing remapping.",
+    )
+    errors = validate_mcq(mcq)
+    assert any("Option 2" in e and "correct_index is 1" in e for e in errors)
+
+
+def test_validate_explanation_numeric_index_match():
+    # "Option 1" (0-indexed B) matches correct_index=1 — no error
+    mcq = _make_mcq(
+        correct_index=1,
+        explanation="Option 1 is correct because it distributes load while minimizing remapping.",
+    )
+    errors = validate_mcq(mcq)
+    assert errors == []
+
+
+def test_normalize_strips_letter_paren_prefix():
+    # "A) text", "B) text" etc. should have the prefix stripped
+    mcq = _make_mcq(options=["A) first", "B) second", "C) third", "D) fourth"])
+    result = normalize_mcq(mcq)
+    assert result.options == ["First", "Second", "Third", "Fourth"]
+
+
+def test_normalize_strips_letter_dot_prefix():
+    mcq = _make_mcq(options=["A. first", "B. second", "C. third", "D. fourth"])
+    result = normalize_mcq(mcq)
+    assert result.options == ["First", "Second", "Third", "Fourth"]
+
+
+def test_normalize_strips_parenthetical_prefix():
+    mcq = _make_mcq(options=["(A) first", "(B) second", "(C) third", "(D) fourth"])
+    result = normalize_mcq(mcq)
+    assert result.options == ["First", "Second", "Third", "Fourth"]
+
+
+def test_normalize_leaves_plain_options_unchanged():
+    mcq = _make_mcq(options=["first", "second", "third", "fourth"])
+    result = normalize_mcq(mcq)
+    assert result.options == ["First", "Second", "Third", "Fourth"]
+
+
 # --- Duplicate Detector ---
 
 def test_fingerprint_is_deterministic():

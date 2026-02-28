@@ -1,8 +1,8 @@
 from quizzer.ingestion.models import Chunk
 
-PROMPT_VERSION = "v1"
+PROMPT_VERSION = "v2"
 
-PROMPT_V1 = """\
+PROMPT_V2 = """\
 You are an expert technical educator creating multiple-choice questions (MCQs) for a system design quiz.
 
 Given the following content chunk, generate exactly {n_questions} high-quality MCQ(s).
@@ -23,13 +23,16 @@ REQUIREMENTS:
 - Explanation must justify why the correct answer is right (minimum 50 characters)
 - difficulty must be one of: "easy", "medium", "hard"
 - source_chunk_id must be exactly: {chunk_id}
+- Write option text as plain prose — do NOT prefix options with labels like "A)", "B.", "(C)", "1.", etc.
+- In the explanation, refer to the correct answer by letter: "Option A/B/C/D" — never by number ("Option 0/1/2/3")
+- The letter in the explanation MUST match correct_index: A=0, B=1, C=2, D=3
 
 OUTPUT FORMAT — return ONLY a valid JSON object with this exact structure:
 {{
   "questions": [
     {{
       "question": "What is the primary advantage of X?",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "options": ["First choice text", "Second choice text", "Third choice text", "Fourth choice text"],
       "correct_index": 0,
       "explanation": "Option A is correct because ...",
       "difficulty": "medium",
@@ -43,7 +46,7 @@ Return ONLY the JSON object. No markdown, no prose, no code fences.
 
 
 def build_prompt(chunk: Chunk, n_questions: int) -> str:
-    return PROMPT_V1.format(
+    return PROMPT_V2.format(
         content=chunk.content,
         chunk_id=chunk.id,
         n_questions=n_questions,
