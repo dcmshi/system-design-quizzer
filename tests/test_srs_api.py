@@ -76,8 +76,8 @@ def srs_client(tmp_path: Path, monkeypatch):
     srs_svc = SrsService(srs_repo=srs_repo, question_repo=q_repo)
 
     app = create_app()
-    monkeypatch.setattr("quizzer.quiz.app._service", quiz_svc)
-    monkeypatch.setattr("quizzer.quiz.app._srs_service", srs_svc)
+    monkeypatch.setattr("quizzer.quiz.deps._service", quiz_svc)
+    monkeypatch.setattr("quizzer.quiz.deps._srs_service", srs_svc)
 
     return TestClient(app, raise_server_exceptions=True), q_id
 

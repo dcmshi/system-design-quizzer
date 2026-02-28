@@ -94,17 +94,6 @@ class SrsRepository:
             f"""
             SELECT COUNT(*) AS cnt FROM questions q
             JOIN srs_cards c ON q.id = c.question_id
-            WHERE q.status != 'rejected' {doc_filter}
-              AND c.due_date <= ?
-            """,
-            params_due[::-1] if document_id else params_due,  # due_date param last
-        ).fetchone()
-
-        # Simpler: redo with explicit ordering
-        due_row = self._conn.execute(
-            f"""
-            SELECT COUNT(*) AS cnt FROM questions q
-            JOIN srs_cards c ON q.id = c.question_id
             WHERE c.due_date <= ? AND q.status != 'rejected' {doc_filter}
             """,
             [cutoff] + ([document_id] if document_id else []),

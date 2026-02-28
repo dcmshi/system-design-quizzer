@@ -40,3 +40,22 @@ class SrsDueResponse(BaseModel):
     due_count: int
     new_count: int
     total_actionable: int  # due + new
+
+
+class SrsReviewRecord(BaseModel):
+    id: str
+    session_id: str
+    question_id: str
+    rating: int
+    was_correct: bool
+    ease_factor_after: float
+    interval_after: int
+    reviewed_at: str
+
+
+class SrsSessionDetail(BaseModel):
+    id: str
+    question_count: int
+    started_at: str
+    finished_at: str | None
+    reviews: list[SrsReviewRecord]

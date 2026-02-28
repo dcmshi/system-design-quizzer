@@ -21,11 +21,13 @@ from quizzer.quiz.schemas import (
     QuizAnswerResponse,
     QuizFinishResponse,
     QuizResponse,
+    QuizSessionDetail,
     QuizSessionResponse,
     StartQuizSessionRequest,
     StatusUpdateRequest,
     WeakCountResponse,
 )
+from quizzer.quiz import deps
 from quizzer.quiz.service import QuizService
 from quizzer.quiz.session_service import QuizSessionService
 
@@ -33,14 +35,11 @@ router = APIRouter(prefix="/api/v1")
 
 
 def _get_service() -> QuizService:
-    # Imported here to avoid circular imports; app.py sets this on startup
-    from quizzer.quiz.app import get_service
-    return get_service()
+    return deps.get_service()
 
 
 def _get_quiz_session_service() -> QuizSessionService:
-    from quizzer.quiz.app import get_quiz_session_service
-    return get_quiz_session_service()
+    return deps.get_quiz_session_service()
 
 
 @router.get("/quiz/weak-count", response_model=WeakCountResponse)
@@ -106,7 +105,7 @@ def finish_quiz_session(
     return QuizFinishResponse(**result)
 
 
-@router.get("/quiz/sessions/{session_id}", response_model=dict)
+@router.get("/quiz/sessions/{session_id}", response_model=QuizSessionDetail)
 def get_quiz_session(
     session_id: str,
     svc: QuizSessionService = Depends(_get_quiz_session_service),

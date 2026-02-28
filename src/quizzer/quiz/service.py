@@ -1,9 +1,8 @@
-import json
 from datetime import datetime, timezone
 from typing import Literal
 
 from quizzer.generation.ollama_client import OllamaClient
-from quizzer.ingestion.models import Document
+from quizzer.ingestion.models import Chunk, Document
 from quizzer.storage.document_repo import DocumentRepository
 from quizzer.storage.question_repo import QuestionRepository
 
@@ -34,15 +33,12 @@ class QuizService:
             limit=limit,
             offset=offset,
         )
-        # Simple total count (separate query would be needed for true pagination)
-        all_items = self.questions.list_questions(
+        total = self.questions.count_questions(
             difficulty=difficulty,
             status=status,
             document_id=document_id,
-            limit=10_000,
-            offset=0,
         )
-        return items, len(all_items)
+        return items, total
 
     def get_question(self, question_id: str) -> dict | None:
         q = self.questions.get_by_id(question_id)
@@ -102,19 +98,19 @@ class QuizService:
 
     def list_documents(self) -> list[dict]:
         docs = self.documents.list_all()
-        result = []
-        for doc in docs:
-            count = self.questions.count_by_document(doc.id)
-            result.append({
+        counts = self.questions.count_by_documents()
+        return [
+            {
                 "id": doc.id,
                 "title": doc.title,
                 "source": doc.source,
                 "tags": doc.tags,
                 "source_path": doc.source_path,
                 "created_at": doc.created_at,
-                "question_count": count,
-            })
-        return result
+                "question_count": counts.get(doc.id, 0),
+            }
+            for doc in docs
+        ]
 
     def export_data(
         self,
@@ -150,12 +146,14 @@ class QuizService:
         existing_fps = self.questions.get_all_fingerprints()
         for q in payload.get("questions", []):
             try:
-                self.questions._conn.execute(
-                    "INSERT OR IGNORE INTO chunks "
-                    "(id, document_id, content, word_count, chunk_index, created_at) "
-                    "VALUES (?, ?, '', 0, 0, ?)",
-                    (q["source_chunk_id"], q["source_document_id"], q["created_at"]),
-                )
+                self.documents.upsert_chunk(Chunk(
+                    id=q["source_chunk_id"],
+                    document_id=q["source_document_id"],
+                    content="",
+                    word_count=0,
+                    chunk_index=0,
+                    created_at=q["created_at"],
+                ))
                 if q["fingerprint"] in existing_fps:
                     skipped += 1
                     continue
@@ -178,7 +176,6 @@ class QuizService:
                 imported += 1
             except Exception as e:
                 errors.append(f"Question {q.get('id', '?')}: {e}")
-        self.questions._conn.commit()
         return {"imported": imported, "skipped": skipped, "errors": errors}
 
     def health(self) -> dict:

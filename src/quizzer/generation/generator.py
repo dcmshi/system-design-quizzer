@@ -1,6 +1,5 @@
 import json
 import logging
-import re
 
 from pydantic import ValidationError
 
@@ -10,8 +9,6 @@ from quizzer.generation.prompt_builder import PROMPT_VERSION, build_prompt
 from quizzer.ingestion.models import Chunk
 
 logger = logging.getLogger(__name__)
-
-_JSON_BLOCK_RE = re.compile(r"\{.*\}", re.DOTALL)
 
 
 def _question_count(word_count: int) -> int:
@@ -47,14 +44,15 @@ def _parse_questions(raw: str, chunk_id: str) -> list[RawMCQ]:
     except json.JSONDecodeError:
         pass
 
-    # Layer 2: regex extract first {...} block
-    match = _JSON_BLOCK_RE.search(raw)
-    if match:
-        try:
-            data = json.loads(match.group())
-            return _from_data(data)
-        except json.JSONDecodeError:
-            pass
+    # Layer 2: find first syntactically valid JSON object using raw_decode
+    decoder = json.JSONDecoder()
+    for i, ch in enumerate(raw):
+        if ch == '{':
+            try:
+                data, _ = decoder.raw_decode(raw, i)
+                return _from_data(data)
+            except json.JSONDecodeError:
+                continue
 
     logger.warning("Could not parse LLM response as JSON for chunk %s", chunk_id)
     return []

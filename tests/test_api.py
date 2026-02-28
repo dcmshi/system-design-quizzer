@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 
 from quizzer.database import init_db, get_connection
 from quizzer.generation.ollama_client import OllamaClient
+from quizzer.quiz import deps as deps_module
 from quizzer.quiz.app import create_app
 from quizzer.quiz.service import QuizService
 from quizzer.quiz.session_service import QuizSessionService
@@ -74,14 +75,13 @@ def app_client(tmp_path: Path, monkeypatch):
         ollama_client=mock_ollama,
     )
 
-    import quizzer.quiz.app as app_module
-    monkeypatch.setattr(app_module, "_service", svc)
+    monkeypatch.setattr(deps_module, "_service", svc)
 
     app = create_app()
     # Bypass lifespan for test
     with TestClient(app, raise_server_exceptions=True) as client:
         # Override the service getter
-        monkeypatch.setattr(app_module, "_service", svc)
+        monkeypatch.setattr(deps_module, "_service", svc)
         yield client, q_id, doc_id
 
 
@@ -115,17 +115,16 @@ def test_hit_rate_zero_before_any_answer(app_client):
 
 def test_hit_rate_updates_after_quiz_session_answer(app_client):
     client, q_id, _ = app_client
-    import quizzer.quiz.app as app_module
     from quizzer.quiz.session_service import QuizSessionService
     from quizzer.storage.session_repo import SessionRepository
     from quizzer.storage.question_repo import QuestionRepository
 
-    conn = app_module._service.questions._conn
+    conn = deps_module._service.questions._conn
     session_svc = QuizSessionService(
         session_repo=SessionRepository(conn),
         question_repo=QuestionRepository(conn),
     )
-    app_module._quiz_session_service = session_svc
+    deps_module._quiz_session_service = session_svc
 
     # Start a session and answer correctly
     sess = client.post("/api/v1/quiz/sessions", json={"n": 1}).json()
@@ -144,17 +143,16 @@ def test_hit_rate_updates_after_quiz_session_answer(app_client):
 
 def test_hit_rate_wrong_answer(app_client):
     client, q_id, _ = app_client
-    import quizzer.quiz.app as app_module
     from quizzer.quiz.session_service import QuizSessionService
     from quizzer.storage.session_repo import SessionRepository
     from quizzer.storage.question_repo import QuestionRepository
 
-    conn = app_module._service.questions._conn
+    conn = deps_module._service.questions._conn
     session_svc = QuizSessionService(
         session_repo=SessionRepository(conn),
         question_repo=QuestionRepository(conn),
     )
-    app_module._quiz_session_service = session_svc
+    deps_module._quiz_session_service = session_svc
 
     sess = client.post("/api/v1/quiz/sessions", json={"n": 1}).json()
     session_id = sess["session_id"]
@@ -326,8 +324,7 @@ def test_quiz_multi_document_filter(app_client):
     """Passing two document_id params returns questions from both documents."""
     client, q_id, doc_id = app_client
     # Access the underlying connection via the service
-    import quizzer.quiz.app as app_module
-    conn = app_module._service.questions._conn
+    conn = deps_module._service.questions._conn
 
     doc_id2 = str(ULID())
     chunk_id2 = str(ULID())
@@ -452,9 +449,8 @@ def test_import_skips_duplicates(app_client):
 
 
 def test_import_creates_synthetic_chunks(app_client):
-    import quizzer.quiz.app as app_module
     client, _, doc_id = app_client
-    conn = app_module._service.questions._conn
+    conn = deps_module._service.questions._conn
 
     new_q_id = str(ULID())
     new_chunk_id = str(ULID())
@@ -549,14 +545,13 @@ def quiz_session_client(tmp_path: Path, monkeypatch):
         question_repo=QuestionRepository(conn),
     )
 
-    import quizzer.quiz.app as app_module
-    monkeypatch.setattr(app_module, "_service", svc)
-    monkeypatch.setattr(app_module, "_quiz_session_service", session_svc)
+    monkeypatch.setattr(deps_module, "_service", svc)
+    monkeypatch.setattr(deps_module, "_quiz_session_service", session_svc)
 
     app = create_app()
     with TestClient(app, raise_server_exceptions=True) as client:
-        monkeypatch.setattr(app_module, "_service", svc)
-        monkeypatch.setattr(app_module, "_quiz_session_service", session_svc)
+        monkeypatch.setattr(deps_module, "_service", svc)
+        monkeypatch.setattr(deps_module, "_quiz_session_service", session_svc)
         yield client, q_id, doc_id
 
 
@@ -666,17 +661,16 @@ def test_weak_session_empty_with_no_history(quiz_session_client):
 
 def test_weak_count_and_session_after_wrong_answer(quiz_session_client):
     client, q_id, _ = quiz_session_client
-    import quizzer.quiz.app as app_module
     from quizzer.quiz.session_service import QuizSessionService
     from quizzer.storage.session_repo import SessionRepository
     from quizzer.storage.question_repo import QuestionRepository
 
-    conn = app_module._service.questions._conn
+    conn = deps_module._service.questions._conn
     session_svc = QuizSessionService(
         session_repo=SessionRepository(conn),
         question_repo=QuestionRepository(conn),
     )
-    app_module._quiz_session_service = session_svc
+    deps_module._quiz_session_service = session_svc
 
     # Answer wrong so the question lands in the weak pool
     sess = client.post("/api/v1/quiz/sessions", json={"n": 1}).json()

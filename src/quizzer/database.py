@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 
 from quizzer.config import settings
@@ -101,6 +102,13 @@ CREATE INDEX IF NOT EXISTS idx_quiz_answers_question ON quiz_answers(question_id
 """
 
 
+# List of (version, sql) pairs for non-idempotent schema changes.
+# New migrations are appended here; the runner applies any not yet recorded.
+_MIGRATIONS: list[tuple[int, str]] = [
+    # No migrations yet — runner is ready for future use.
+]
+
+
 def get_connection(db_path: Path | None = None) -> sqlite3.Connection:
     path = db_path or settings.db_path
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -111,6 +119,31 @@ def get_connection(db_path: Path | None = None) -> sqlite3.Connection:
     return conn
 
 
+def migrate_db(db_path: Path | None = None) -> None:
+    """Apply any pending migrations recorded in _MIGRATIONS."""
+    conn = get_connection(db_path)
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS schema_migrations (
+            version    INTEGER PRIMARY KEY,
+            applied_at TEXT    NOT NULL
+        )
+        """
+    )
+    conn.commit()
+    row = conn.execute("SELECT MAX(version) AS v FROM schema_migrations").fetchone()
+    current = row["v"] if row and row["v"] is not None else 0
+    for version, sql in _MIGRATIONS:
+        if version > current:
+            conn.execute(sql)
+            conn.execute(
+                "INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)",
+                (version, datetime.now(timezone.utc).isoformat()),
+            )
+            conn.commit()
+
+
 def init_db(db_path: Path | None = None) -> None:
     with get_connection(db_path) as conn:
         conn.executescript(_SCHEMA)
+    migrate_db(db_path)

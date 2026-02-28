@@ -6,17 +6,18 @@ from quizzer.srs.schemas import (
     SrsFinishResponse,
     SrsReviewRequest,
     SrsReviewResponse,
+    SrsSessionDetail,
     SrsSessionResponse,
     StartSessionRequest,
 )
+from quizzer.quiz import deps
 from quizzer.srs.service import SrsService
 
 router = APIRouter(prefix="/api/v1/srs", tags=["srs"])
 
 
 def _get_srs_service() -> SrsService:
-    from quizzer.quiz.app import get_srs_service
-    return get_srs_service()
+    return deps.get_srs_service()
 
 
 @router.post("/sessions", response_model=SrsSessionResponse, status_code=201)
@@ -66,7 +67,7 @@ def finish_session(
     return SrsFinishResponse(**result)
 
 
-@router.get("/sessions/{session_id}", response_model=dict)
+@router.get("/sessions/{session_id}", response_model=SrsSessionDetail)
 def get_session(
     session_id: str,
     svc: SrsService = Depends(_get_srs_service),

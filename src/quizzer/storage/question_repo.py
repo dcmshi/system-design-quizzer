@@ -6,18 +6,6 @@ from typing import Literal
 from quizzer.database import get_connection
 
 
-class QuestionRecord:
-    __slots__ = (
-        "id", "question", "options", "correct_index", "explanation",
-        "difficulty", "source_document_id", "source_chunk_id", "status",
-        "fingerprint", "model", "prompt_version", "created_at",
-    )
-
-    def __init__(self, **kwargs):
-        for k, v in kwargs.items():
-            setattr(self, k, v)
-
-
 class QuestionRepository:
     def __init__(self, conn: sqlite3.Connection | None = None) -> None:
         self._conn = conn or get_connection()
@@ -133,6 +121,21 @@ class QuestionRepository:
         rows = self._conn.execute("SELECT fingerprint FROM questions").fetchall()
         return {r["fingerprint"] for r in rows}
 
+    @staticmethod
+    def _difficulty_filter(difficulty: str | None, alias: str = "") -> tuple[str, list]:
+        if difficulty:
+            prefix = f"{alias}." if alias else ""
+            return (f"{prefix}difficulty = ?", [difficulty])
+        return ("", [])
+
+    @staticmethod
+    def _document_ids_filter(document_ids: list[str] | None, alias: str = "") -> tuple[str, list]:
+        if document_ids:
+            prefix = f"{alias}." if alias else ""
+            placeholders = ",".join(["?"] * len(document_ids))
+            return (f"{prefix}source_document_id IN ({placeholders})", list(document_ids))
+        return ("", [])
+
     def get_random_sample(
         self,
         n: int,
@@ -143,17 +146,18 @@ class QuestionRepository:
         filters: list[str] = ["q.status != 'rejected'"]
         params: list = []
 
-        if difficulty:
-            filters.append("q.difficulty = ?")
-            params.append(difficulty)
-        if document_ids:
-            placeholders = ",".join(["?"] * len(document_ids))
-            filters.append(f"q.source_document_id IN ({placeholders})")
-            params.extend(document_ids)
+        diff_clause, diff_params = self._difficulty_filter(difficulty, "q")
+        if diff_clause:
+            filters.append(diff_clause)
+            params.extend(diff_params)
+
+        doc_clause, doc_params = self._document_ids_filter(document_ids, "q")
+        if doc_clause:
+            filters.append(doc_clause)
+            params.extend(doc_params)
+
         if tag:
-            filters.append(
-                "EXISTS (SELECT 1 FROM json_each(d.tags) WHERE value = ?)"
-            )
+            filters.append("EXISTS (SELECT 1 FROM json_each(d.tags) WHERE value = ?)")
             params.append(tag)
 
         where = "WHERE " + " AND ".join(filters)
@@ -181,10 +185,10 @@ class QuestionRepository:
         if status:
             filters.append("status = ?")
             params.append(status)
-        if document_ids:
-            placeholders = ",".join(["?"] * len(document_ids))
-            filters.append(f"source_document_id IN ({placeholders})")
-            params.extend(document_ids)
+        doc_clause, doc_params = self._document_ids_filter(document_ids)
+        if doc_clause:
+            filters.append(doc_clause)
+            params.extend(doc_params)
         where = "WHERE " + " AND ".join(filters)
         rows = self._conn.execute(
             f"SELECT * FROM questions {where} ORDER BY created_at", params
@@ -198,13 +202,17 @@ class QuestionRepository:
     ) -> tuple[str, list]:
         filters: list[str] = ["q.status != 'rejected'"]
         params: list = []
-        if difficulty:
-            filters.append("q.difficulty = ?")
-            params.append(difficulty)
-        if document_ids:
-            placeholders = ",".join(["?"] * len(document_ids))
-            filters.append(f"q.source_document_id IN ({placeholders})")
-            params.extend(document_ids)
+
+        diff_clause, diff_params = self._difficulty_filter(difficulty, "q")
+        if diff_clause:
+            filters.append(diff_clause)
+            params.extend(diff_params)
+
+        doc_clause, doc_params = self._document_ids_filter(document_ids, "q")
+        if doc_clause:
+            filters.append(doc_clause)
+            params.extend(doc_params)
+
         return "WHERE " + " AND ".join(filters), params
 
     _WEAK_CTE = """
@@ -292,6 +300,37 @@ class QuestionRepository:
             "times_correct":  times_correct,
             "hit_rate":       hit_rate,
         }
+
+    def count_questions(
+        self,
+        *,
+        difficulty: str | None = None,
+        status: str | None = None,
+        document_id: str | None = None,
+    ) -> int:
+        filters: list[str] = []
+        params: list = []
+        if difficulty:
+            filters.append("difficulty = ?")
+            params.append(difficulty)
+        if status:
+            filters.append("status = ?")
+            params.append(status)
+        if document_id:
+            filters.append("source_document_id = ?")
+            params.append(document_id)
+        where = ("WHERE " + " AND ".join(filters)) if filters else ""
+        row = self._conn.execute(
+            f"SELECT COUNT(*) as cnt FROM questions {where}", params
+        ).fetchone()
+        return row["cnt"] if row else 0
+
+    def count_by_documents(self) -> dict[str, int]:
+        rows = self._conn.execute(
+            "SELECT source_document_id, COUNT(*) as cnt FROM questions "
+            "GROUP BY source_document_id"
+        ).fetchall()
+        return {r["source_document_id"]: r["cnt"] for r in rows}
 
     def count_by_document(self, document_id: str) -> int:
         row = self._conn.execute(

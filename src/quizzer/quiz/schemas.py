@@ -163,3 +163,23 @@ class QuizFinishResponse(BaseModel):
     n_correct: int
     n_wrong: int
     n_skipped: int
+
+
+class QuizAnswerRecord(BaseModel):
+    id: str
+    session_id: str
+    question_id: str
+    selected_index: int
+    is_correct: bool
+    answered_at: str
+
+
+class QuizSessionDetail(BaseModel):
+    id: str
+    question_count: int
+    difficulty: str | None
+    tag: str | None
+    document_ids: list[str] | None
+    started_at: str
+    finished_at: str | None
+    answers: list[QuizAnswerRecord]
