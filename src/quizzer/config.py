@@ -12,7 +12,7 @@ class Settings(BaseSettings):
 
     # Ollama
     ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "mistral"
+    ollama_model: str = "llama3.1:8b"
     ollama_temperature: float = 0.1
     ollama_seed: int = 42
 
