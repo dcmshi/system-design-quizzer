@@ -259,6 +259,41 @@
     }
     .page-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
     .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Bulk action bar ── */
+    .bulk-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+      min-height: 2rem;
+    }
+    .bulk-bar label {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+    }
+    .bulk-bar input[type=checkbox] { accent-color: var(--accent); cursor: pointer; }
+    .bulk-spacer { flex: 1; }
+    .btn-bulk-reject { background: #7f1d1d; color: #fca5a5; }
+    .btn-bulk-reject:hover:not(:disabled) { background: #991b1b; }
+
+    /* ── Card checkbox ── */
+    .card-select {
+      display: flex;
+      align-items: center;
+      padding: 0.75rem 1.5rem 0;
+    }
+    .card-select input[type=checkbox] {
+      accent-color: var(--accent);
+      cursor: pointer;
+      width: 1rem;
+      height: 1rem;
+    }
   </style>
 </head>
 <body>
@@ -288,6 +323,16 @@
     </select>
   </div>
 
+  <div class="bulk-bar">
+    <label>
+      <input type="checkbox" id="select-all"> Select all on page
+    </label>
+    <span class="bulk-spacer"></span>
+    <button class="btn btn-bulk-reject" id="bulk-reject-btn" disabled>
+      Reject selected (0)
+    </button>
+  </div>
+
   <p id="summary" class="summary"></p>
   <div id="question-list" class="question-list"></div>
   <div id="pagination" class="pagination"></div>
@@ -299,15 +344,30 @@
 const PAGE_SIZE = 20;
 const LABELS = ['A', 'B', 'C', 'D'];
 
-let page  = 0;
-let total = 0;
+let page        = 0;
+let total       = 0;
+let selectedIds = new Set();
 
-const filterStatus = document.getElementById('filter-status');
-const filterDoc    = document.getElementById('filter-doc');
-const filterDiff   = document.getElementById('filter-diff');
-const summaryEl    = document.getElementById('summary');
-const listEl       = document.getElementById('question-list');
-const paginationEl = document.getElementById('pagination');
+const filterStatus  = document.getElementById('filter-status');
+const filterDoc     = document.getElementById('filter-doc');
+const filterDiff    = document.getElementById('filter-diff');
+const summaryEl     = document.getElementById('summary');
+const listEl        = document.getElementById('question-list');
+const paginationEl  = document.getElementById('pagination');
+const selectAllCb   = document.getElementById('select-all');
+const bulkRejectBtn = document.getElementById('bulk-reject-btn');
+
+// ── Bulk bar ──────────────────────────────────────────────────────────────
+
+function updateBulkBar() {
+  const n = selectedIds.size;
+  bulkRejectBtn.textContent = `Reject selected (${n})`;
+  bulkRejectBtn.disabled = n === 0;
+  const checkboxes = [...listEl.querySelectorAll('.card-checkbox')];
+  const allChecked = checkboxes.length > 0 && checkboxes.every(cb => cb.checked);
+  selectAllCb.indeterminate = !allChecked && n > 0;
+  selectAllCb.checked = allChecked;
+}
 
 // ── Init ──────────────────────────────────────────────────────────────────
 
@@ -335,6 +395,8 @@ async function loadDocuments() {
 // ── Page load ─────────────────────────────────────────────────────────────
 
 async function loadPage() {
+  selectedIds.clear();
+  updateBulkBar();
   listEl.innerHTML = '<div class="state-msg">Loading&hellip;</div>';
   paginationEl.innerHTML = '';
   summaryEl.textContent = '';
@@ -409,10 +471,23 @@ function buildCard(q) {
   card.className = 'question-card';
   card.dataset.id = q.id;
 
+  const checkRow = document.createElement('div');
+  checkRow.className = 'card-select';
+  const cb = document.createElement('input');
+  cb.type = 'checkbox';
+  cb.className = 'card-checkbox';
+  cb.dataset.id = q.id;
+  cb.addEventListener('change', () => {
+    if (cb.checked) selectedIds.add(q.id);
+    else            selectedIds.delete(q.id);
+    updateBulkBar();
+  });
+  checkRow.appendChild(cb);
+
   const view = buildCardView(q);
   const form = buildEditForm(q);
 
-  card.append(view, form);
+  card.append(checkRow, view, form);
 
   view.querySelector('.btn-approve').addEventListener('click', () => doStatusUpdate(card, q, 'approved'));
   view.querySelector('.btn-edit').addEventListener('click',    () => openEdit(card, form, q));
@@ -698,6 +773,63 @@ function renderPagination() {
 
   paginationEl.append(prev, label, next);
 }
+
+// ── Select all ────────────────────────────────────────────────────────────
+
+selectAllCb.addEventListener('change', () => {
+  listEl.querySelectorAll('.card-checkbox').forEach(cb => {
+    cb.checked = selectAllCb.checked;
+    if (selectAllCb.checked) selectedIds.add(cb.dataset.id);
+    else                     selectedIds.delete(cb.dataset.id);
+  });
+  updateBulkBar();
+});
+
+// ── Bulk reject ───────────────────────────────────────────────────────────
+
+bulkRejectBtn.addEventListener('click', async () => {
+  const ids = [...selectedIds];
+  if (!ids.length) return;
+  bulkRejectBtn.disabled = true;
+  try {
+    const res = await fetch('/api/v1/questions/bulk-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids, status: 'rejected' }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const currentFilter = filterStatus.value;
+    if (currentFilter && currentFilter !== 'rejected') {
+      // fade out and remove cards that no longer match the filter
+      const toFade = [...listEl.querySelectorAll('.question-card')]
+        .filter(c => ids.includes(c.dataset.id));
+      toFade.forEach(c => { c.style.transition = 'opacity 0.2s'; c.style.opacity = '0'; });
+      setTimeout(() => {
+        toFade.forEach(c => { c.remove(); total = Math.max(0, total - 1); });
+        selectedIds.clear();
+        updateBulkBar();
+        if (listEl.children.length === 0) {
+          listEl.innerHTML = '<div class="state-msg">No questions match the current filters.</div>';
+          summaryEl.textContent = '0 questions';
+          renderPagination();
+        }
+      }, 220);
+    } else {
+      // "All statuses" — update badges in place
+      listEl.querySelectorAll('.question-card').forEach(c => {
+        if (!ids.includes(c.dataset.id)) return;
+        const badge = c.querySelector('[data-status-badge]');
+        if (badge) { badge.textContent = 'rejected'; badge.className = 'badge badge-rejected'; }
+      });
+      selectedIds.clear();
+      updateBulkBar();
+    }
+  } catch (err) {
+    alert(`Bulk reject failed: ${err.message}`);
+    bulkRejectBtn.disabled = selectedIds.size === 0;
+  }
+});
 
 // ── Filters ───────────────────────────────────────────────────────────────
 

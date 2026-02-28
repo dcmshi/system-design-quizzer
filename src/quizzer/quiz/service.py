@@ -96,6 +96,9 @@ class QuizService:
     ) -> bool:
         return self.questions.update_status(question_id, status)
 
+    def bulk_update_status(self, ids: list[str], status: str) -> int:
+        return self.questions.bulk_update_status(ids, status)
+
     def list_documents(self) -> list[dict]:
         docs = self.documents.list_all()
         counts = self.questions.count_by_documents()

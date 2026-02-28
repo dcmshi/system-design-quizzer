@@ -105,7 +105,38 @@ CREATE INDEX IF NOT EXISTS idx_quiz_answers_question ON quiz_answers(question_id
 # List of (version, sql) pairs for non-idempotent schema changes.
 # New migrations are appended here; the runner applies any not yet recorded.
 _MIGRATIONS: list[tuple[int, str]] = [
-    # No migrations yet — runner is ready for future use.
+    # v1: rebuild questions table so status CHECK includes 'rejected'.
+    # legacy_alter_table=ON prevents SQLite from rewriting child-table FK
+    # references when renaming the parent, so srs_cards / srs_reviews /
+    # quiz_answers continue to reference 'questions' after the rebuild.
+    (1, """
+PRAGMA legacy_alter_table=ON;
+PRAGMA foreign_keys=OFF;
+ALTER TABLE questions RENAME TO _questions_old;
+CREATE TABLE questions (
+    id                 TEXT PRIMARY KEY,
+    question           TEXT NOT NULL,
+    options            TEXT NOT NULL,
+    correct_index      INTEGER NOT NULL CHECK (correct_index BETWEEN 0 AND 3),
+    explanation        TEXT NOT NULL,
+    difficulty         TEXT NOT NULL CHECK (difficulty IN ('easy','medium','hard')),
+    source_document_id TEXT NOT NULL REFERENCES documents(id),
+    source_chunk_id    TEXT NOT NULL REFERENCES chunks(id),
+    status             TEXT NOT NULL DEFAULT 'generated'
+                           CHECK (status IN ('generated','approved','edited','rejected')),
+    fingerprint        TEXT NOT NULL UNIQUE,
+    model              TEXT NOT NULL,
+    prompt_version     TEXT NOT NULL,
+    created_at         TEXT NOT NULL
+);
+INSERT INTO questions SELECT * FROM _questions_old;
+DROP TABLE _questions_old;
+CREATE INDEX IF NOT EXISTS idx_questions_difficulty ON questions(difficulty);
+CREATE INDEX IF NOT EXISTS idx_questions_status     ON questions(status);
+CREATE INDEX IF NOT EXISTS idx_questions_document   ON questions(source_document_id);
+PRAGMA foreign_keys=ON;
+PRAGMA legacy_alter_table=OFF;
+"""),
 ]
 
 
@@ -135,7 +166,7 @@ def migrate_db(db_path: Path | None = None) -> None:
     current = row["v"] if row and row["v"] is not None else 0
     for version, sql in _MIGRATIONS:
         if version > current:
-            conn.execute(sql)
+            conn.executescript(sql)
             conn.execute(
                 "INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)",
                 (version, datetime.now(timezone.utc).isoformat()),

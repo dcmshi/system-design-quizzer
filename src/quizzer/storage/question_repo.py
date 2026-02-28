@@ -105,6 +105,17 @@ class QuestionRepository:
         self._conn.commit()
         return cur.rowcount > 0
 
+    def bulk_update_status(self, ids: list[str], status: str) -> int:
+        if not ids:
+            return 0
+        placeholders = ",".join(["?"] * len(ids))
+        cur = self._conn.execute(
+            f"UPDATE questions SET status = ? WHERE id IN ({placeholders})",
+            [status, *ids],
+        )
+        self._conn.commit()
+        return cur.rowcount
+
     def counts_by_status(self) -> dict[str, int]:
         rows = self._conn.execute(
             "SELECT status, COUNT(*) as cnt FROM questions GROUP BY status"

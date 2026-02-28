@@ -202,6 +202,8 @@ This starts both the REST API and the web UI:
 
 The web UI lets you choose a question count (1–50), filter by difficulty, and work through a quiz with immediate answer feedback and explanations. No build step — it's a single static HTML file served by FastAPI.
 
+The review UI at `http://localhost:8000/review/` lets you browse, approve, edit, and reject questions. Each card has a checkbox; a **Select all on page** control and a **Reject selected (N)** button let you bulk-reject batches of bad questions in one click.
+
 ![Quiz UI screenshot](docs/quiz_screenshot.png)
 
 ---
@@ -218,8 +220,9 @@ Base path: `/api/v1`
 | `GET` | `/questions/{id}` | Get question detail (no answer) |
 | `GET` | `/questions/{id}/answer` | Get question with correct answer + explanation |
 | `POST` | `/questions/{id}/answer` | Submit answer `{"selected_index": 0}` → `{correct, correct_index, explanation}` |
-| `PATCH` | `/questions/{id}/status` | Update status `{"status": "approved"\|"edited"}` |
+| `PATCH` | `/questions/{id}/status` | Update status `{"status": "approved"\|"edited"\|"rejected"}` |
 | `PUT` | `/questions/{id}` | Edit question content `{question, options, correct_index, explanation, difficulty}` |
+| `POST` | `/questions/bulk-status` | Bulk status update `{"ids": ["…"], "status": "rejected"}` → `{"updated": N}` |
 | `GET` | `/quiz` | Random sample. Params: `n` (default 5), `difficulty`, `document_id`, `tag` |
 | `GET` | `/tags` | Sorted list of unique tags across all documents |
 | `GET` | `/documents` | List documents with question counts |
@@ -357,8 +360,8 @@ QUIZZER_OLLAMA_MODEL=llama3.2
 uv run pytest tests/ -v
 ```
 
-84 tests covering: ingestion (loader, chunker), validation (normalizer, schema, dedup),
-generation (prompt, parser, generator), the full API surface (including export/import, quiz sessions), the SM-2 algorithm, and SRS API.
+101 tests covering: ingestion (loader, chunker), validation (normalizer, schema, dedup),
+generation (prompt, parser, generator), the full API surface (including export/import, quiz sessions, bulk status), the SM-2 algorithm, and SRS API.
 
 ---
 

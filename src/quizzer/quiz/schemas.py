@@ -59,6 +59,15 @@ class StatusUpdateRequest(BaseModel):
     status: Literal["approved", "edited", "rejected"]
 
 
+class BulkStatusRequest(BaseModel):
+    ids: list[str] = Field(..., min_length=1)
+    status: Literal["approved", "edited", "rejected"]
+
+
+class BulkStatusResponse(BaseModel):
+    updated: int
+
+
 class DocumentSummary(BaseModel):
     id: str
     title: str

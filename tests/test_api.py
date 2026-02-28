@@ -292,6 +292,31 @@ def test_quiz_excludes_rejected(app_client):
     assert data["returned"] == 0
 
 
+def test_bulk_reject_questions(app_client):
+    client, q_id, _ = app_client
+    resp = client.post(
+        "/api/v1/questions/bulk-status",
+        json={"ids": [q_id], "status": "rejected"},
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {"updated": 1}
+    # Question still exists
+    assert client.get(f"/api/v1/questions/{q_id}/answer").status_code == 200
+    # Quiz excludes it
+    quiz_resp = client.get("/api/v1/quiz?n=5")
+    assert quiz_resp.status_code == 200
+    assert quiz_resp.json()["questions"] == []
+
+
+def test_bulk_reject_empty_ids_returns_422(app_client):
+    client, _, _ = app_client
+    resp = client.post(
+        "/api/v1/questions/bulk-status",
+        json={"ids": [], "status": "rejected"},
+    )
+    assert resp.status_code == 422
+
+
 def test_tags_endpoint(app_client):
     client, _, _ = app_client
     resp = client.get("/api/v1/tags")

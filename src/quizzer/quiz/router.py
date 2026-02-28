@@ -8,6 +8,8 @@ from fastapi.responses import StreamingResponse
 from quizzer.quiz.schemas import (
     AnswerRequest,
     AnswerResponse,
+    BulkStatusRequest,
+    BulkStatusResponse,
     DocumentSummary,
     ExportPayload,
     HealthResponse,
@@ -203,6 +205,15 @@ def import_questions(
 ):
     result = svc.import_data(payload.model_dump())
     return ImportResult(**result)
+
+
+@router.post("/questions/bulk-status", response_model=BulkStatusResponse)
+def bulk_update_status_route(
+    body: BulkStatusRequest,
+    svc: QuizService = Depends(_get_service),
+):
+    updated = svc.bulk_update_status(body.ids, body.status)
+    return BulkStatusResponse(updated=updated)
 
 
 @router.get("/questions/{question_id}/answer", response_model=QuestionAnswer)
