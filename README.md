@@ -200,7 +200,7 @@ This starts both the REST API and the web UI:
 | `http://localhost:8000/api/v1/` | REST API |
 | `http://localhost:8000/docs` | Interactive API docs (Swagger) |
 
-The web UI lets you choose a question count (1–50), filter by difficulty, and work through a quiz with immediate answer feedback and explanations. No build step — it's a single static HTML file served by FastAPI.
+The web UI lets you choose a question count (1–50), filter by difficulty, and work through a quiz with immediate answer feedback and explanations. An **Exit Quiz** button is always visible during a session — clicking it ends the quiz early and shows your score for the questions answered so far. No build step — it's a single static HTML file served by FastAPI.
 
 The review UI at `http://localhost:8000/review/` lets you browse, approve, edit, and reject questions. Each card has a checkbox; a **Select all on page** control and a **Reject selected (N)** button let you bulk-reject batches of bad questions in one click.
 
@@ -223,6 +223,7 @@ Base path: `/api/v1`
 | `PATCH` | `/questions/{id}/status` | Update status `{"status": "approved"\|"edited"\|"rejected"}` |
 | `PUT` | `/questions/{id}` | Edit question content `{question, options, correct_index, explanation, difficulty}` |
 | `POST` | `/questions/bulk-status` | Bulk status update `{"ids": ["…"], "status": "rejected"}` → `{"updated": N}` |
+| `DELETE` | `/questions/{id}` | Permanently delete a question (removes associated SRS and quiz answer history) → 204 |
 | `GET` | `/quiz` | Random sample. Params: `n` (default 5), `difficulty`, `document_id`, `tag` |
 | `GET` | `/tags` | Sorted list of unique tags across all documents |
 | `GET` | `/documents` | List documents with question counts |
@@ -360,8 +361,8 @@ QUIZZER_OLLAMA_MODEL=llama3.2
 uv run pytest tests/ -v
 ```
 
-101 tests covering: ingestion (loader, chunker), validation (normalizer, schema, dedup),
-generation (prompt, parser, generator), the full API surface (including export/import, quiz sessions, bulk status), the SM-2 algorithm, and SRS API.
+104 tests covering: ingestion (loader, chunker), validation (normalizer, schema, dedup),
+generation (prompt, parser, generator), the full API surface (including export/import, quiz sessions, bulk status, delete), the SM-2 algorithm, and SRS API.
 
 ---
 
