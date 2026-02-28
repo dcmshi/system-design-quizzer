@@ -10,7 +10,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from quizzer.database import init_db, get_connection
-from quizzer.generation.ollama_client import OllamaClient
+from quizzer.generation.base import LLMClient
 from quizzer.quiz import deps as deps_module
 from quizzer.quiz.app import create_app
 from quizzer.quiz.service import QuizService
@@ -64,15 +64,15 @@ def app_client(tmp_path: Path, monkeypatch):
     )
     conn.commit()
 
-    # Build service with mock Ollama
+    # Build service with mock LLM client
     from unittest.mock import MagicMock
-    mock_ollama = MagicMock(spec=OllamaClient)
-    mock_ollama.health_check.return_value = True
+    mock_llm = MagicMock()
+    mock_llm.health_check.return_value = True
 
     svc = QuizService(
         question_repo=QuestionRepository(conn),
         document_repo=DocumentRepository(conn),
-        ollama_client=mock_ollama,
+        llm_client=mock_llm,
     )
 
     monkeypatch.setattr(deps_module, "_service", svc)
@@ -583,12 +583,12 @@ def quiz_session_client(tmp_path: Path, monkeypatch):
     conn.commit()
 
     from unittest.mock import MagicMock
-    mock_ollama = MagicMock(spec=OllamaClient)
+    mock_llm = MagicMock()
 
     svc = QuizService(
         question_repo=QuestionRepository(conn),
         document_repo=DocumentRepository(conn),
-        ollama_client=mock_ollama,
+        llm_client=mock_llm,
     )
     session_svc = QuizSessionService(
         session_repo=SessionRepository(conn),

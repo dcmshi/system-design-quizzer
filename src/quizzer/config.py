@@ -10,7 +10,14 @@ class Settings(BaseSettings):
     content_dir: Path = Path("content")
     db_path: Path = Path("data/quizzer.db")
 
-    # Ollama
+    # LLM provider: 'auto' | 'gemini' | 'ollama'
+    llm_provider: str = "auto"
+
+    # Google AI Studio (Gemini)
+    gemini_api_key: str | None = None
+    gemini_model: str = "gemini-2.0-flash"
+
+    # Ollama (local fallback)
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama3.1:8b"
     ollama_temperature: float = 0.1

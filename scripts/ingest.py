@@ -16,6 +16,8 @@ from ulid import ULID
 
 from quizzer.config import settings
 from quizzer.database import init_db, get_connection
+from quizzer.generation.factory import create_llm_client
+from quizzer.generation.gemini_client import GeminiClient
 from quizzer.generation.generator import MCQGenerator
 from quizzer.generation.ollama_client import OllamaClient
 from quizzer.ingestion.chunker import chunk_document
@@ -48,7 +50,14 @@ def parse_args() -> argparse.Namespace:
         "--model",
         type=str,
         default=None,
-        help="Override Ollama model (default from config)",
+        help="Override LLM model name (default from config)",
+    )
+    parser.add_argument(
+        "--provider",
+        type=str,
+        default=None,
+        choices=["gemini", "ollama", "auto"],
+        help="LLM provider: gemini, ollama, or auto (default from config)",
     )
     parser.add_argument(
         "--verbose",
@@ -147,14 +156,22 @@ def main() -> None:
         cmd_stats(doc_repo, q_repo)
         sys.exit(0)
 
-    model = args.model or settings.ollama_model
-    ollama = OllamaClient(model=model)
+    client = create_llm_client(provider=args.provider, model=args.model)
+    log.info("LLM provider: %s (model=%s)", type(client).__name__, client.model)
 
-    log.info("Checking Ollama at %s …", settings.ollama_base_url)
-    if not ollama.health_check():
-        log.error("Ollama is not reachable at %s — aborting", settings.ollama_base_url)
-        sys.exit(1)
-    log.info("Ollama OK (model=%s)", model)
+    if not client.health_check():
+        if isinstance(client, GeminiClient):
+            log.warning("Gemini unreachable — falling back to Ollama …")
+            client = OllamaClient(model=args.model or settings.ollama_model)
+            if not client.health_check():
+                log.error("Ollama fallback also unreachable at %s — aborting", settings.ollama_base_url)
+                sys.exit(1)
+            log.info("Ollama fallback OK (model=%s)", client.model)
+        else:
+            log.error("Ollama not reachable at %s — aborting", settings.ollama_base_url)
+            sys.exit(1)
+    else:
+        log.info("LLM ready (model=%s)", client.model)
 
     # Load existing fingerprints once
     existing_fingerprints: set[str] = q_repo.get_all_fingerprints()
@@ -164,7 +181,7 @@ def main() -> None:
         log.warning("No .md files found in %s", args.source or settings.content_dir)
         sys.exit(0)
 
-    generator = MCQGenerator(ollama)
+    generator = MCQGenerator(client)
 
     stats = {"documents": 0, "chunks": 0, "questions": 0, "skipped_docs": 0, "skipped_q": 0}
 
@@ -262,7 +279,7 @@ def main() -> None:
 
             print(f"{prefix}  {n_added} Q        {elapsed:.1f}s{' ' * 10}")
 
-    ollama.close()
+    client.close()
 
     print("\n=== Ingestion Summary ===")
     print(f"  Documents ingested : {stats['documents']}")

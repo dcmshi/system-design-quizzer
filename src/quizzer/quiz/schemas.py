@@ -81,7 +81,7 @@ class DocumentSummary(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     db: str
-    ollama: str
+    llm: str
 
 
 class PaginatedQuestions(BaseModel):

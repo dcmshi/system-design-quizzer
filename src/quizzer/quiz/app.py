@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from quizzer.database import init_db, get_connection
-from quizzer.generation.ollama_client import OllamaClient
+from quizzer.generation.factory import create_llm_client
 from quizzer.quiz import deps
 from quizzer.quiz.service import QuizService
 from quizzer.quiz.session_service import QuizSessionService
@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
     deps._service = QuizService(
         question_repo=QuestionRepository(conn),
         document_repo=DocumentRepository(conn),
-        ollama_client=OllamaClient(),
+        llm_client=create_llm_client(),
     )
     deps._srs_service = SrsService(
         srs_repo=SrsRepository(conn),

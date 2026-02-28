@@ -72,7 +72,7 @@ def srs_client(tmp_path: Path, monkeypatch):
     mock_ollama = MagicMock()
     mock_ollama.health_check.return_value = True
 
-    quiz_svc = QuizService(question_repo=q_repo, document_repo=doc_repo, ollama_client=mock_ollama)
+    quiz_svc = QuizService(question_repo=q_repo, document_repo=doc_repo, llm_client=mock_ollama)
     srs_svc = SrsService(srs_repo=srs_repo, question_repo=q_repo)
 
     app = create_app()

@@ -1,7 +1,8 @@
 from datetime import datetime, timezone
 from typing import Literal
 
-from quizzer.generation.ollama_client import OllamaClient
+from quizzer.generation.base import LLMClient
+from quizzer.generation.factory import create_llm_client
 from quizzer.ingestion.models import Chunk, Document
 from quizzer.storage.document_repo import DocumentRepository
 from quizzer.storage.question_repo import QuestionRepository
@@ -12,11 +13,11 @@ class QuizService:
         self,
         question_repo: QuestionRepository,
         document_repo: DocumentRepository,
-        ollama_client: OllamaClient | None = None,
+        llm_client: LLMClient | None = None,
     ) -> None:
         self.questions = question_repo
         self.documents = document_repo
-        self._ollama = ollama_client or OllamaClient()
+        self._llm = llm_client or create_llm_client()
 
     def list_questions(
         self,
@@ -191,10 +192,10 @@ class QuizService:
         except Exception:
             db_ok = False
 
-        ollama_ok = self._ollama.health_check()
+        llm_ok = self._llm.health_check()
 
         return {
-            "status": "ok" if (db_ok and ollama_ok) else "degraded",
+            "status": "ok" if (db_ok and llm_ok) else "degraded",
             "db": "connected" if db_ok else "error",
-            "ollama": "connected" if ollama_ok else "unreachable",
+            "llm": "connected" if llm_ok else "unreachable",
         }

@@ -3,8 +3,8 @@ import logging
 
 from pydantic import ValidationError
 
+from quizzer.generation.base import LLMClient
 from quizzer.generation.models import GenerationResult, RawMCQ
-from quizzer.generation.ollama_client import OllamaClient
 from quizzer.generation.prompt_builder import PROMPT_VERSION, build_prompt
 from quizzer.ingestion.models import Chunk
 
@@ -59,7 +59,7 @@ def _parse_questions(raw: str, chunk_id: str) -> list[RawMCQ]:
 
 
 class MCQGenerator:
-    def __init__(self, client: OllamaClient) -> None:
+    def __init__(self, client: LLMClient) -> None:
         self.client = client
 
     def generate_for_chunk(self, chunk: Chunk, document_id: str) -> GenerationResult:
