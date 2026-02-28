@@ -1,5 +1,9 @@
+import re
+
 from quizzer.config import settings
 from quizzer.generation.models import RawMCQ
+
+_OPTION_LETTER_RE = re.compile(r"\bOption\s+([A-D])\b", re.IGNORECASE)
 
 
 def validate_mcq(mcq: RawMCQ, cfg=None) -> list[str]:
@@ -27,5 +31,17 @@ def validate_mcq(mcq: RawMCQ, cfg=None) -> list[str]:
     for opt in mcq.options:
         if opt.lower().strip() == q_lower:
             errors.append(f"Option duplicates question text: '{opt}'")
+
+    # Explanation letter must match correct_index
+    letter_match = _OPTION_LETTER_RE.search(mcq.explanation)
+    if letter_match:
+        stated_letter = letter_match.group(1).upper()
+        stated_index = ord(stated_letter) - ord("A")
+        if stated_index != mcq.correct_index:
+            expected_letter = chr(ord("A") + mcq.correct_index)
+            errors.append(
+                f"Explanation mentions Option {stated_letter} but correct_index is "
+                f"{mcq.correct_index} (Option {expected_letter})"
+            )
 
     return errors

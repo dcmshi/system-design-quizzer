@@ -81,6 +81,36 @@ def test_validate_option_duplicates_question():
     assert any("duplicates question" in e for e in errors)
 
 
+def test_validate_explanation_letter_mismatch():
+    # correct_index=1 (B) but explanation says "Option C is correct"
+    mcq = _make_mcq(
+        correct_index=1,
+        explanation="Option C is correct because it distributes load while minimizing remapping.",
+    )
+    errors = validate_mcq(mcq)
+    assert any("Option C" in e and "correct_index is 1" in e for e in errors)
+
+
+def test_validate_explanation_letter_match_no_error():
+    # correct_index=1 (B) and explanation says "Option B is correct"
+    mcq = _make_mcq(
+        correct_index=1,
+        explanation="Option B is correct because it distributes load while minimizing remapping.",
+    )
+    errors = validate_mcq(mcq)
+    assert errors == []
+
+
+def test_validate_explanation_no_letter_reference_no_error():
+    # Explanation doesn't mention any option letter — no error
+    mcq = _make_mcq(
+        correct_index=1,
+        explanation="Consistent hashing minimizes data movement when nodes are added or removed.",
+    )
+    errors = validate_mcq(mcq)
+    assert errors == []
+
+
 # --- Duplicate Detector ---
 
 def test_fingerprint_is_deterministic():
