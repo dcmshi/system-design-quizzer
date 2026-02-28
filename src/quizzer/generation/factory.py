@@ -17,23 +17,25 @@ def create_llm_client(
     """
     p = provider or settings.llm_provider
 
-    if p == "gemini":
+    def _gemini(m: str | None) -> GeminiClient:
         if not settings.gemini_api_key:
             raise ValueError(
                 "QUIZZER_GEMINI_API_KEY must be set when llm_provider=gemini"
             )
         return GeminiClient(
             api_key=settings.gemini_api_key,
-            model=model or settings.gemini_model,
+            model=m or settings.gemini_model,
+            request_delay=settings.gemini_request_delay,
+            max_retries=settings.gemini_max_retries,
         )
+
+    if p == "gemini":
+        return _gemini(model)
 
     if p == "ollama":
         return OllamaClient(model=model or settings.ollama_model)
 
     # auto: prefer Gemini when an API key is available
     if settings.gemini_api_key:
-        return GeminiClient(
-            api_key=settings.gemini_api_key,
-            model=model or settings.gemini_model,
-        )
+        return _gemini(model)
     return OllamaClient(model=model or settings.ollama_model)
