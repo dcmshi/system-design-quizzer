@@ -339,16 +339,25 @@ class QuestionRepository:
     def count_by_documents(self) -> dict[str, int]:
         rows = self._conn.execute(
             "SELECT source_document_id, COUNT(*) as cnt FROM questions "
-            "GROUP BY source_document_id"
+            "WHERE status != 'rejected' GROUP BY source_document_id"
         ).fetchall()
         return {r["source_document_id"]: r["cnt"] for r in rows}
 
     def count_by_document(self, document_id: str) -> int:
         row = self._conn.execute(
-            "SELECT COUNT(*) as cnt FROM questions WHERE source_document_id = ?",
+            "SELECT COUNT(*) as cnt FROM questions "
+            "WHERE source_document_id = ? AND status != 'rejected'",
             (document_id,),
         ).fetchone()
         return row["cnt"] if row else 0
+
+    def delete(self, question_id: str) -> bool:
+        # srs_reviews and quiz_answers have no CASCADE so delete them first
+        self._conn.execute("DELETE FROM srs_reviews WHERE question_id = ?", (question_id,))
+        self._conn.execute("DELETE FROM quiz_answers WHERE question_id = ?", (question_id,))
+        cur = self._conn.execute("DELETE FROM questions WHERE id = ?", (question_id,))
+        self._conn.commit()
+        return cur.rowcount > 0
 
     @staticmethod
     def _row_to_dict(row) -> dict:

@@ -2,7 +2,7 @@ import csv
 import io
 import json as _json
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from fastapi.responses import StreamingResponse
 
 from quizzer.quiz.schemas import (
@@ -301,6 +301,16 @@ def update_status(
     if not updated:
         raise HTTPException(status_code=404, detail="Question not found")
     return {"id": question_id, "status": body.status}
+
+
+@router.delete("/questions/{question_id}", status_code=204)
+def delete_question(
+    question_id: str,
+    svc: QuizService = Depends(_get_service),
+):
+    deleted = svc.delete_question(question_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Question not found")
 
 
 @router.get("/tags", response_model=list[str])

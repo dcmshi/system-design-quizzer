@@ -292,6 +292,31 @@ def test_quiz_excludes_rejected(app_client):
     assert data["returned"] == 0
 
 
+def test_rejected_excluded_from_document_count(app_client):
+    client, q_id, doc_id = app_client
+    # Before reject: count is 1
+    docs = client.get("/api/v1/documents").json()
+    before = next(d for d in docs if d["id"] == doc_id)["question_count"]
+    assert before == 1
+    # After reject: count drops to 0
+    client.patch(f"/api/v1/questions/{q_id}/status", json={"status": "rejected"})
+    docs = client.get("/api/v1/documents").json()
+    after = next(d for d in docs if d["id"] == doc_id)["question_count"]
+    assert after == 0
+
+
+def test_delete_question(app_client):
+    client, q_id, _ = app_client
+    resp = client.delete(f"/api/v1/questions/{q_id}")
+    assert resp.status_code == 204
+    assert client.get(f"/api/v1/questions/{q_id}").status_code == 404
+
+
+def test_delete_question_not_found(app_client):
+    client, _, _ = app_client
+    assert client.delete("/api/v1/questions/nonexistent").status_code == 404
+
+
 def test_bulk_reject_questions(app_client):
     client, q_id, _ = app_client
     resp = client.post(

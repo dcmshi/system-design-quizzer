@@ -281,6 +281,8 @@
     .bulk-spacer { flex: 1; }
     .btn-bulk-reject { background: #7f1d1d; color: #fca5a5; }
     .btn-bulk-reject:hover:not(:disabled) { background: #991b1b; }
+    .btn-delete { background: transparent; color: #fca5a5; border: 1px solid #7f1d1d; }
+    .btn-delete:hover:not(:disabled) { background: #7f1d1d; }
 
     /* ── Card checkbox ── */
     .card-select {
@@ -492,6 +494,7 @@ function buildCard(q) {
   view.querySelector('.btn-approve').addEventListener('click', () => doStatusUpdate(card, q, 'approved'));
   view.querySelector('.btn-edit').addEventListener('click',    () => openEdit(card, form, q));
   view.querySelector('.btn-reject').addEventListener('click',  () => doStatusUpdate(card, q, 'rejected'));
+  view.querySelector('.btn-delete').addEventListener('click',  () => doDelete(card, q));
   form.querySelector('.btn-save').addEventListener('click',   () => doSave(card, q));
   form.querySelector('.btn-cancel').addEventListener('click', () => closeEdit(card));
 
@@ -525,7 +528,8 @@ function buildCardView(q) {
   actions.innerHTML =
     '<button class="btn btn-approve">Approve</button>' +
     '<button class="btn btn-edit">Edit</button>' +
-    '<button class="btn btn-reject">Reject</button>';
+    '<button class="btn btn-reject">Reject</button>' +
+    '<button class="btn btn-delete">Delete</button>';
 
   top.append(badges, actions);
 
@@ -744,6 +748,37 @@ async function doStatusUpdate(card, q, newStatus) {
     }
   } catch (err) {
     alert(`Action failed: ${err.message}`);
+    setAllBtns(card, false);
+  }
+}
+
+// ── Delete ────────────────────────────────────────────────────────────────
+
+async function doDelete(card, q) {
+  const preview = q.question.length > 80 ? q.question.slice(0, 80) + '…' : q.question;
+  if (!confirm(`Permanently delete this question?\n\n"${preview}"\n\nThis cannot be undone.`)) return;
+  setAllBtns(card, true);
+  try {
+    const res = await fetch(`/api/v1/questions/${q.id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail || `HTTP ${res.status}`);
+    }
+    selectedIds.delete(q.id);
+    updateBulkBar();
+    card.style.transition = 'opacity 0.2s';
+    card.style.opacity = '0';
+    setTimeout(() => {
+      card.remove();
+      total = Math.max(0, total - 1);
+      if (listEl.children.length === 0) {
+        listEl.innerHTML = '<div class="state-msg">No questions match the current filters.</div>';
+        summaryEl.textContent = '0 questions';
+        renderPagination();
+      }
+    }, 200);
+  } catch (err) {
+    alert(`Delete failed: ${err.message}`);
     setAllBtns(card, false);
   }
 }
