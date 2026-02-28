@@ -281,6 +281,8 @@
     .bulk-spacer { flex: 1; }
     .btn-bulk-reject { background: #7f1d1d; color: #fca5a5; }
     .btn-bulk-reject:hover:not(:disabled) { background: #991b1b; }
+    .btn-bulk-delete { background: transparent; color: #fca5a5; border: 1px solid #7f1d1d; }
+    .btn-bulk-delete:hover:not(:disabled) { background: #7f1d1d; }
     .btn-delete { background: transparent; color: #fca5a5; border: 1px solid #7f1d1d; }
     .btn-delete:hover:not(:disabled) { background: #7f1d1d; }
 
@@ -333,6 +335,9 @@
     <button class="btn btn-bulk-reject" id="bulk-reject-btn" disabled>
       Reject selected (0)
     </button>
+    <button class="btn btn-bulk-delete" id="bulk-delete-btn" disabled>
+      Delete selected (0)
+    </button>
   </div>
 
   <p id="summary" class="summary"></p>
@@ -358,6 +363,7 @@ const listEl        = document.getElementById('question-list');
 const paginationEl  = document.getElementById('pagination');
 const selectAllCb   = document.getElementById('select-all');
 const bulkRejectBtn = document.getElementById('bulk-reject-btn');
+const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
 
 // ── Bulk bar ──────────────────────────────────────────────────────────────
 
@@ -365,6 +371,8 @@ function updateBulkBar() {
   const n = selectedIds.size;
   bulkRejectBtn.textContent = `Reject selected (${n})`;
   bulkRejectBtn.disabled = n === 0;
+  bulkDeleteBtn.textContent = `Delete selected (${n})`;
+  bulkDeleteBtn.disabled = n === 0;
   const checkboxes = [...listEl.querySelectorAll('.card-checkbox')];
   const allChecked = checkboxes.length > 0 && checkboxes.every(cb => cb.checked);
   selectAllCb.indeterminate = !allChecked && n > 0;
@@ -864,6 +872,39 @@ bulkRejectBtn.addEventListener('click', async () => {
     alert(`Bulk reject failed: ${err.message}`);
     bulkRejectBtn.disabled = selectedIds.size === 0;
   }
+});
+
+// ── Bulk delete ───────────────────────────────────────────────────────────
+
+bulkDeleteBtn.addEventListener('click', async () => {
+  const ids = [...selectedIds];
+  if (!ids.length) return;
+  if (!confirm(`Permanently delete ${ids.length} question${ids.length !== 1 ? 's' : ''}? This cannot be undone.`)) return;
+  bulkDeleteBtn.disabled = true;
+  const errors = [];
+  await Promise.all(ids.map(async id => {
+    try {
+      const res = await fetch(`/api/v1/questions/${id}`, { method: 'DELETE' });
+      if (!res.ok) errors.push(id);
+    } catch (_) {
+      errors.push(id);
+    }
+  }));
+  const deleted = ids.filter(id => !errors.includes(id));
+  const toFade = [...listEl.querySelectorAll('.question-card')]
+    .filter(c => deleted.includes(c.dataset.id));
+  toFade.forEach(c => { c.style.transition = 'opacity 0.2s'; c.style.opacity = '0'; });
+  setTimeout(() => {
+    toFade.forEach(c => { c.remove(); total = Math.max(0, total - 1); });
+    deleted.forEach(id => selectedIds.delete(id));
+    updateBulkBar();
+    if (listEl.children.length === 0) {
+      listEl.innerHTML = '<div class="state-msg">No questions match the current filters.</div>';
+      summaryEl.textContent = '0 questions';
+      renderPagination();
+    }
+  }, 220);
+  if (errors.length) alert(`${errors.length} deletion${errors.length !== 1 ? 's' : ''} failed.`);
 });
 
 // ── Filters ───────────────────────────────────────────────────────────────
