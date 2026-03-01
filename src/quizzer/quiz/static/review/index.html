@@ -45,7 +45,7 @@
 
     /* ── Filter bar ── */
     .filter-bar { display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
-    .filter-bar select {
+    .filter-bar select, .filter-bar input[type=search] {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 6px;
@@ -54,12 +54,14 @@
       font-size: 0.875rem;
       font-family: var(--font);
       outline: none;
-      cursor: pointer;
       flex: 1;
       min-width: 145px;
     }
-    .filter-bar select:focus { border-color: var(--accent); }
+    .filter-bar select { cursor: pointer; }
+    .filter-bar select:focus, .filter-bar input[type=search]:focus { border-color: var(--accent); }
     .filter-bar select option { background: var(--surface2); }
+    .filter-bar input[type=search]::placeholder { color: var(--text-muted); }
+    .filter-bar input[type=search] { min-width: 200px; }
 
     .summary { font-size: 0.825rem; color: var(--text-muted); margin-bottom: 1rem; min-height: 1.2em; }
 
@@ -325,6 +327,7 @@
       <option value="medium">Medium</option>
       <option value="hard">Hard</option>
     </select>
+    <input type="search" id="filter-search" placeholder="Search questions…" />
   </div>
 
   <div class="bulk-bar">
@@ -358,6 +361,7 @@ let selectedIds = new Set();
 const filterStatus  = document.getElementById('filter-status');
 const filterDoc     = document.getElementById('filter-doc');
 const filterDiff    = document.getElementById('filter-diff');
+const filterSearch  = document.getElementById('filter-search');
 const summaryEl     = document.getElementById('summary');
 const listEl        = document.getElementById('question-list');
 const paginationEl  = document.getElementById('pagination');
@@ -414,11 +418,13 @@ async function loadPage() {
   const status = filterStatus.value;
   const docId  = filterDoc.value;
   const diff   = filterDiff.value;
+  const q      = filterSearch.value.trim();
 
   let url = `/api/v1/questions?limit=${PAGE_SIZE}&offset=${page * PAGE_SIZE}`;
   if (status) url += `&status=${encodeURIComponent(status)}`;
   if (docId)  url += `&document_id=${encodeURIComponent(docId)}`;
   if (diff)   url += `&difficulty=${encodeURIComponent(diff)}`;
+  if (q)      url += `&q=${encodeURIComponent(q)}`;
 
   let data;
   try {
@@ -912,6 +918,12 @@ bulkDeleteBtn.addEventListener('click', async () => {
 filterStatus.addEventListener('change', () => { page = 0; loadPage(); });
 filterDoc.addEventListener('change',    () => { page = 0; loadPage(); });
 filterDiff.addEventListener('change',   () => { page = 0; loadPage(); });
+
+let searchDebounce = null;
+filterSearch.addEventListener('input', () => {
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(() => { page = 0; loadPage(); }, 300);
+});
 
 // ── Boot ──────────────────────────────────────────────────────────────────
 

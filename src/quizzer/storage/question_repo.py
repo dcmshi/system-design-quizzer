@@ -55,6 +55,7 @@ class QuestionRepository:
         difficulty: str | None = None,
         status: str | None = None,
         document_id: str | None = None,
+        q: str | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> list[dict]:
@@ -69,6 +70,10 @@ class QuestionRepository:
         if document_id:
             filters.append("source_document_id = ?")
             params.append(document_id)
+        search_clause, search_params = self._search_filter(q)
+        if search_clause:
+            filters.append(search_clause)
+            params.extend(search_params)
 
         where = ("WHERE " + " AND ".join(filters)) if filters else ""
         params.extend([limit, offset])
@@ -131,6 +136,16 @@ class QuestionRepository:
     def get_all_fingerprints(self) -> set[str]:
         rows = self._conn.execute("SELECT fingerprint FROM questions").fetchall()
         return {r["fingerprint"] for r in rows}
+
+    @staticmethod
+    def _search_filter(q: str | None) -> tuple[str, list]:
+        if q and q.strip():
+            term = f"%{q.strip()}%"
+            return (
+                "(LOWER(question) LIKE LOWER(?) OR LOWER(explanation) LIKE LOWER(?))",
+                [term, term],
+            )
+        return ("", [])
 
     @staticmethod
     def _difficulty_filter(difficulty: str | None, alias: str = "") -> tuple[str, list]:
@@ -318,6 +333,7 @@ class QuestionRepository:
         difficulty: str | None = None,
         status: str | None = None,
         document_id: str | None = None,
+        q: str | None = None,
     ) -> int:
         filters: list[str] = []
         params: list = []
@@ -330,6 +346,10 @@ class QuestionRepository:
         if document_id:
             filters.append("source_document_id = ?")
             params.append(document_id)
+        search_clause, search_params = self._search_filter(q)
+        if search_clause:
+            filters.append(search_clause)
+            params.extend(search_params)
         where = ("WHERE " + " AND ".join(filters)) if filters else ""
         row = self._conn.execute(
             f"SELECT COUNT(*) as cnt FROM questions {where}", params

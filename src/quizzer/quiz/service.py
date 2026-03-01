@@ -24,6 +24,7 @@ class QuizService:
         difficulty: str | None = None,
         status: str | None = None,
         document_id: str | None = None,
+        q: str | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> tuple[list[dict], int]:
@@ -31,6 +32,7 @@ class QuizService:
             difficulty=difficulty,
             status=status,
             document_id=document_id,
+            q=q,
             limit=limit,
             offset=offset,
         )
@@ -38,6 +40,7 @@ class QuizService:
             difficulty=difficulty,
             status=status,
             document_id=document_id,
+            q=q,
         )
         return items, total
 

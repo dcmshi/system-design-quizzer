@@ -123,6 +123,7 @@ def list_questions(
     difficulty: str | None = Query(None),
     status: str | None = Query(None),
     document_id: str | None = Query(None),
+    q: str | None = Query(None, description="Search question text and explanations"),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     svc: QuizService = Depends(_get_service),
@@ -131,6 +132,7 @@ def list_questions(
         difficulty=difficulty,
         status=status,
         document_id=document_id,
+        q=q,
         limit=limit,
         offset=offset,
     )
