@@ -34,9 +34,9 @@ _(move items here when actively working on them)_
 - [x] **End-of-quiz review** — "Review Answers" button on end screen shows all Q&A with color-coded options + explanations.
 - [x] **Keyboard shortcuts** — `1`–`4` select option, `Enter`/`Space` confirm or advance, `→` next.
 - [x] **"Missed only" replay** — "Retry missed (N)" button on end screen replays wrong answers without an API call.
-- [ ] **SRS hesitant-correct rating** — SM-2 supports rating `3` ("correct but difficult") but `SrsService.submit_review` hard-codes `5 if correct else 0`. Surface a "Struggled" button in the SRS UI alongside "Got it" to feed rating `3`, slowing interval growth for shaky knowledge.
+- [~] **SRS hesitant-correct rating** — SM-2 `algorithm.py` already accepts rating `3`; `SrsService.submit_review` hard-codes `5 if correct else 0`. Remaining work: surface a "Struggled" button in the SRS UI and pass rating `3` through the review endpoint.
 - [ ] **Timer mode** — optional per-question countdown (e.g. 30 s). Adds pressure for exam prep.
-- [ ] **Session history screen** — a "Past Sessions" page listing historical random and SRS sessions with date, score, and a link to replay the review. Requires a `GET /quiz/sessions` listing endpoint (currently only `GET /quiz/sessions/{id}` exists).
+- [~] **Session history screen** — `quiz_sessions` table and `SessionRepository` already exist. Remaining work: `GET /api/v1/quiz/sessions` list endpoint + a "Past Sessions" UI page with date, score, and replay link.
 - [x] **Quiz progress bar** — "Question N of M" label + accent-coloured fill bar above the question card; fills to 100% on end screen.
 - [ ] **Bookmark / star questions** — a flag (new status value or separate column) to mark questions for focused review, independent of the approve/reject workflow.
 - [ ] **Explanation visibility toggle** — setup option to hide the explanation until after answering, or show it only on wrong answers. Supports active recall practice.
@@ -73,8 +73,8 @@ _(move items here when actively working on them)_
 - [ ] **Re-generate for a chunk** — CLI flag `--rechunk <doc>` to re-run generation on a specific document's chunks without re-ingesting. Useful when switching models or prompts.
 - [ ] **Configurable question-count thresholds** — `_question_count` in `generator.py` hard-codes ≤400→1, ≤600→2, else→3. Expose as `QUIZZER_CHUNK_Q_THRESHOLDS` setting.
 - [ ] **Question diversity filter** — when a chunk produces multiple questions, check pairwise similarity and discard the weaker one if two are too close. Reduces noise at source before DB insertion.
-- [ ] **Prompt A/B test script** — extend `compare_models.py` to compare two prompt versions on the same chunks (same model, different `PROMPT_V*`), producing a side-by-side quality table.
-- [ ] **Dry-run report** — `--dry-run` currently discards output silently; emit a formatted summary of questions that would have been inserted, for prompt iteration without writing to DB.
+- [~] **Prompt A/B test script** — `scripts/compare_models.py` already compares models on the same content. Remaining work: add a `--prompts` mode that fixes the model and varies `PROMPT_V*` instead, producing the same side-by-side quality table.
+- [x] **Dry-run report** — `--dry-run` prints a formatted summary of documents, chunks, questions, and duplicates that would have been written, without touching the DB.
 
 ### Content management
 
