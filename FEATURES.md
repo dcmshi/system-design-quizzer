@@ -37,7 +37,7 @@ _(move items here when actively working on them)_
 - [ ] **SRS hesitant-correct rating** — SM-2 supports rating `3` ("correct but difficult") but `SrsService.submit_review` hard-codes `5 if correct else 0`. Surface a "Struggled" button in the SRS UI alongside "Got it" to feed rating `3`, slowing interval growth for shaky knowledge.
 - [ ] **Timer mode** — optional per-question countdown (e.g. 30 s). Adds pressure for exam prep.
 - [ ] **Session history screen** — a "Past Sessions" page listing historical random and SRS sessions with date, score, and a link to replay the review. Requires a `GET /quiz/sessions` listing endpoint (currently only `GET /quiz/sessions/{id}` exists).
-- [ ] **Quiz progress bar** — visual "Question 3 of 10" bar above the question card. Small lift, noticeable feel improvement.
+- [x] **Quiz progress bar** — "Question N of M" label + accent-coloured fill bar above the question card; fills to 100% on end screen.
 - [ ] **Bookmark / star questions** — a flag (new status value or separate column) to mark questions for focused review, independent of the approve/reject workflow.
 - [ ] **Explanation visibility toggle** — setup option to hide the explanation until after answering, or show it only on wrong answers. Supports active recall practice.
 
