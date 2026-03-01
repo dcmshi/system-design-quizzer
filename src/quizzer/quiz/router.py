@@ -137,6 +137,8 @@ def list_questions(
     status: str | None = Query(None),
     document_id: str | None = Query(None),
     q: str | None = Query(None, description="Search question text and explanations"),
+    model: str | None = Query(None),
+    prompt_version: str | None = Query(None),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     svc: QuizService = Depends(_get_service),
@@ -146,6 +148,8 @@ def list_questions(
         status=status,
         document_id=document_id,
         q=q,
+        model=model,
+        prompt_version=prompt_version,
         limit=limit,
         offset=offset,
     )
@@ -161,6 +165,16 @@ def list_questions(
         for q in items
     ]
     return PaginatedQuestions(items=summaries, total=total, limit=limit, offset=offset)
+
+
+@router.get("/questions/models", response_model=list[str])
+def list_models(svc: QuizService = Depends(_get_service)):
+    return svc.list_models()
+
+
+@router.get("/questions/prompt-versions", response_model=list[str])
+def list_prompt_versions(svc: QuizService = Depends(_get_service)):
+    return svc.list_prompt_versions()
 
 
 @router.get("/questions/export")

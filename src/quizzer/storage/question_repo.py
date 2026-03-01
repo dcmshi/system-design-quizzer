@@ -56,6 +56,8 @@ class QuestionRepository:
         status: str | None = None,
         document_id: str | None = None,
         q: str | None = None,
+        model: str | None = None,
+        prompt_version: str | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> list[dict]:
@@ -70,6 +72,12 @@ class QuestionRepository:
         if document_id:
             filters.append("source_document_id = ?")
             params.append(document_id)
+        if model:
+            filters.append("model = ?")
+            params.append(model)
+        if prompt_version:
+            filters.append("prompt_version = ?")
+            params.append(prompt_version)
         search_clause, search_params = self._search_filter(q)
         if search_clause:
             filters.append(search_clause)
@@ -334,6 +342,8 @@ class QuestionRepository:
         status: str | None = None,
         document_id: str | None = None,
         q: str | None = None,
+        model: str | None = None,
+        prompt_version: str | None = None,
     ) -> int:
         filters: list[str] = []
         params: list = []
@@ -346,6 +356,12 @@ class QuestionRepository:
         if document_id:
             filters.append("source_document_id = ?")
             params.append(document_id)
+        if model:
+            filters.append("model = ?")
+            params.append(model)
+        if prompt_version:
+            filters.append("prompt_version = ?")
+            params.append(prompt_version)
         search_clause, search_params = self._search_filter(q)
         if search_clause:
             filters.append(search_clause)
@@ -355,6 +371,18 @@ class QuestionRepository:
             f"SELECT COUNT(*) as cnt FROM questions {where}", params
         ).fetchone()
         return row["cnt"] if row else 0
+
+    def list_distinct_models(self) -> list[str]:
+        rows = self._conn.execute(
+            "SELECT DISTINCT model FROM questions WHERE model != '' ORDER BY model"
+        ).fetchall()
+        return [r["model"] for r in rows]
+
+    def list_distinct_prompt_versions(self) -> list[str]:
+        rows = self._conn.execute(
+            "SELECT DISTINCT prompt_version FROM questions WHERE prompt_version != '' ORDER BY prompt_version"
+        ).fetchall()
+        return [r["prompt_version"] for r in rows]
 
     def count_by_documents(self) -> dict[str, int]:
         rows = self._conn.execute(

@@ -354,6 +354,12 @@
       <option value="medium">Medium</option>
       <option value="hard">Hard</option>
     </select>
+    <select id="filter-model">
+      <option value="">Any model</option>
+    </select>
+    <select id="filter-prompt">
+      <option value="">Any prompt version</option>
+    </select>
     <input type="search" id="filter-search" placeholder="Search questions…" />
   </div>
 
@@ -392,6 +398,8 @@ let selectedIds = new Set();
 const filterStatus  = document.getElementById('filter-status');
 const filterDoc     = document.getElementById('filter-doc');
 const filterDiff    = document.getElementById('filter-diff');
+const filterModel   = document.getElementById('filter-model');
+const filterPrompt  = document.getElementById('filter-prompt');
 const filterSearch  = document.getElementById('filter-search');
 const summaryEl     = document.getElementById('summary');
 const listEl        = document.getElementById('question-list');
@@ -430,8 +438,29 @@ function updateBulkBar() {
 // ── Init ──────────────────────────────────────────────────────────────────
 
 async function init() {
-  await loadDocuments();
+  await Promise.all([loadDocuments(), loadFilterOptions()]);
   await loadPage();
+}
+
+// ── Filter options (models + prompt versions) ──────────────────────────────
+
+async function loadFilterOptions() {
+  try {
+    const [models, promptVersions] = await Promise.all([
+      fetch('/api/v1/questions/models').then(r => r.ok ? r.json() : []),
+      fetch('/api/v1/questions/prompt-versions').then(r => r.ok ? r.json() : []),
+    ]);
+    models.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m; opt.textContent = m;
+      filterModel.appendChild(opt);
+    });
+    promptVersions.forEach(pv => {
+      const opt = document.createElement('option');
+      opt.value = pv; opt.textContent = pv;
+      filterPrompt.appendChild(opt);
+    });
+  } catch (_) {}
 }
 
 // ── Documents ─────────────────────────────────────────────────────────────
@@ -459,16 +488,20 @@ async function loadPage() {
   paginationEl.innerHTML = '';
   summaryEl.textContent = '';
 
-  const status = filterStatus.value;
-  const docId  = filterDoc.value;
-  const diff   = filterDiff.value;
-  const q      = filterSearch.value.trim();
+  const status    = filterStatus.value;
+  const docId     = filterDoc.value;
+  const diff      = filterDiff.value;
+  const model     = filterModel.value;
+  const promptVer = filterPrompt.value;
+  const q         = filterSearch.value.trim();
 
   let url = `/api/v1/questions?limit=${PAGE_SIZE}&offset=${page * PAGE_SIZE}`;
-  if (status) url += `&status=${encodeURIComponent(status)}`;
-  if (docId)  url += `&document_id=${encodeURIComponent(docId)}`;
-  if (diff)   url += `&difficulty=${encodeURIComponent(diff)}`;
-  if (q)      url += `&q=${encodeURIComponent(q)}`;
+  if (status)    url += `&status=${encodeURIComponent(status)}`;
+  if (docId)     url += `&document_id=${encodeURIComponent(docId)}`;
+  if (diff)      url += `&difficulty=${encodeURIComponent(diff)}`;
+  if (model)     url += `&model=${encodeURIComponent(model)}`;
+  if (promptVer) url += `&prompt_version=${encodeURIComponent(promptVer)}`;
+  if (q)         url += `&q=${encodeURIComponent(q)}`;
 
   let data;
   try {
@@ -1012,6 +1045,8 @@ filterDoc.addEventListener('change', () => {
   loadPage();
 });
 filterDiff.addEventListener('change',   () => { page = 0; loadPage(); });
+filterModel.addEventListener('change',  () => { page = 0; loadPage(); });
+filterPrompt.addEventListener('change', () => { page = 0; loadPage(); });
 
 reingestBtn.addEventListener('click', async () => {
   const docId = filterDoc.value;

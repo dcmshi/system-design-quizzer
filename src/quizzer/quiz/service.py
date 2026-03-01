@@ -25,6 +25,8 @@ class QuizService:
         status: str | None = None,
         document_id: str | None = None,
         q: str | None = None,
+        model: str | None = None,
+        prompt_version: str | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> tuple[list[dict], int]:
@@ -33,6 +35,8 @@ class QuizService:
             status=status,
             document_id=document_id,
             q=q,
+            model=model,
+            prompt_version=prompt_version,
             limit=limit,
             offset=offset,
         )
@@ -41,8 +45,16 @@ class QuizService:
             status=status,
             document_id=document_id,
             q=q,
+            model=model,
+            prompt_version=prompt_version,
         )
         return items, total
+
+    def list_models(self) -> list[str]:
+        return self.questions.list_distinct_models()
+
+    def list_prompt_versions(self) -> list[str]:
+        return self.questions.list_distinct_prompt_versions()
 
     def get_question(self, question_id: str) -> dict | None:
         q = self.questions.get_by_id(question_id)
