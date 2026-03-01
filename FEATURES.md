@@ -25,6 +25,9 @@ _(move items here when actively working on them)_
 - [x] **Full-text search on questions** — `GET /questions?q=` runs a case-insensitive `LIKE` search on `question` and `explanation`; debounced search input in review UI.
 - [x] **Bulk approve / reject / delete in review UI** — checkboxes + bulk approve / reject / delete toolbar; `POST /questions/bulk-status` backend.
 - [x] **Purge by model / prompt_version** — `POST /questions/bulk-status` accepts a list of IDs and any target status; review UI bulk actions cover the common case.
+- [ ] **Near-duplicate flagging** — SHA-256 catches exact duplicates but not semantically near-identical questions. Jaccard similarity check on question tokens at review time; visually flag suspicious pairs in the review UI.
+- [ ] **Bulk re-ingest from review UI** — per-document button in `/review/` to trigger re-ingestion without the CLI. Useful after a prompt or model change.
+- [ ] **Question edit history** — store previous field values before each `PUT /questions/{id}` (JSON column or separate table) so bad edits can be undone.
 
 ### Quiz experience
 
@@ -34,6 +37,9 @@ _(move items here when actively working on them)_
 - [ ] **SRS hesitant-correct rating** — SM-2 supports rating `3` ("correct but difficult") but `SrsService.submit_review` hard-codes `5 if correct else 0`. Surface a "Struggled" button in the SRS UI alongside "Got it" to feed rating `3`, slowing interval growth for shaky knowledge.
 - [ ] **Timer mode** — optional per-question countdown (e.g. 30 s). Adds pressure for exam prep.
 - [ ] **Session history screen** — a "Past Sessions" page listing historical random and SRS sessions with date, score, and a link to replay the review. Requires a `GET /quiz/sessions` listing endpoint (currently only `GET /quiz/sessions/{id}` exists).
+- [ ] **Quiz progress bar** — visual "Question 3 of 10" bar above the question card. Small lift, noticeable feel improvement.
+- [ ] **Bookmark / star questions** — a flag (new status value or separate column) to mark questions for focused review, independent of the approve/reject workflow.
+- [ ] **Explanation visibility toggle** — setup option to hide the explanation until after answering, or show it only on wrong answers. Supports active recall practice.
 
 ### Filtering & discovery
 
@@ -47,6 +53,9 @@ _(move items here when actively working on them)_
 - [x] **Per-question hit rate** — `get_hit_rate()` aggregates `quiz_answers` + `srs_reviews`; exposed on `GET /questions/{id}`; colour-coded pill on review UI cards.
 - [x] **Weak-topic replay** — bottom-quartile hit rate pool; `weak: bool` on `StartQuizSessionRequest`; `GET /quiz/weak-count`; "Weak Topics" mode pill on setup screen.
 - [x] **Spaced repetition mode** — SM-2 backend (`srs_cards`, `srs_sessions`, `srs_reviews`; `algorithm.py`; `/api/v1/srs/` routes) + frontend SRS mode with stats dashboard.
+- [ ] **SRS card reset** — button in review UI to wipe a card's SM-2 state back to new. Useful after significantly editing a question whose history no longer reflects true knowledge.
+- [ ] **Leech detection** — flag cards answered wrong more than N times total; surface them in the review UI for rewriting or rejection. Classic SM-2 leech concept.
+- [ ] **Due-load forecast** — chart on the SRS stats screen showing how many cards come due each day over the next 14 days. Helps with study planning.
 
 ### Export & interop
 
@@ -54,6 +63,7 @@ _(move items here when actively working on them)_
 - [x] **CSV export** — `GET /questions/export?format=csv`; flat spreadsheet with denormalised `document_title`.
 - [x] **JSON import** — `POST /questions/import`; upserts documents, synthetic chunk placeholders, skips fingerprint duplicates.
 - [ ] **Anki deck export** — convert approved questions to an `.apkg` file using `genanki`. Each question becomes a basic card; tags map to Anki deck names.
+- [ ] **Markdown export** — `GET /questions/export?format=md` renders questions as a formatted markdown file suitable for Obsidian, Notion, or printing.
 
 ### Generation & pipeline
 
@@ -62,6 +72,14 @@ _(move items here when actively working on them)_
 - [ ] **Difficulty calibration** — after enough session data, auto-adjust `difficulty` labels based on observed hit rates (e.g. >80% correct → easy, <40% → hard). CLI script emitting suggested UPDATE statements for review.
 - [ ] **Re-generate for a chunk** — CLI flag `--rechunk <doc>` to re-run generation on a specific document's chunks without re-ingesting. Useful when switching models or prompts.
 - [ ] **Configurable question-count thresholds** — `_question_count` in `generator.py` hard-codes ≤400→1, ≤600→2, else→3. Expose as `QUIZZER_CHUNK_Q_THRESHOLDS` setting.
+- [ ] **Question diversity filter** — when a chunk produces multiple questions, check pairwise similarity and discard the weaker one if two are too close. Reduces noise at source before DB insertion.
+- [ ] **Prompt A/B test script** — extend `compare_models.py` to compare two prompt versions on the same chunks (same model, different `PROMPT_V*`), producing a side-by-side quality table.
+- [ ] **Dry-run report** — `--dry-run` currently discards output silently; emit a formatted summary of questions that would have been inserted, for prompt iteration without writing to DB.
+
+### Content management
+
+- [ ] **Source article browser** — a `/sources/` page listing ingested documents with chunk count, word count, question count, and last-ingested date. Currently this info is only accessible via CLI `--list`.
+- [ ] **Per-chunk question viewer** — drill down from an article to see which chunks generated which questions. Helps identify chunks producing low-quality output.
 
 ### Refactors & technical debt
 
