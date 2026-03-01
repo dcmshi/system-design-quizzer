@@ -77,9 +77,9 @@ _(move items here when actively working on them)_
 
 ### Admin & data quality
 
-- [ ] **Full-text search on questions** — `GET /questions` can filter by difficulty/status/document but not text. Add an optional `q=` query param that runs a SQLite `LIKE` (or FTS5) search on question text for faster review-UI browsing.
-- [ ] **Bulk approve / reject in review UI** — the review screen handles one question at a time. Add checkboxes + a toolbar action to approve or reject a selected batch, speeding up QA on large ingests.
-- [ ] **Purge by model / prompt_version** — the review UI shows `model` + `prompt_version` metadata but there's no way to bulk-reject all questions from a bad generation run. Add a `PATCH /questions/bulk-status` endpoint accepting a list of IDs, or a `model=` + `prompt_version=` filter on the status-patch endpoint.
+- [x] **Full-text search on questions** — `GET /questions?q=` runs a case-insensitive `LIKE` search on `question` and `explanation`; search input in review UI debounced at 300ms.
+- [x] **Bulk approve / reject in review UI** — checkboxes + bulk approve / reject / delete toolbar; `POST /questions/bulk-status` backend.
+- [x] **Purge by model / prompt_version** — `POST /questions/bulk-status` accepts a list of IDs and any target status; review UI bulk actions cover the common case.
 
 ### Generation & pipeline
 
