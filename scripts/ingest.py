@@ -34,7 +34,21 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--source",
         type=Path,
-        help="Path to a single .md file or a directory. Defaults to content_dir.",
+        action="append",
+        dest="sources",
+        metavar="PATH",
+        help="Path to a .md file or directory (repeatable). Defaults to content_dir.",
+    )
+    parser.add_argument(
+        "--from-db",
+        action="store_true",
+        help="Re-ingest documents already tracked in the DB (use with --force and optionally --tag).",
+    )
+    parser.add_argument(
+        "--tag",
+        type=str,
+        default=None,
+        help="With --from-db: only re-ingest documents that have this tag.",
     )
     parser.add_argument(
         "--force",
@@ -88,13 +102,38 @@ def _format_eta(chunk_times: list[float], remaining: int) -> str:
     return f"ETA ~{eta_s // 60}m {eta_s % 60:02d}s"
 
 
-def collect_md_files(source: Path | None) -> list[Path]:
-    base = source or settings.content_dir
-    if base.is_file():
-        return [base]
-    if base.is_dir():
-        return sorted(base.rglob("*.md"))
-    return []
+def collect_md_files(sources: list[Path] | None) -> list[Path]:
+    """Collect .md files from a list of paths (files or dirs). Deduplicates, preserves sort order."""
+    if not sources:
+        sources = [settings.content_dir]
+    seen: set[Path] = set()
+    result: list[Path] = []
+    for source in sources:
+        if source.is_file():
+            candidates = [source]
+        elif source.is_dir():
+            candidates = sorted(source.rglob("*.md"))
+        else:
+            candidates = []
+        for p in candidates:
+            resolved = p.resolve()
+            if resolved not in seen:
+                seen.add(resolved)
+                result.append(p)
+    return result
+
+
+def collect_md_files_from_db(doc_repo: DocumentRepository, tag: str | None) -> list[Path]:
+    """Resolve .md file paths from documents already in the DB, optionally filtered by tag."""
+    docs = doc_repo.list_all()
+    if tag:
+        docs = [d for d in docs if tag in (d.tags or [])]
+    paths: list[Path] = []
+    for doc in docs:
+        p = Path(doc.source_path)
+        if p.exists():
+            paths.append(p)
+    return paths
 
 
 def cmd_list(doc_repo: DocumentRepository, q_repo: QuestionRepository) -> None:
@@ -176,10 +215,18 @@ def main() -> None:
     # Load existing fingerprints once
     existing_fingerprints: set[str] = q_repo.get_all_fingerprints()
 
-    files = collect_md_files(args.source)
-    if not files:
-        log.warning("No .md files found in %s", args.source or settings.content_dir)
-        sys.exit(0)
+    if args.from_db:
+        files = collect_md_files_from_db(doc_repo, tag=args.tag)
+        if not files:
+            tag_hint = f" with tag '{args.tag}'" if args.tag else ""
+            log.warning("No DB documents found%s with resolvable source paths", tag_hint)
+            sys.exit(0)
+        log.info("--from-db: %d document(s) selected%s", len(files), f" (tag={args.tag})" if args.tag else "")
+    else:
+        files = collect_md_files(args.sources)
+        if not files:
+            log.warning("No .md files found in %s", args.sources or settings.content_dir)
+            sys.exit(0)
 
     generator = MCQGenerator(client)
 
