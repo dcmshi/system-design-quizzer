@@ -106,6 +106,13 @@ class QuizService:
     def delete_question(self, question_id: str) -> bool:
         return self.questions.delete(question_id)
 
+    def get_document_by_id(self, document_id: str) -> dict | None:
+        docs = self.documents.get_by_ids([document_id])
+        if not docs:
+            return None
+        doc = docs[0]
+        return {"id": doc.id, "title": doc.title, "source_path": doc.source_path}
+
     def list_documents(self) -> list[dict]:
         docs = self.documents.list_all()
         counts = self.questions.count_by_documents()

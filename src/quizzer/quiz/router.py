@@ -1,8 +1,11 @@
 import csv
 import io
 import json as _json
+import subprocess
+import sys
+from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response
 from fastapi.responses import StreamingResponse
 
 from quizzer.quiz.schemas import (
@@ -25,10 +28,20 @@ from quizzer.quiz.schemas import (
     QuizResponse,
     QuizSessionDetail,
     QuizSessionResponse,
+    ReIngestResponse,
     StartQuizSessionRequest,
     StatusUpdateRequest,
     WeakCountResponse,
 )
+
+_INGEST_SCRIPT = Path(__file__).parents[3] / "scripts" / "ingest.py"
+
+
+def _run_reingest(source_path: Path) -> None:
+    subprocess.run(
+        [sys.executable, str(_INGEST_SCRIPT), "--source", str(source_path), "--force"],
+        check=False,
+    )
 from quizzer.quiz import deps
 from quizzer.quiz.service import QuizService
 from quizzer.quiz.session_service import QuizSessionService
@@ -347,6 +360,25 @@ def get_quiz(
 def list_documents(svc: QuizService = Depends(_get_service)):
     docs = svc.list_documents()
     return [DocumentSummary(**d) for d in docs]
+
+
+@router.post("/documents/{document_id}/reingest", response_model=ReIngestResponse, status_code=202)
+def reingest_document(
+    document_id: str,
+    background_tasks: BackgroundTasks,
+    svc: QuizService = Depends(_get_service),
+):
+    doc = svc.get_document_by_id(document_id)
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+    source_path = Path(doc["source_path"])
+    if not source_path.exists():
+        raise HTTPException(
+            status_code=422,
+            detail=f"Source file not found on disk: {doc['source_path']}",
+        )
+    background_tasks.add_task(_run_reingest, source_path)
+    return ReIngestResponse(document_id=document_id, title=doc["title"], status="started")
 
 
 @router.get("/health", response_model=HealthResponse)

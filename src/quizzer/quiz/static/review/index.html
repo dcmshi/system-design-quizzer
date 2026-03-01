@@ -289,6 +289,30 @@
     .btn-bulk-delete:hover:not(:disabled) { background: #7f1d1d; }
     .btn-delete { background: transparent; color: #fca5a5; border: 1px solid #7f1d1d; }
     .btn-delete:hover:not(:disabled) { background: #7f1d1d; }
+    .btn-reingest { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+    .btn-reingest:hover:not(:disabled) { background: var(--accent); color: #fff; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1.25rem;
+      font-size: 0.875rem;
+      color: var(--text);
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      z-index: 100;
+      max-width: 320px;
+      line-height: 1.4;
+    }
+    .toast.show { opacity: 1; }
+    .toast.success { border-color: var(--green); }
+    .toast.error { border-color: #fca5a5; }
 
     /* ── Card checkbox ── */
     .card-select {
@@ -323,6 +347,7 @@
     <select id="filter-doc">
       <option value="">All documents</option>
     </select>
+    <button class="btn btn-reingest" id="reingest-btn" disabled title="Re-run ingestion for selected document">&#x21BA; Re-ingest</button>
     <select id="filter-diff">
       <option value="">Any difficulty</option>
       <option value="easy">Easy</option>
@@ -349,6 +374,7 @@
   </div>
 
   <p id="summary" class="summary"></p>
+  <div id="toast" class="toast"></div>
   <div id="question-list" class="question-list"></div>
   <div id="pagination" class="pagination"></div>
 
@@ -374,6 +400,16 @@ const selectAllCb    = document.getElementById('select-all');
 const bulkApproveBtn = document.getElementById('bulk-approve-btn');
 const bulkRejectBtn  = document.getElementById('bulk-reject-btn');
 const bulkDeleteBtn  = document.getElementById('bulk-delete-btn');
+const reingestBtn    = document.getElementById('reingest-btn');
+const toastEl        = document.getElementById('toast');
+
+let toastTimer = null;
+function showToast(msg, type = 'success') {
+  if (toastTimer) clearTimeout(toastTimer);
+  toastEl.textContent = msg;
+  toastEl.className = `toast show ${type}`;
+  toastTimer = setTimeout(() => { toastEl.className = 'toast'; }, 5000);
+}
 
 // ── Bulk bar ──────────────────────────────────────────────────────────────
 
@@ -970,8 +1006,33 @@ bulkDeleteBtn.addEventListener('click', async () => {
 // ── Filters ───────────────────────────────────────────────────────────────
 
 filterStatus.addEventListener('change', () => { page = 0; loadPage(); });
-filterDoc.addEventListener('change',    () => { page = 0; loadPage(); });
+filterDoc.addEventListener('change', () => {
+  reingestBtn.disabled = !filterDoc.value;
+  page = 0;
+  loadPage();
+});
 filterDiff.addEventListener('change',   () => { page = 0; loadPage(); });
+
+reingestBtn.addEventListener('click', async () => {
+  const docId = filterDoc.value;
+  if (!docId) return;
+  reingestBtn.disabled = true;
+  reingestBtn.textContent = '\u21BA Starting\u2026';
+  try {
+    const res = await fetch(`/api/v1/documents/${encodeURIComponent(docId)}/reingest`, { method: 'POST' });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    showToast(`Re-ingestion started for \u201C${data.title}\u201D. New questions will appear shortly.`, 'success');
+  } catch (err) {
+    showToast(`Re-ingest failed: ${err.message}`, 'error');
+  } finally {
+    reingestBtn.disabled = false;
+    reingestBtn.textContent = '\u21BA Re-ingest';
+  }
+});
 
 let searchDebounce = null;
 filterSearch.addEventListener('input', () => {

@@ -192,3 +192,9 @@ class QuizSessionDetail(BaseModel):
     started_at: str
     finished_at: str | None
     answers: list[QuizAnswerRecord]
+
+
+class ReIngestResponse(BaseModel):
+    document_id: str
+    title: str
+    status: str  # "started"
