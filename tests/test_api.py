@@ -740,3 +740,125 @@ def test_weak_count_and_session_after_wrong_answer(quiz_session_client):
     data = weak_resp.json()
     assert len(data["questions"]) == 1
     assert data["questions"][0]["id"] == q_id
+
+
+# ── Near-duplicate detection tests ────────────────────────────────────────────
+
+def test_near_duplicates_empty_with_single_question(app_client):
+    """Single question — no pairs possible."""
+    client, _, _ = app_client
+    resp = client.get("/api/v1/questions/near-duplicates")
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
+def test_near_duplicates_detects_similar_questions(app_client, tmp_path):
+    """Two nearly identical questions should be flagged."""
+    client, q_id, _ = app_client
+    conn = deps_module._service.questions._conn
+
+    # Seed a second question with very similar text
+    q2_id = str(ULID())
+    chunk_id = conn.execute("SELECT id FROM chunks LIMIT 1").fetchone()["id"]
+    doc_id = conn.execute("SELECT id FROM documents LIMIT 1").fetchone()["id"]
+    conn.execute(
+        "INSERT INTO questions (id, question, options, correct_index, explanation, difficulty, "
+        "source_document_id, source_chunk_id, status, fingerprint, model, prompt_version, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            q2_id,
+            "What is consistent hashing used for?",  # highly similar to seed question
+            json.dumps(["Opt A", "Opt B", "Opt C", "Opt D"]),
+            0, "Explanation.", "easy", doc_id, chunk_id,
+            "generated", "fp_near_dupe_test", "model", "v1",
+            datetime.now(timezone.utc).isoformat(),
+        ),
+    )
+    conn.commit()
+
+    resp = client.get("/api/v1/questions/near-duplicates?threshold=0.3")
+    assert resp.status_code == 200
+    pairs = resp.json()
+    assert len(pairs) >= 1
+    ids_in_pairs = {p["id_a"] for p in pairs} | {p["id_b"] for p in pairs}
+    assert q_id in ids_in_pairs or q2_id in ids_in_pairs
+    # Similarity must be within [0, 1]
+    for p in pairs:
+        assert 0.0 <= p["similarity"] <= 1.0
+        assert "question_a" in p and "question_b" in p
+
+
+def test_near_duplicates_excludes_rejected(app_client):
+    """Rejected questions must not appear in similarity results."""
+    client, q_id, _ = app_client
+    conn = deps_module._service.questions._conn
+
+    chunk_id = conn.execute("SELECT id FROM chunks LIMIT 1").fetchone()["id"]
+    doc_id = conn.execute("SELECT id FROM documents LIMIT 1").fetchone()["id"]
+    q2_id = str(ULID())
+    conn.execute(
+        "INSERT INTO questions (id, question, options, correct_index, explanation, difficulty, "
+        "source_document_id, source_chunk_id, status, fingerprint, model, prompt_version, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            q2_id,
+            "What is consistent hashing used for?",
+            json.dumps(["Opt A", "Opt B", "Opt C", "Opt D"]),
+            0, "Explanation.", "easy", doc_id, chunk_id,
+            "rejected", "fp_rejected_dupe", "model", "v1",
+            datetime.now(timezone.utc).isoformat(),
+        ),
+    )
+    conn.commit()
+
+    resp = client.get("/api/v1/questions/near-duplicates?threshold=0.1")
+    assert resp.status_code == 200
+    pairs = resp.json()
+    # q2 is rejected — must not appear in any pair
+    for p in pairs:
+        assert p["id_a"] != q2_id
+        assert p["id_b"] != q2_id
+
+
+def test_near_duplicates_threshold_filters(app_client):
+    """Threshold=1.0 should return zero pairs (identical text only, different fingerprints allowed)."""
+    client, _, _ = app_client
+    resp = client.get("/api/v1/questions/near-duplicates?threshold=1.0")
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
+def _jaccard_and_tokenize():
+    """Import helpers for unit-level testing."""
+    from quizzer.quiz.service import _tokenize, _jaccard
+    return _tokenize, _jaccard
+
+
+def test_tokenize_removes_stopwords_and_short_tokens():
+    _tokenize, _ = _jaccard_and_tokenize()
+    tokens = _tokenize("What is the best way to use caching?")
+    assert "caching" in tokens
+    assert "the" not in tokens   # stopword
+    assert "is" not in tokens    # too short (< 3 chars)
+    assert "way" in tokens
+
+
+def test_jaccard_identical():
+    _tokenize, _jaccard = _jaccard_and_tokenize()
+    t = _tokenize("consistent hashing distributes load evenly")
+    assert _jaccard(t, t) == 1.0
+
+
+def test_jaccard_disjoint():
+    _tokenize, _jaccard = _jaccard_and_tokenize()
+    a = _tokenize("consistent hashing ring")
+    b = _tokenize("database sharding partition")
+    assert _jaccard(a, b) == 0.0
+
+
+def test_jaccard_partial():
+    _tokenize, _jaccard = _jaccard_and_tokenize()
+    a = _tokenize("consistent hashing distributes load")
+    b = _tokenize("consistent hashing reduces latency")
+    sim = _jaccard(a, b)
+    assert 0.0 < sim < 1.0

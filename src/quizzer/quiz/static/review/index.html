@@ -314,6 +314,35 @@
     .toast.success { border-color: var(--green); }
     .toast.error { border-color: #fca5a5; }
 
+    /* ── Near-duplicate badge & panel ── */
+    .badge-near-dupe {
+      background: #713f12;
+      color: #fde68a;
+      cursor: pointer;
+      border: none;
+      font-family: var(--font);
+    }
+    .badge-near-dupe:hover { background: #854d0e; }
+
+    .near-dupe-panel {
+      display: none;
+      margin-top: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      background: rgba(113, 63, 18, 0.12);
+      border: 1px solid #713f12;
+      border-radius: 6px;
+      font-size: 0.8rem;
+    }
+    .near-dupe-panel.open { display: block; }
+    .near-dupe-entry {
+      padding: 0.35rem 0;
+      line-height: 1.45;
+      color: var(--text-muted);
+    }
+    .near-dupe-entry + .near-dupe-entry { border-top: 1px solid rgba(113, 63, 18, 0.35); }
+    .near-dupe-sim { font-weight: 700; color: #fde68a; margin-right: 0.3rem; }
+    .near-dupe-text { color: var(--text); }
+
     /* ── Card checkbox ── */
     .card-select {
       display: flex;
@@ -333,7 +362,10 @@
 
   <header class="page-header">
     <h1>Question Review</h1>
-    <a href="/" class="back-link">&larr; Back to Quiz</a>
+    <div style="display:flex;gap:1.25rem">
+      <a href="/sources/" class="back-link">Sources →</a>
+      <a href="/" class="back-link">&larr; Back to Quiz</a>
+    </div>
   </header>
 
   <div class="filter-bar">
@@ -394,6 +426,7 @@ const LABELS = ['A', 'B', 'C', 'D'];
 let page        = 0;
 let total       = 0;
 let selectedIds = new Set();
+let nearDupeMap = new Map(); // question id → [{id, question, similarity}]
 
 const filterStatus  = document.getElementById('filter-status');
 const filterDoc     = document.getElementById('filter-doc');
@@ -438,8 +471,78 @@ function updateBulkBar() {
 // ── Init ──────────────────────────────────────────────────────────────────
 
 async function init() {
-  await Promise.all([loadDocuments(), loadFilterOptions()]);
+  await Promise.all([loadDocuments(), loadFilterOptions(), loadNearDupes()]);
+  // Pre-select document from URL param (e.g., links from /sources/)
+  const urlDocId = new URLSearchParams(window.location.search).get('document_id');
+  if (urlDocId) {
+    filterDoc.value = urlDocId;
+    reingestBtn.disabled = !filterDoc.value;
+  }
   await loadPage();
+}
+
+// ── Near-duplicate detection ───────────────────────────────────────────────
+
+async function loadNearDupes() {
+  try {
+    const res = await fetch('/api/v1/questions/near-duplicates');
+    if (!res.ok) return;
+    const pairs = await res.json();
+    nearDupeMap = new Map();
+    pairs.forEach(p => {
+      if (!nearDupeMap.has(p.id_a)) nearDupeMap.set(p.id_a, []);
+      nearDupeMap.get(p.id_a).push({ id: p.id_b, question: p.question_b, similarity: p.similarity });
+      if (!nearDupeMap.has(p.id_b)) nearDupeMap.set(p.id_b, []);
+      nearDupeMap.get(p.id_b).push({ id: p.id_a, question: p.question_a, similarity: p.similarity });
+    });
+  } catch (_) {}
+}
+
+function buildNearDupePanel(dupes) {
+  const panel = document.createElement('div');
+  panel.className = 'near-dupe-panel';
+  panel.dataset.nearDupePanel = '';
+  dupes.forEach(d => {
+    const entry = document.createElement('div');
+    entry.className = 'near-dupe-entry';
+    const preview = d.question.length > 140 ? d.question.slice(0, 140) + '\u2026' : d.question;
+    const simSpan = document.createElement('span');
+    simSpan.className = 'near-dupe-sim';
+    simSpan.textContent = `${Math.round(d.similarity * 100)}% similar \u2014 `;
+    const textSpan = document.createElement('span');
+    textSpan.className = 'near-dupe-text';
+    textSpan.textContent = preview;
+    entry.append(simSpan, textSpan);
+    panel.appendChild(entry);
+  });
+  return panel;
+}
+
+function applyNearDupeBadges() {
+  listEl.querySelectorAll('.question-card').forEach(card => {
+    const id = card.dataset.id;
+    const view = card.querySelector('.card-view');
+    const badges = view.querySelector('.badges');
+    const dupes = nearDupeMap.get(id) || [];
+
+    const oldBadge = badges.querySelector('[data-near-dupe-badge]');
+    if (oldBadge) oldBadge.remove();
+    const oldPanel = view.querySelector('[data-near-dupe-panel]');
+    if (oldPanel) oldPanel.remove();
+
+    if (dupes.length > 0) {
+      const dupeBadge = document.createElement('span');
+      dupeBadge.className = 'badge badge-near-dupe';
+      dupeBadge.dataset.nearDupeBadge = '';
+      dupeBadge.title = 'Click to see similar questions';
+      dupeBadge.textContent = `\u26a0 ${dupes.length} similar`;
+      badges.append(dupeBadge);
+
+      const panel = buildNearDupePanel(dupes);
+      view.append(panel);
+      dupeBadge.addEventListener('click', () => panel.classList.toggle('open'));
+    }
+  });
 }
 
 // ── Filter options (models + prompt versions) ──────────────────────────────
@@ -614,6 +717,16 @@ function buildCardView(q) {
 
   badges.append(diffBadge, statusBadge);
 
+  const dupes = nearDupeMap.get(q.id) || [];
+  if (dupes.length > 0) {
+    const dupeBadge = document.createElement('span');
+    dupeBadge.className = 'badge badge-near-dupe';
+    dupeBadge.dataset.nearDupeBadge = '';
+    dupeBadge.title = 'Click to see similar questions';
+    dupeBadge.textContent = `\u26a0 ${dupes.length} similar`;
+    badges.append(dupeBadge);
+  }
+
   const actions = document.createElement('div');
   actions.className = 'card-actions';
   actions.innerHTML =
@@ -664,6 +777,14 @@ function buildCardView(q) {
     `Prompt: <code>${q.prompt_version || '—'}</code>`;
 
   view.append(top, qText, opts, expl, hitRate, meta);
+
+  if (dupes.length > 0) {
+    const panel = buildNearDupePanel(dupes);
+    view.append(panel);
+    badges.querySelector('[data-near-dupe-badge]')
+      .addEventListener('click', () => panel.classList.toggle('open'));
+  }
+
   return view;
 }
 
@@ -837,6 +958,8 @@ async function doStatusUpdate(card, q, newStatus) {
       badge.className = `badge badge-${newStatus}`;
       setAllBtns(card, false);
     }
+    // Rejected questions are excluded from similarity — refresh map
+    if (newStatus === 'rejected') loadNearDupes().then(applyNearDupeBadges);
   } catch (err) {
     alert(`Action failed: ${err.message}`);
     setAllBtns(card, false);
@@ -868,6 +991,7 @@ async function doDelete(card, q) {
         renderPagination();
       }
     }, 200);
+    loadNearDupes().then(applyNearDupeBadges);
   } catch (err) {
     alert(`Delete failed: ${err.message}`);
     setAllBtns(card, false);

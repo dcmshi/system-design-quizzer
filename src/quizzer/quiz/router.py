@@ -17,6 +17,7 @@ from quizzer.quiz.schemas import (
     ExportPayload,
     HealthResponse,
     ImportResult,
+    NearDuplicatePair,
     PaginatedQuestions,
     QuestionAnswer,
     QuestionDetail,
@@ -234,6 +235,15 @@ def import_questions(
 ):
     result = svc.import_data(payload.model_dump())
     return ImportResult(**result)
+
+
+@router.get("/questions/near-duplicates", response_model=list[NearDuplicatePair])
+def get_near_duplicates(
+    threshold: float = Query(0.5, ge=0.0, le=1.0),
+    document_id: list[str] | None = Query(default=None),
+    svc: QuizService = Depends(_get_service),
+):
+    return svc.find_near_duplicates(threshold, document_id or None)
 
 
 @router.post("/questions/bulk-status", response_model=BulkStatusResponse)

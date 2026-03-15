@@ -1,5 +1,23 @@
+import re as _re
 from datetime import datetime, timezone
 from typing import Literal
+
+_STOP = frozenset({
+    'the', 'and', 'for', 'that', 'this', 'with', 'are', 'was', 'were',
+    'has', 'have', 'had', 'not', 'but', 'from', 'they', 'will', 'when',
+    'which', 'what', 'how', 'why', 'can', 'its', 'their', 'each', 'about',
+    'you', 'your', 'does', 'used', 'use', 'using', 'would', 'should',
+})
+
+
+def _tokenize(text: str) -> frozenset[str]:
+    tokens = _re.sub(r'[^\w\s]', '', text.lower()).split()
+    return frozenset(t for t in tokens if len(t) >= 3 and t not in _STOP)
+
+
+def _jaccard(a: frozenset, b: frozenset) -> float:
+    union = len(a | b)
+    return len(a & b) / union if union else 0.0
 
 from quizzer.generation.base import LLMClient
 from quizzer.generation.factory import create_llm_client
@@ -128,6 +146,7 @@ class QuizService:
     def list_documents(self) -> list[dict]:
         docs = self.documents.list_all()
         counts = self.questions.count_by_documents()
+        chunk_stats = self.documents.get_chunk_stats_by_document()
         return [
             {
                 "id": doc.id,
@@ -137,6 +156,8 @@ class QuizService:
                 "source_path": doc.source_path,
                 "created_at": doc.created_at,
                 "question_count": counts.get(doc.id, 0),
+                "chunk_count": chunk_stats.get(doc.id, {}).get("chunk_count", 0),
+                "word_count": chunk_stats.get(doc.id, {}).get("total_words", 0),
             }
             for doc in docs
         ]
@@ -206,6 +227,28 @@ class QuizService:
             except Exception as e:
                 errors.append(f"Question {q.get('id', '?')}: {e}")
         return {"imported": imported, "skipped": skipped, "errors": errors}
+
+    def find_near_duplicates(
+        self,
+        threshold: float = 0.5,
+        document_ids: list[str] | None = None,
+    ) -> list[dict]:
+        rows = self.questions.get_texts_for_similarity(document_ids)
+        tokenized = [(r["id"], r["question"], _tokenize(r["question"])) for r in rows]
+        pairs: list[dict] = []
+        for i, (id_a, q_a, tok_a) in enumerate(tokenized):
+            for id_b, q_b, tok_b in tokenized[i + 1:]:
+                sim = _jaccard(tok_a, tok_b)
+                if sim >= threshold:
+                    pairs.append({
+                        "id_a": id_a,
+                        "question_a": q_a,
+                        "id_b": id_b,
+                        "question_b": q_b,
+                        "similarity": round(sim, 3),
+                    })
+        pairs.sort(key=lambda p: p["similarity"], reverse=True)
+        return pairs
 
     def health(self) -> dict:
         db_ok = True

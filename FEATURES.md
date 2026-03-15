@@ -25,8 +25,8 @@ _(move items here when actively working on them)_
 - [x] **Full-text search on questions** — `GET /questions?q=` runs a case-insensitive `LIKE` search on `question` and `explanation`; debounced search input in review UI.
 - [x] **Bulk approve / reject / delete in review UI** — checkboxes + bulk approve / reject / delete toolbar; `POST /questions/bulk-status` backend.
 - [x] **Purge by model / prompt_version** — `POST /questions/bulk-status` accepts a list of IDs and any target status; review UI bulk actions cover the common case.
-- [ ] **Near-duplicate flagging** — SHA-256 catches exact duplicates but not semantically near-identical questions. Jaccard similarity check on question tokens at review time; visually flag suspicious pairs in the review UI.
-- [ ] **Bulk re-ingest from review UI** — per-document button in `/review/` to trigger re-ingestion without the CLI. Useful after a prompt or model change.
+- [x] **Near-duplicate flagging** — SHA-256 catches exact duplicates but not semantically near-identical questions. Jaccard similarity check on question tokens at review time; visually flag suspicious pairs in the review UI.
+- [x] **Bulk re-ingest from review UI** — per-document button in `/review/` to trigger re-ingestion without the CLI. Useful after a prompt or model change.
 - [ ] **Question edit history** — store previous field values before each `PUT /questions/{id}` (JSON column or separate table) so bad edits can be undone.
 
 ### Quiz experience
@@ -78,7 +78,7 @@ _(move items here when actively working on them)_
 
 ### Content management
 
-- [ ] **Source article browser** — a `/sources/` page listing ingested documents with chunk count, word count, question count, and last-ingested date. Currently this info is only accessible via CLI `--list`.
+- [x] **Source article browser** — a `/sources/` page listing ingested documents with chunk count, word count, question count, and last-ingested date. Currently this info is only accessible via CLI `--list`.
 - [ ] **Per-chunk question viewer** — drill down from an article to see which chunks generated which questions. Helps identify chunks producing low-quality output.
 
 ### Refactors & technical debt

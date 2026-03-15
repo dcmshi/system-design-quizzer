@@ -103,6 +103,25 @@ class DocumentRepository:
             for r in rows
         ]
 
+    def get_chunk_stats_by_document(self) -> dict[str, dict]:
+        """Return {doc_id: {chunk_count, total_words}} for all documents."""
+        rows = self._conn.execute(
+            """
+            SELECT document_id,
+                   COUNT(*)        AS chunk_count,
+                   SUM(word_count) AS total_words
+            FROM chunks
+            GROUP BY document_id
+            """
+        ).fetchall()
+        return {
+            r["document_id"]: {
+                "chunk_count": r["chunk_count"],
+                "total_words": r["total_words"] or 0,
+            }
+            for r in rows
+        }
+
     def list_all_tags(self) -> list[str]:
         rows = self._conn.execute(
             "SELECT DISTINCT value FROM documents, json_each(documents.tags) ORDER BY value"

@@ -384,6 +384,20 @@ class QuestionRepository:
         ).fetchall()
         return [r["prompt_version"] for r in rows]
 
+    def get_texts_for_similarity(self, document_ids: list[str] | None = None) -> list[dict]:
+        """Return {id, question} for all non-rejected questions (optionally scoped to documents)."""
+        filters: list[str] = ["status != 'rejected'"]
+        params: list = []
+        doc_clause, doc_params = self._document_ids_filter(document_ids)
+        if doc_clause:
+            filters.append(doc_clause)
+            params.extend(doc_params)
+        where = "WHERE " + " AND ".join(filters)
+        rows = self._conn.execute(
+            f"SELECT id, question FROM questions {where}", params
+        ).fetchall()
+        return [{"id": r["id"], "question": r["question"]} for r in rows]
+
     def count_by_documents(self) -> dict[str, int]:
         rows = self._conn.execute(
             "SELECT source_document_id, COUNT(*) as cnt FROM questions "

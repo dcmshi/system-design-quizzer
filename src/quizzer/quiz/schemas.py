@@ -76,6 +76,8 @@ class DocumentSummary(BaseModel):
     source_path: str
     created_at: str
     question_count: int
+    chunk_count: int = 0
+    word_count: int = 0
 
 
 class HealthResponse(BaseModel):
@@ -192,6 +194,14 @@ class QuizSessionDetail(BaseModel):
     started_at: str
     finished_at: str | None
     answers: list[QuizAnswerRecord]
+
+
+class NearDuplicatePair(BaseModel):
+    id_a: str
+    question_a: str
+    id_b: str
+    question_b: str
+    similarity: float
 
 
 class ReIngestResponse(BaseModel):
