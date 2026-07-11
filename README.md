@@ -395,8 +395,8 @@ QUIZZER_GEMINI_API_KEY=your_key_here
 uv run pytest tests/ -v
 ```
 
-104 tests covering: ingestion (loader, chunker), validation (normalizer, schema, dedup),
-generation (prompt, parser, generator), the full API surface (including export/import, quiz sessions, bulk status, delete), the SM-2 algorithm, and SRS API.
+118 tests covering: ingestion (loader, chunker, path resolution), validation (normalizer, schema, dedup),
+generation (prompt, parser, generator), the full API surface (including export/import, quiz sessions, bulk status, delete, re-ingest), the SM-2 algorithm, the SRS repository, and SRS API.
 
 ---
 

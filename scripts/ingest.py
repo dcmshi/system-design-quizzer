@@ -21,7 +21,7 @@ from quizzer.generation.gemini_client import GeminiClient
 from quizzer.generation.generator import MCQGenerator
 from quizzer.generation.ollama_client import OllamaClient
 from quizzer.ingestion.chunker import chunk_document
-from quizzer.ingestion.loader import load_document
+from quizzer.ingestion.loader import load_document, resolve_source_path
 from quizzer.storage.document_repo import DocumentRepository
 from quizzer.storage.question_repo import QuestionRepository
 from quizzer.validation.duplicate_detector import fingerprint, is_duplicate
@@ -130,7 +130,7 @@ def collect_md_files_from_db(doc_repo: DocumentRepository, tag: str | None) -> l
         docs = [d for d in docs if tag in (d.tags or [])]
     paths: list[Path] = []
     for doc in docs:
-        p = Path(doc.source_path)
+        p = resolve_source_path(doc.source_path)
         if p.exists():
             paths.append(p)
     return paths

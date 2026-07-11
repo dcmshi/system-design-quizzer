@@ -5,9 +5,13 @@ import subprocess
 import sys
 from pathlib import Path
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
+from quizzer.ingestion.loader import resolve_source_path
+from quizzer.quiz import deps
+from quizzer.quiz.service import QuizService
+from quizzer.quiz.session_service import QuizSessionService
 from quizzer.quiz.schemas import (
     AnswerRequest,
     AnswerResponse,
@@ -43,9 +47,7 @@ def _run_reingest(source_path: Path) -> None:
         [sys.executable, str(_INGEST_SCRIPT), "--source", str(source_path), "--force"],
         check=False,
     )
-from quizzer.quiz import deps
-from quizzer.quiz.service import QuizService
-from quizzer.quiz.session_service import QuizSessionService
+
 
 router = APIRouter(prefix="/api/v1")
 
@@ -395,7 +397,7 @@ def reingest_document(
     doc = svc.get_document_by_id(document_id)
     if doc is None:
         raise HTTPException(status_code=404, detail="Document not found")
-    source_path = Path(doc["source_path"])
+    source_path = resolve_source_path(doc["source_path"])
     if not source_path.exists():
         raise HTTPException(
             status_code=422,

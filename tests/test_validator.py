@@ -107,6 +107,29 @@ def test_normalize_leaves_plain_options_unchanged():
     assert result.options == ["First", "Second", "Third", "Fourth"]
 
 
+def test_normalize_preserves_internal_acronyms():
+    """Regression: only the first char should be upper-cased; acronyms stay intact."""
+    mcq = _make_mcq(options=[
+        "DNS resolves names to IPs",
+        "a TCP handshake occurs",
+        "uses gRPC internally",
+        "CDN caching layer",
+    ])
+    result = normalize_mcq(mcq)
+    assert result.options == [
+        "DNS resolves names to IPs",
+        "A TCP handshake occurs",
+        "Uses gRPC internally",
+        "CDN caching layer",
+    ]
+
+
+def test_normalize_capitalizes_first_letter_after_prefix_strip():
+    mcq = _make_mcq(options=["A) uses API gateway", "B) B", "C) C", "D) D"])
+    result = normalize_mcq(mcq)
+    assert result.options[0] == "Uses API gateway"
+
+
 # --- Duplicate Detector ---
 
 def test_fingerprint_is_deterministic():

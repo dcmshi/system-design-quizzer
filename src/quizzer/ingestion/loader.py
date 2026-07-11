@@ -8,6 +8,23 @@ from quizzer.ingestion.cleaner import clean_text
 from quizzer.ingestion.models import Document
 
 
+def resolve_source_path(source_path: str) -> Path:
+    """Resolve a stored ``source_path`` back to a real filesystem path.
+
+    Paths are stored relative to ``settings.content_dir`` (see ``load_document``),
+    so a bare ``Path(source_path)`` will not resolve from the process CWD. Prefer
+    ``content_dir / source_path`` when it exists; fall back to the raw path for
+    absolute paths or documents stored outside the content directory.
+    """
+    raw = Path(source_path)
+    if raw.is_absolute():
+        return raw
+    candidate = settings.content_dir / raw
+    if candidate.exists():
+        return candidate
+    return raw
+
+
 def load_document(path: Path) -> Document:
     post = frontmatter.load(str(path))
 

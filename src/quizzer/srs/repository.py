@@ -56,12 +56,15 @@ class SrsRepository:
     ) -> list[dict]:
         """Return up to *n* questions that are due or new, ordered due-first."""
         cutoff = today or date.today().isoformat()
+        # Build params in the exact order the placeholders appear in the SQL:
+        # 1) document_id (WHERE), 2) cutoff (due-date AND), 3) n (LIMIT).
         filters = ["q.status != 'rejected'"]
-        params: list = [cutoff]
+        params: list = []
         if document_id:
             filters.append("q.source_document_id = ?")
             params.append(document_id)
         where = "WHERE " + " AND ".join(filters)
+        params.append(cutoff)
         params.append(n)
         rows = self._conn.execute(
             f"""
@@ -76,7 +79,7 @@ class SrsRepository:
                 c.due_date ASC
             LIMIT ?
             """,
-            [cutoff] + params[1:],  # cutoff used twice (WHERE + AND)
+            params,
         ).fetchall()
         return [self._row_to_dict(r) for r in rows]
 
@@ -96,7 +99,7 @@ class SrsRepository:
             JOIN srs_cards c ON q.id = c.question_id
             WHERE c.due_date <= ? AND q.status != 'rejected' {doc_filter}
             """,
-            [cutoff] + ([document_id] if document_id else []),
+            params_due,
         ).fetchone()
 
         new_row = self._conn.execute(
@@ -105,7 +108,7 @@ class SrsRepository:
             LEFT JOIN srs_cards c ON q.id = c.question_id
             WHERE c.question_id IS NULL AND q.status != 'rejected' {doc_filter}
             """,
-            ([document_id] if document_id else []),
+            params_new,
         ).fetchone()
 
         return {

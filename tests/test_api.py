@@ -828,6 +828,49 @@ def test_near_duplicates_threshold_filters(app_client):
     assert resp.json() == []
 
 
+# ── Re-ingest endpoint tests ──────────────────────────────────────────────────
+
+def test_reingest_resolves_content_relative_path(app_client, tmp_path, monkeypatch):
+    """Re-ingest must resolve the content-relative source_path and enqueue the job."""
+    client, _, doc_id = app_client
+    from quizzer import config
+    from quizzer.quiz import router as router_mod
+
+    # The seeded document's source_path is "test/doc.md" (relative to content_dir).
+    monkeypatch.setattr(config.settings, "content_dir", tmp_path)
+    article = tmp_path / "test" / "doc.md"
+    article.parent.mkdir(parents=True)
+    article.write_text("---\ntitle: T\nsource: s\n---\nBody.", encoding="utf-8")
+
+    captured: dict = {}
+    monkeypatch.setattr(router_mod, "_run_reingest", lambda p: captured.setdefault("path", p))
+
+    resp = client.post(f"/api/v1/documents/{doc_id}/reingest")
+    assert resp.status_code == 202
+    assert resp.json()["status"] == "started"
+    # The background task must receive the resolved, existing path.
+    assert captured["path"] == article
+
+
+def test_reingest_missing_file_returns_422(app_client, tmp_path, monkeypatch):
+    client, _, doc_id = app_client
+    from quizzer import config
+    from quizzer.quiz import router as router_mod
+
+    # content_dir points at an empty temp dir → the seeded "test/doc.md" resolves nowhere.
+    monkeypatch.setattr(config.settings, "content_dir", tmp_path)
+    monkeypatch.setattr(router_mod, "_run_reingest", lambda p: None)
+
+    resp = client.post(f"/api/v1/documents/{doc_id}/reingest")
+    assert resp.status_code == 422
+
+
+def test_reingest_unknown_document_returns_404(app_client):
+    client, _, _ = app_client
+    resp = client.post("/api/v1/documents/nonexistent/reingest")
+    assert resp.status_code == 404
+
+
 def _jaccard_and_tokenize():
     """Import helpers for unit-level testing."""
     from quizzer.quiz.service import _tokenize, _jaccard
