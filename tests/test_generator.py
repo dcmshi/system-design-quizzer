@@ -70,6 +70,37 @@ def test_parse_invalid_json_returns_empty():
     assert results == []
 
 
+def test_parse_top_level_array():
+    """Regression: LLMs sometimes return a bare array instead of {"questions": [...]}."""
+    raw = json.dumps([
+        {
+            "question": "What is X?",
+            "options": ["A", "B", "C", "D"],
+            "correct_index": 0,
+            "explanation": "A is correct because it directly addresses the definition of X.",
+            "difficulty": "easy",
+            "source_chunk_id": "CHUNK001",
+        },
+        {
+            "question": "What is Y?",
+            "options": ["A", "B", "C", "D"],
+            "correct_index": 1,
+            "explanation": "B is correct because Y is defined as B in the provided content.",
+            "difficulty": "medium",
+            "source_chunk_id": "CHUNK001",
+        },
+    ])
+    results = _parse_questions(raw, "CHUNK001")
+    assert len(results) == 2
+    assert results[0].question == "What is X?"
+    assert results[1].question == "What is Y?"
+
+
+def test_parse_empty_array_returns_empty():
+    results = _parse_questions("[]", "CHUNK001")
+    assert results == []
+
+
 def test_parse_validates_pydantic():
     # Missing required field (explanation)
     raw = json.dumps({

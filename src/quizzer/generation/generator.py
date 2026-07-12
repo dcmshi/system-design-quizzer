@@ -22,8 +22,11 @@ def _question_count(word_count: int) -> int:
 def _parse_questions(raw: str, chunk_id: str) -> list[RawMCQ]:
     """Attempt 3-layer parse: direct → regex extract → give up."""
 
-    def _from_data(data: dict) -> list[RawMCQ]:
-        items = data.get("questions", [data])  # fallback: treat root as single question
+    def _from_data(data) -> list[RawMCQ]:
+        if isinstance(data, list):
+            items = data  # LLM returned a bare array of question objects
+        else:
+            items = data.get("questions", [data])  # fallback: treat root as single question
         if isinstance(items, dict):
             items = [items]
         results: list[RawMCQ] = []

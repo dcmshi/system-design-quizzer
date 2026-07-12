@@ -1136,7 +1136,7 @@
     return res.json();
   }
 
-  async function createQuizSession(n, difficulty, documentIds, tag) {
+  async function createQuizSession(n, difficulty, documentIds, tag, weak = false) {
     const res = await fetch('/api/v1/quiz/sessions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1145,6 +1145,7 @@
         difficulty: difficulty || null,
         tag: tag || null,
         document_ids: documentIds,
+        weak,
       }),
     });
     if (!res.ok) {
