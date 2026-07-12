@@ -75,15 +75,20 @@ def article_to_markdown(article_html: str) -> str:
     return md.strip()
 
 
+def _yaml_dq(s: str) -> str:
+    """Escape a string for use inside a YAML double-quoted scalar."""
+    return s.replace("\\", "\\\\").replace('"', '\\"')
+
+
 def build_frontmatter(title: str, source_url: str, tags: list[str]) -> str:
-    tag_list = ", ".join(f'"{t}"' for t in tags)
+    tag_list = ", ".join(f'"{_yaml_dq(t)}"' for t in tags)
     lines = [
         "---",
-        f'title: "{title}"',
-        f'source: "ByteByteGo"',
+        f'title: "{_yaml_dq(title)}"',
+        'source: "ByteByteGo"',
     ]
     if source_url:
-        lines.append(f'url: "{source_url}"')
+        lines.append(f'url: "{_yaml_dq(source_url)}"')
     lines.append(f"tags: [{tag_list}]")
     lines.append("---")
     return "\n".join(lines)

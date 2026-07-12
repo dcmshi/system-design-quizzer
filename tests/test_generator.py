@@ -1,7 +1,5 @@
 import json
 
-import pytest
-
 from quizzer.generation.generator import MCQGenerator, _parse_questions, _question_count
 from quizzer.generation.models import RawMCQ
 from quizzer.ingestion.models import Chunk
@@ -99,6 +97,36 @@ def test_parse_top_level_array():
 def test_parse_empty_array_returns_empty():
     results = _parse_questions("[]", "CHUNK001")
     assert results == []
+
+
+def test_parse_array_with_non_object_element_skips_it():
+    """A stray non-object element in the array must not crash the parser."""
+    raw = json.dumps([
+        {
+            "question": "What is X?",
+            "options": ["A", "B", "C", "D"],
+            "correct_index": 0,
+            "explanation": "A is correct because it directly addresses the definition of X.",
+            "difficulty": "easy",
+            "source_chunk_id": "CHUNK001",
+        },
+        "stray string element",
+        42,
+    ])
+    results = _parse_questions(raw, "CHUNK001")
+    assert len(results) == 1
+    assert results[0].question == "What is X?"
+
+
+def test_parse_top_level_scalar_returns_empty():
+    """A top-level JSON scalar (valid JSON, wrong shape) must not crash."""
+    assert _parse_questions("42", "CHUNK001") == []
+    assert _parse_questions('"just a string"', "CHUNK001") == []
+
+
+def test_parse_questions_key_holding_scalar_returns_empty():
+    """{"questions": "oops"} must be rejected, not iterated character by character."""
+    assert _parse_questions('{"questions": "oops"}', "CHUNK001") == []
 
 
 def test_parse_validates_pydantic():

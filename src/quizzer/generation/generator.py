@@ -23,14 +23,20 @@ def _parse_questions(raw: str, chunk_id: str) -> list[RawMCQ]:
     """Attempt 3-layer parse: direct → regex extract → give up."""
 
     def _from_data(data) -> list[RawMCQ]:
-        if isinstance(data, list):
-            items = data  # LLM returned a bare array of question objects
-        else:
+        if isinstance(data, dict):
             items = data.get("questions", [data])  # fallback: treat root as single question
+        else:
+            items = data  # bare array, or an unexpected scalar (rejected below)
         if isinstance(items, dict):
             items = [items]
+        if not isinstance(items, list):
+            logger.warning("Unexpected MCQ payload shape: %s", type(items).__name__)
+            return []
         results: list[RawMCQ] = []
         for item in items:
+            if not isinstance(item, dict):
+                logger.warning("Skipping non-object MCQ entry: %r", item)
+                continue
             # Ensure chunk id is set
             if not item.get("source_chunk_id"):
                 item["source_chunk_id"] = chunk_id
