@@ -68,6 +68,13 @@ def test_parse_invalid_json_returns_empty():
     assert results == []
 
 
+def test_parse_none_or_empty_response_returns_empty():
+    """Gemini returns None text on a blocked/empty candidate; must not crash."""
+    assert _parse_questions(None, "CHUNK001") == []
+    assert _parse_questions("", "CHUNK001") == []
+    assert _parse_questions("   \n  ", "CHUNK001") == []
+
+
 def test_parse_top_level_array():
     """Regression: LLMs sometimes return a bare array instead of {"questions": [...]}."""
     raw = json.dumps([

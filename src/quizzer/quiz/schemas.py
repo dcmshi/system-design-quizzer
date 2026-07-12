@@ -112,7 +112,7 @@ class ExportDocument(BaseModel):
 class ExportQuestion(BaseModel):
     id: str
     question: str
-    options: list[str]
+    options: list[str] = Field(..., min_length=4, max_length=4)
     correct_index: int
     explanation: str
     difficulty: str

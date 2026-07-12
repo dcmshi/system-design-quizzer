@@ -21,6 +21,11 @@ def _question_count(word_count: int) -> int:
 
 def _parse_questions(raw: str, chunk_id: str) -> list[RawMCQ]:
     """Attempt 3-layer parse: direct → regex extract → give up."""
+    # The LLM boundary is untrusted: Gemini returns None when a candidate is
+    # blocked or empty, and Ollama can return an empty body. Bail cleanly.
+    if not isinstance(raw, str) or not raw.strip():
+        logger.warning("Empty or non-text LLM response for chunk %s", chunk_id)
+        return []
 
     def _from_data(data) -> list[RawMCQ]:
         if isinstance(data, dict):

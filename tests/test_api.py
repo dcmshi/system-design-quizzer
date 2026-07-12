@@ -10,7 +10,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 from quizzer.database import init_db, get_connection
-from quizzer.generation.base import LLMClient
 from quizzer.quiz import deps as deps_module
 from quizzer.quiz.app import create_app
 from quizzer.quiz.service import QuizService
@@ -449,7 +448,8 @@ def test_export_csv(app_client):
     resp = client.get("/api/v1/questions/export?format=csv")
     assert resp.status_code == 200
     assert "text/csv" in resp.headers["content-type"]
-    import csv as _csv, io
+    import csv as _csv
+    import io
     reader = _csv.DictReader(io.StringIO(resp.text))
     rows = list(reader)
     assert len(rows) >= 1
@@ -496,6 +496,35 @@ def test_import_skips_duplicates(app_client):
     r2 = client.post("/api/v1/questions/import", json=payload).json()
     assert r2["skipped"] == 1
     assert r2["imported"] == 0
+
+
+def test_import_rejects_wrong_option_count(app_client):
+    """A payload with != 4 options must be rejected (422), not stored as a landmine."""
+    client, _, doc_id = app_client
+    payload = {
+        "version": "1",
+        "exported_at": datetime.now(timezone.utc).isoformat(),
+        "documents": [],
+        "questions": [
+            {
+                "id": str(ULID()),
+                "question": "Only three options?",
+                "options": ["A", "B", "C"],  # invalid — must be exactly 4
+                "correct_index": 0,
+                "explanation": "x" * 60,
+                "difficulty": "easy",
+                "source_document_id": doc_id,
+                "source_chunk_id": str(ULID()),
+                "status": "generated",
+                "fingerprint": "fp_bad_option_count",
+                "model": "m",
+                "prompt_version": "v1",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ],
+    }
+    resp = client.post("/api/v1/questions/import", json=payload)
+    assert resp.status_code == 422
 
 
 def test_import_creates_synthetic_chunks(app_client):

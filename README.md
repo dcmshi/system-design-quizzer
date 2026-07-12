@@ -1,8 +1,8 @@
 # System Design MCQ Generator
 
 Converts locally stored system design articles into structured multiple-choice questions
-via a local Ollama LLM. The pipeline is deterministic and batch-oriented. Questions are
-served through a FastAPI REST API.
+via an LLM (Gemini 2.5 Flash by default, or a local Ollama model). The pipeline is
+deterministic and batch-oriented. Questions are served through a FastAPI REST API.
 
 **Stack:** Python · uv · Gemini 2.5 Flash (Google AI Studio) · Ollama (fallback) · SQLite · FastAPI
 
@@ -228,18 +228,37 @@ Base path: `/api/v1`
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/questions` | List questions. Filters: `difficulty`, `status`, `document_id`, `limit`, `offset` |
-| `GET` | `/questions/{id}` | Get question detail (no answer) |
+| `GET` | `/questions` | List questions. Filters: `difficulty`, `status`, `document_id`, `q` (text search), `model`, `prompt_version`, `limit`, `offset` |
+| `GET` | `/questions/{id}` | Get question detail (no answer) — includes `times_answered`, `times_correct`, `hit_rate` |
 | `GET` | `/questions/{id}/answer` | Get question with correct answer + explanation |
 | `POST` | `/questions/{id}/answer` | Submit answer `{"selected_index": 0}` → `{correct, correct_index, explanation}` |
 | `PATCH` | `/questions/{id}/status` | Update status `{"status": "approved"\|"edited"\|"rejected"}` |
 | `PUT` | `/questions/{id}` | Edit question content `{question, options, correct_index, explanation, difficulty}` |
 | `POST` | `/questions/bulk-status` | Bulk status update `{"ids": ["…"], "status": "rejected"}` → `{"updated": N}` |
 | `DELETE` | `/questions/{id}` | Permanently delete a question (removes associated SRS and quiz answer history) → 204 |
-| `GET` | `/quiz` | Random sample. Params: `n` (default 5), `difficulty`, `document_id`, `tag` |
+| `GET` | `/questions/models` | Distinct model names across stored questions (review-UI filter) |
+| `GET` | `/questions/prompt-versions` | Distinct prompt versions across stored questions (review-UI filter) |
+| `GET` | `/questions/near-duplicates` | Jaccard-similar question pairs. Params: `threshold` (0–1, default 0.5), `document_id` (repeatable) |
+| `GET` | `/quiz` | Random sample. Params: `n` (default 5), `difficulty`, `document_id` (repeatable), `tag` → `{questions, requested, returned}` |
 | `GET` | `/tags` | Sorted list of unique tags across all documents |
-| `GET` | `/documents` | List documents with question counts |
+| `GET` | `/documents` | List documents with question, chunk, and word counts |
+| `POST` | `/documents/{id}/reingest` | Re-run ingestion for a document's source file in the background → 202 `{document_id, title, status}` |
 | `GET` | `/health` | DB + Ollama connectivity check |
+
+### Quiz session endpoints
+
+The web UI drives random and weak-topic quizzes through sessions so answers are
+recorded for hit-rate and weak-topic tracking.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/quiz/sessions` | Start a session. Body: `{"n": 5, "difficulty": null, "tag": null, "document_ids": [], "weak": false}` → `{session_id, questions, started_at}` |
+| `POST` | `/quiz/sessions/{id}/answers` | Record an answer. Body: `{"question_id": "…", "selected_index": 0}` → `{correct, correct_index, explanation}` |
+| `POST` | `/quiz/sessions/{id}/finish` | Close a session → `{n_answered, n_correct, n_wrong, n_skipped, …}` |
+| `GET` | `/quiz/sessions/{id}` | Session details + full answer log |
+| `GET` | `/quiz/weak-count` | Size of the weak-topic pool (bottom-quartile hit rate). Params: `difficulty`, `document_id` (repeatable) |
+
+> Set `"weak": true` on `POST /quiz/sessions` to draw only from the bottom-quartile-by-hit-rate pool instead of a random sample.
 
 ### Export & import endpoints
 
@@ -395,8 +414,8 @@ QUIZZER_GEMINI_API_KEY=your_key_here
 uv run pytest tests/ -v
 ```
 
-118 tests covering: ingestion (loader, chunker, path resolution), validation (normalizer, schema, dedup),
-generation (prompt, parser, generator), the full API surface (including export/import, quiz sessions, bulk status, delete, re-ingest), the SM-2 algorithm, the SRS repository, and SRS API.
+129 tests covering: ingestion (loader, chunker, path resolution), validation (normalizer, schema, dedup),
+generation (prompt, parser robustness, generator), the ByteByteGo preprocessor (frontmatter escaping), the full API surface (including export/import validation, quiz sessions, bulk status, delete, re-ingest), the SM-2 algorithm, the SRS repository, and SRS API.
 
 ---
 
@@ -415,9 +434,9 @@ system_design_quizzer/
 │   ├── config.py               # Pydantic settings
 │   ├── database.py             # Schema DDL + connection factory
 │   ├── ingestion/              # loader · cleaner · chunker · models
-│   ├── generation/             # ollama_client · prompt_builder · generator · models
+│   ├── generation/             # base · factory · gemini_client · ollama_client · prompt_builder · generator · models
 │   ├── validation/             # normalizer · schema_validator · duplicate_detector
-│   ├── storage/                # document_repo · question_repo
+│   ├── storage/                # document_repo · question_repo · session_repo
 │   ├── srs/                    # Spaced repetition (SM-2)
 │   │   ├── algorithm.py        # Pure SM-2 functions (apply_review, initial_state)
 │   │   ├── repository.py       # CRUD for srs_cards · srs_sessions · srs_reviews
@@ -426,19 +445,25 @@ system_design_quizzer/
 │   │   └── router.py           # Routes under /api/v1/srs/
 │   └── quiz/
 │       ├── app.py              # FastAPI app factory + static file mount
+│       ├── deps.py             # Service singletons wired at startup
 │       ├── router.py           # API routes (/api/v1/...)
 │       ├── service.py          # Business logic
+│       ├── session_service.py  # Quiz-session + weak-topic logic
 │       ├── schemas.py          # Pydantic request/response models
 │       └── static/
-│           └── index.html      # Single-file web UI (no build step)
+│           ├── index.html      # Single-file quiz UI (no build step)
+│           ├── review/         # Question review/approve UI
+│           └── sources/        # Ingested-article browser
 └── tests/
     ├── conftest.py
-    ├── test_loader.py
+    ├── test_loader.py          # loader + source-path resolution
     ├── test_chunker.py
     ├── test_validator.py
-    ├── test_generator.py
+    ├── test_generator.py       # generation + parser robustness
+    ├── test_html_to_md.py      # ByteByteGo frontmatter escaping
     ├── test_api.py
     ├── test_srs_algorithm.py   # SM-2 unit tests
+    ├── test_srs_repository.py  # SRS query construction
     └── test_srs_api.py         # SRS API integration tests
 ```
 
