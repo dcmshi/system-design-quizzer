@@ -95,7 +95,9 @@ class QuizSessionService:
         n_answered = len(answers)
         n_correct = sum(1 for a in answers if a["is_correct"])
         n_wrong = n_answered - n_correct
-        n_skipped = session["question_count"] - n_answered
+        # Clamp: a client may answer the same question more than once, so
+        # n_answered can exceed the question count — never report negative skips.
+        n_skipped = max(0, session["question_count"] - n_answered)
 
         return {
             "session_id": session_id,

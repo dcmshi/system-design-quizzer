@@ -1,4 +1,5 @@
 import sqlite3
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -147,6 +148,24 @@ def get_connection(db_path: Path | None = None) -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
+    # Wait (instead of erroring) when another connection holds the write lock.
+    conn.execute("PRAGMA busy_timeout=5000")
+    return conn
+
+
+# Per-thread connections. FastAPI runs sync endpoints in a threadpool, and a
+# single sqlite3.Connection must not be used concurrently from multiple threads.
+# Each worker thread gets — and reuses — its own connection; WAL mode lets those
+# connections read concurrently while writes are serialised with a busy timeout.
+_local = threading.local()
+
+
+def get_shared_connection(db_path: Path | None = None) -> sqlite3.Connection:
+    """Return this thread's SQLite connection, creating it on first use."""
+    conn = getattr(_local, "connection", None)
+    if conn is None:
+        conn = get_connection(db_path)
+        _local.connection = conn
     return conn
 
 

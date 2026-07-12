@@ -3,12 +3,18 @@ import random as _random
 import sqlite3
 from typing import Literal
 
-from quizzer.database import get_connection
+from quizzer.database import get_shared_connection
 
 
 class QuestionRepository:
     def __init__(self, conn: sqlite3.Connection | None = None) -> None:
-        self._conn = conn or get_connection()
+        # An explicit connection (tests) is used as-is; otherwise resolve a
+        # per-thread connection lazily so the shared app services are thread-safe.
+        self._explicit_conn = conn
+
+    @property
+    def _conn(self) -> sqlite3.Connection:
+        return self._explicit_conn if self._explicit_conn is not None else get_shared_connection()
 
     def insert(
         self,
@@ -148,9 +154,18 @@ class QuestionRepository:
     @staticmethod
     def _search_filter(q: str | None) -> tuple[str, list]:
         if q and q.strip():
-            term = f"%{q.strip()}%"
+            # Escape LIKE wildcards so a literal % or _ in the query is matched
+            # literally rather than acting as a pattern.
+            escaped = (
+                q.strip()
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_")
+            )
+            term = f"%{escaped}%"
             return (
-                "(LOWER(question) LIKE LOWER(?) OR LOWER(explanation) LIKE LOWER(?))",
+                "(LOWER(question) LIKE LOWER(?) ESCAPE '\\' "
+                "OR LOWER(explanation) LIKE LOWER(?) ESCAPE '\\')",
                 [term, term],
             )
         return ("", [])

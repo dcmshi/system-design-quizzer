@@ -93,6 +93,34 @@ def test_list_questions(app_client):
     assert any(q["id"] == q_id for q in data["items"])
 
 
+def test_search_treats_percent_as_literal(app_client):
+    """A '%' in the query must match literally, not act as a LIKE wildcard."""
+    client, _, doc_id = app_client
+    conn = deps_module._service.questions._conn
+    chunk_id = conn.execute("SELECT id FROM chunks LIMIT 1").fetchone()["id"]
+
+    def _add(qid, text, fp):
+        conn.execute(
+            "INSERT INTO questions (id, question, options, correct_index, explanation, difficulty, "
+            "source_document_id, source_chunk_id, status, fingerprint, model, prompt_version, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (qid, text, json.dumps(["A", "B", "C", "D"]), 0, "neutral explanation text here.",
+             "easy", doc_id, chunk_id, "generated", fp, "m", "v1",
+             datetime.now(timezone.utc).isoformat()),
+        )
+
+    a_id, b_id = str(ULID()), str(ULID())
+    _add(a_id, "cache ratio 50% today", "fp_literal_pct_a")   # contains literal "50%"
+    _add(b_id, "cache ratio 5000 today", "fp_literal_pct_b")  # contains "50" but not "50%"
+    conn.commit()
+
+    resp = client.get("/api/v1/questions?q=50%25")  # %25 == '%' url-encoded
+    assert resp.status_code == 200
+    ids = {q["id"] for q in resp.json()["items"]}
+    assert a_id in ids       # literal "50%" match
+    assert b_id not in ids   # would match only if '%' were a wildcard
+
+
 def test_get_question_no_answer(app_client):
     client, q_id, _ = app_client
     resp = client.get(f"/api/v1/questions/{q_id}")
@@ -722,6 +750,21 @@ def test_finish_nonexistent_session(quiz_session_client):
     assert resp.status_code == 404
 
 
+def test_finish_session_skipped_never_negative(quiz_session_client):
+    """Answering the same question twice must not produce a negative n_skipped."""
+    client, q_id, _ = quiz_session_client
+    session_id = client.post("/api/v1/quiz/sessions", json={"n": 1}).json()["session_id"]
+    # Answer the single question twice.
+    for _ in range(2):
+        client.post(
+            f"/api/v1/quiz/sessions/{session_id}/answers",
+            json={"question_id": q_id, "selected_index": 2},
+        )
+    data = client.post(f"/api/v1/quiz/sessions/{session_id}/finish").json()
+    assert data["n_answered"] == 2
+    assert data["n_skipped"] == 0  # clamped, not -1
+
+
 # ── Weak-topic replay tests ───────────────────────────────────────────────────
 
 def test_weak_count_zero_with_no_history(quiz_session_client):
@@ -847,6 +890,49 @@ def test_near_duplicates_excludes_rejected(app_client):
     for p in pairs:
         assert p["id_a"] != q2_id
         assert p["id_b"] != q2_id
+
+
+def test_near_duplicates_matches_naive_allpairs(app_client):
+    """The inverted-index scan must return exactly what a naive O(n^2) scan would."""
+    client, seed_q, doc_id = app_client
+    conn = deps_module._service.questions._conn
+    chunk_id = conn.execute("SELECT id FROM chunks LIMIT 1").fetchone()["id"]
+
+    texts = [
+        "consistent hashing distributes load across nodes",
+        "consistent hashing spreads load across many nodes",
+        "consistent hashing minimizes remapping on node changes",
+        "database sharding partitions rows across shards",
+        "database sharding splits rows across many shards",
+        "caching reduces latency for repeated reads",
+    ]
+    for i, t in enumerate(texts):
+        conn.execute(
+            "INSERT INTO questions (id, question, options, correct_index, explanation, difficulty, "
+            "source_document_id, source_chunk_id, status, fingerprint, model, prompt_version, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (str(ULID()), t, json.dumps(["A", "B", "C", "D"]), 0, "explanation.", "easy",
+             doc_id, chunk_id, "generated", f"fp_nd_{i}", "m", "v1",
+             datetime.now(timezone.utc).isoformat()),
+        )
+    conn.commit()
+
+    from quizzer.quiz.service import _jaccard, _tokenize
+
+    threshold = 0.3
+    rows = deps_module._service.questions.get_texts_for_similarity(None)
+    toks = [(r["id"], _tokenize(r["question"])) for r in rows]
+    naive = set()
+    for i in range(len(toks)):
+        for j in range(i + 1, len(toks)):
+            sim = _jaccard(toks[i][1], toks[j][1])
+            if sim >= threshold:
+                naive.add((frozenset({toks[i][0], toks[j][0]}), round(sim, 3)))
+
+    got = deps_module._service.find_near_duplicates(threshold, None)
+    got_set = {(frozenset({p["id_a"], p["id_b"]}), p["similarity"]) for p in got}
+    assert got_set == naive
+    assert len(got) == len(got_set)  # no duplicate pairs
 
 
 def test_near_duplicates_threshold_filters(app_client):

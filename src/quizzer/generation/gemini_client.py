@@ -21,6 +21,10 @@ def _is_rate_limit(exc: Exception) -> bool:
 
 
 class GeminiClient:
+    # Cache health for a short window so parallel /health polls don't each make a
+    # network round-trip (which also counts against the API rate limit).
+    _HEALTH_TTL_S = 15.0
+
     def __init__(
         self,
         api_key: str,
@@ -33,6 +37,8 @@ class GeminiClient:
         self._request_delay = request_delay
         self._max_retries = max_retries
         self._last_call_at: float = 0.0
+        self._health_cached: bool | None = None
+        self._health_checked_at: float = 0.0
 
     def _throttle(self) -> None:
         """Sleep if needed to honour the inter-request delay."""
@@ -73,12 +79,20 @@ class GeminiClient:
         raise RuntimeError("generate() exited retry loop unexpectedly")
 
     def health_check(self) -> bool:
+        now = time.monotonic()
+        if (
+            self._health_cached is not None
+            and now - self._health_checked_at < self._HEALTH_TTL_S
+        ):
+            return self._health_cached
         try:
             # Lightweight metadata call — no generation quota cost
             next(self._client.models.list())
-            return True
+            self._health_cached = True
         except Exception:
-            return False
+            self._health_cached = False
+        self._health_checked_at = now
+        return self._health_cached
 
     def close(self) -> None:
         pass

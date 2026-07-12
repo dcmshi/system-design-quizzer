@@ -1384,8 +1384,11 @@
         explanation:   result.explanation,
       });
 
-      // Explanation
-      explanation.innerHTML = `<strong>Explanation:</strong> ${result.explanation}`;
+      // Explanation — build with a text node so LLM content can't inject HTML
+      explanation.textContent = '';
+      const explLabel = document.createElement('strong');
+      explLabel.textContent = 'Explanation:';
+      explanation.append(explLabel, ' ' + result.explanation);
       explanation.classList.add('visible');
 
       // SRS next-review info
@@ -1536,7 +1539,9 @@
 
       const expl = document.createElement('div');
       expl.className = 'review-expl';
-      expl.innerHTML = `<strong>Explanation:</strong> ${r.explanation}`;
+      const explLabel = document.createElement('strong');
+      explLabel.textContent = 'Explanation:';
+      expl.append(explLabel, ' ' + r.explanation);
       card.appendChild(expl);
 
       reviewList.appendChild(card);

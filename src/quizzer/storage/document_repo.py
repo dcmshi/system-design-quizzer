@@ -1,13 +1,17 @@
 import json
 import sqlite3
 
-from quizzer.database import get_connection
+from quizzer.database import get_shared_connection
 from quizzer.ingestion.models import Chunk, Document
 
 
 class DocumentRepository:
     def __init__(self, conn: sqlite3.Connection | None = None) -> None:
-        self._conn = conn or get_connection()
+        self._explicit_conn = conn
+
+    @property
+    def _conn(self) -> sqlite3.Connection:
+        return self._explicit_conn if self._explicit_conn is not None else get_shared_connection()
 
     def upsert(self, doc: Document) -> None:
         self._conn.execute(

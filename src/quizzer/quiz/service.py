@@ -1,6 +1,13 @@
 import re as _re
+from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Literal
+
+from quizzer.generation.base import LLMClient
+from quizzer.generation.factory import create_llm_client
+from quizzer.ingestion.models import Chunk, Document
+from quizzer.storage.document_repo import DocumentRepository
+from quizzer.storage.question_repo import QuestionRepository
 
 _STOP = frozenset({
     'the', 'and', 'for', 'that', 'this', 'with', 'are', 'was', 'were',
@@ -18,12 +25,6 @@ def _tokenize(text: str) -> frozenset[str]:
 def _jaccard(a: frozenset, b: frozenset) -> float:
     union = len(a | b)
     return len(a & b) / union if union else 0.0
-
-from quizzer.generation.base import LLMClient
-from quizzer.generation.factory import create_llm_client
-from quizzer.ingestion.models import Chunk, Document
-from quizzer.storage.document_repo import DocumentRepository
-from quizzer.storage.question_repo import QuestionRepository
 
 
 class QuizService:
@@ -235,19 +236,36 @@ class QuizService:
     ) -> list[dict]:
         rows = self.questions.get_texts_for_similarity(document_ids)
         tokenized = [(r["id"], r["question"], _tokenize(r["question"])) for r in rows]
+
+        # Inverted index: token -> question indices. Two questions can only have
+        # non-zero Jaccard similarity if they share a token, so we score just
+        # those candidate pairs instead of every O(n^2) pair.
+        postings: dict[str, list[int]] = defaultdict(list)
+        for idx, (_id, _q, toks) in enumerate(tokenized):
+            for tok in toks:
+                postings[tok].append(idx)
+
+        candidates: set[tuple[int, int]] = set()
+        for indices in postings.values():
+            for a in range(len(indices)):
+                for b in range(a + 1, len(indices)):
+                    candidates.add((indices[a], indices[b]))
+
         pairs: list[dict] = []
-        for i, (id_a, q_a, tok_a) in enumerate(tokenized):
-            for id_b, q_b, tok_b in tokenized[i + 1:]:
-                sim = _jaccard(tok_a, tok_b)
-                if sim >= threshold:
-                    pairs.append({
-                        "id_a": id_a,
-                        "question_a": q_a,
-                        "id_b": id_b,
-                        "question_b": q_b,
-                        "similarity": round(sim, 3),
-                    })
-        pairs.sort(key=lambda p: p["similarity"], reverse=True)
+        for i, j in candidates:
+            id_a, q_a, tok_a = tokenized[i]
+            id_b, q_b, tok_b = tokenized[j]
+            sim = _jaccard(tok_a, tok_b)
+            if sim >= threshold:
+                pairs.append({
+                    "id_a": id_a,
+                    "question_a": q_a,
+                    "id_b": id_b,
+                    "question_b": q_b,
+                    "similarity": round(sim, 3),
+                })
+        # Deterministic ordering: strongest first, then by id for ties.
+        pairs.sort(key=lambda p: (-p["similarity"], p["id_a"], p["id_b"]))
         return pairs
 
     def health(self) -> dict:

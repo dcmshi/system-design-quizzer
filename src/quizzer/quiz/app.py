@@ -4,7 +4,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from quizzer.database import init_db, get_connection
+from quizzer.database import init_db
 from quizzer.generation.factory import create_llm_client
 from quizzer.quiz import deps
 from quizzer.quiz.service import QuizService
@@ -21,19 +21,20 @@ _STATIC_DIR = Path(__file__).parent / "static"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
-    conn = get_connection()
+    # Repos take no explicit connection: each resolves a per-thread connection
+    # at call time, so these shared singletons are safe under concurrent requests.
     deps._service = QuizService(
-        question_repo=QuestionRepository(conn),
-        document_repo=DocumentRepository(conn),
+        question_repo=QuestionRepository(),
+        document_repo=DocumentRepository(),
         llm_client=create_llm_client(),
     )
     deps._srs_service = SrsService(
-        srs_repo=SrsRepository(conn),
-        question_repo=QuestionRepository(conn),
+        srs_repo=SrsRepository(),
+        question_repo=QuestionRepository(),
     )
     deps._quiz_session_service = QuizSessionService(
-        session_repo=SessionRepository(conn),
-        question_repo=QuestionRepository(conn),
+        session_repo=SessionRepository(),
+        question_repo=QuestionRepository(),
     )
     yield
     # Cleanup (optional — process will exit anyway)
