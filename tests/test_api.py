@@ -765,6 +765,61 @@ def test_finish_session_skipped_never_negative(quiz_session_client):
     assert data["n_skipped"] == 0  # clamped, not -1
 
 
+def _insert_question(conn, doc_id: str, text: str, fp: str) -> str:
+    """Insert a bare question row and return its id."""
+    qid = str(ULID())
+    chunk_id = conn.execute("SELECT id FROM chunks LIMIT 1").fetchone()["id"]
+    conn.execute(
+        "INSERT INTO questions (id, question, options, correct_index, explanation, difficulty, "
+        "source_document_id, source_chunk_id, status, fingerprint, model, prompt_version, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (qid, text, json.dumps(["A", "B", "C", "D"]), 0, "A neutral explanation of the answer.",
+         "easy", doc_id, chunk_id, "generated", fp, "m", "v1",
+         datetime.now(timezone.utc).isoformat()),
+    )
+    conn.commit()
+    return qid
+
+
+def test_answer_for_question_outside_session_is_rejected(quiz_session_client):
+    """Only questions dealt into the session may be answered against it."""
+    client, q_id, doc_id = quiz_session_client
+    session_id = client.post("/api/v1/quiz/sessions", json={"n": 5}).json()["session_id"]
+
+    # Inserted after the session started, so it is not part of the session.
+    conn = deps_module._quiz_session_service._questions._conn
+    outsider = _insert_question(conn, doc_id, "Outsider question?", "fp_outsider_quiz")
+
+    resp = client.post(
+        f"/api/v1/quiz/sessions/{session_id}/answers",
+        json={"question_id": outsider, "selected_index": 0},
+    )
+    assert resp.status_code == 404
+    n = conn.execute(
+        "SELECT COUNT(*) AS c FROM quiz_answers WHERE session_id = ?", (session_id,)
+    ).fetchone()["c"]
+    assert n == 0  # nothing recorded
+
+
+def test_legacy_session_without_question_ids_still_accepts_answers(quiz_session_client):
+    """Sessions created before the question_ids column existed must keep working."""
+    client, q_id, _ = quiz_session_client
+    conn = deps_module._quiz_session_service._questions._conn
+    legacy_id = str(ULID())
+    conn.execute(
+        "INSERT INTO quiz_sessions (id, question_count, started_at) VALUES (?, ?, ?)",
+        (legacy_id, 1, datetime.now(timezone.utc).isoformat()),
+    )
+    conn.commit()
+
+    resp = client.post(
+        f"/api/v1/quiz/sessions/{legacy_id}/answers",
+        json={"question_id": q_id, "selected_index": 2},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["correct"] is True
+
+
 # ── Weak-topic replay tests ───────────────────────────────────────────────────
 
 def test_weak_count_zero_with_no_history(quiz_session_client):

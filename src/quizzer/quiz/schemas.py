@@ -188,6 +188,7 @@ class QuizAnswerRecord(BaseModel):
 class QuizSessionDetail(BaseModel):
     id: str
     question_count: int
+    question_ids: list[str] | None = None  # None for pre-migration sessions
     difficulty: str | None
     tag: str | None
     document_ids: list[str] | None

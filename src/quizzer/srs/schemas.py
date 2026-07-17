@@ -56,6 +56,7 @@ class SrsReviewRecord(BaseModel):
 class SrsSessionDetail(BaseModel):
     id: str
     question_count: int
+    question_ids: list[str] | None = None  # None for pre-migration sessions
     started_at: str
     finished_at: str | None
     reviews: list[SrsReviewRecord]

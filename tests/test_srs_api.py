@@ -218,3 +218,65 @@ def test_get_nonexistent_session_returns_404(srs_client):
     client, _ = srs_client
     resp = client.get("/api/v1/srs/sessions/ghost")
     assert resp.status_code == 404
+
+
+# ------------------------------------------------------------------
+# Session membership
+# ------------------------------------------------------------------
+
+def test_review_for_question_outside_session_is_rejected(srs_client, monkeypatch):
+    """Only questions dealt into the SRS session may be reviewed against it."""
+    client, q_id = srs_client
+    import quizzer.quiz.deps as deps
+    conn = deps._srs_service._questions._conn
+
+    session_id = client.post("/api/v1/srs/sessions", json={"n": 10}).json()["session_id"]
+
+    # Inserted after the session started, so it is not part of the session.
+    doc_id = conn.execute("SELECT id FROM documents LIMIT 1").fetchone()["id"]
+    chunk_id = conn.execute("SELECT id FROM chunks LIMIT 1").fetchone()["id"]
+    outsider = str(ULID())
+    conn.execute(
+        "INSERT INTO questions "
+        "(id, question, options, correct_index, explanation, difficulty, "
+        "source_document_id, source_chunk_id, status, fingerprint, model, prompt_version, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (outsider, "Outsider?", json.dumps(["A", "B", "C", "D"]), 0, "Neutral explanation.",
+         "easy", doc_id, chunk_id, "generated", "fp_outsider_srs", "m", "v1",
+         datetime.now(timezone.utc).isoformat()),
+    )
+    conn.commit()
+
+    resp = client.post(
+        f"/api/v1/srs/sessions/{session_id}/reviews",
+        json={"question_id": outsider, "selected_index": 0},
+    )
+    assert resp.status_code == 404
+    n_reviews = conn.execute(
+        "SELECT COUNT(*) AS c FROM srs_reviews WHERE session_id = ?", (session_id,)
+    ).fetchone()["c"]
+    assert n_reviews == 0
+    card = conn.execute(
+        "SELECT 1 FROM srs_cards WHERE question_id = ?", (outsider,)
+    ).fetchone()
+    assert card is None  # no SM-2 state created for the rejected review
+
+
+def test_legacy_srs_session_without_question_ids_still_accepts_reviews(srs_client):
+    """Sessions created before the question_ids column existed must keep working."""
+    client, q_id = srs_client
+    import quizzer.quiz.deps as deps
+    conn = deps._srs_service._questions._conn
+    legacy_id = str(ULID())
+    conn.execute(
+        "INSERT INTO srs_sessions (id, question_count, started_at) VALUES (?, ?, ?)",
+        (legacy_id, 1, datetime.now(timezone.utc).isoformat()),
+    )
+    conn.commit()
+
+    resp = client.post(
+        f"/api/v1/srs/sessions/{legacy_id}/reviews",
+        json={"question_id": q_id, "selected_index": 1},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["correct"] is True

@@ -21,16 +21,18 @@ class SessionRepository:
         tag: str | None,
         document_ids: list[str] | None,
         started_at: str,
+        question_ids: list[str] | None = None,
     ) -> dict:
         self._conn.execute(
             """
             INSERT INTO quiz_sessions
-                (id, question_count, difficulty, tag, document_ids, started_at)
-            VALUES (?, ?, ?, ?, ?, ?)
+                (id, question_count, question_ids, difficulty, tag, document_ids, started_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 id,
                 question_count,
+                json.dumps(question_ids) if question_ids is not None else None,
                 difficulty,
                 tag,
                 json.dumps(document_ids) if document_ids is not None else None,
@@ -56,6 +58,8 @@ class SessionRepository:
             return None
         d = dict(row)
         d["document_ids"] = json.loads(d["document_ids"]) if d["document_ids"] else None
+        # NULL for sessions created before the question_ids column existed.
+        d["question_ids"] = json.loads(d["question_ids"]) if d["question_ids"] else None
         return d
 
     def add_answer(

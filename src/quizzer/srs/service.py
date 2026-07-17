@@ -27,6 +27,7 @@ class SrsService:
             id=session_id,
             question_count=len(questions),
             started_at=started_at,
+            question_ids=[q["id"] for q in questions],
         )
         return {
             "session_id": session_id,
@@ -42,6 +43,12 @@ class SrsService:
     ) -> dict | None:
         session = self._srs.get_session(session_id)
         if session is None:
+            return None
+
+        # Reject reviews for questions that weren't dealt into the session
+        # (legacy sessions have no question_ids — accept any, as before).
+        member_ids = session.get("question_ids")
+        if member_ids is not None and question_id not in member_ids:
             return None
 
         q = self._questions.get_by_id(question_id)

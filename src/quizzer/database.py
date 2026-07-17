@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS srs_cards (
 CREATE TABLE IF NOT EXISTS srs_sessions (
     id             TEXT    PRIMARY KEY,
     question_count INTEGER NOT NULL DEFAULT 0,
+    question_ids   TEXT,
     started_at     TEXT    NOT NULL,
     finished_at    TEXT
 );
@@ -82,6 +83,7 @@ CREATE INDEX IF NOT EXISTS idx_srs_reviews_question ON srs_reviews(question_id);
 CREATE TABLE IF NOT EXISTS quiz_sessions (
     id             TEXT PRIMARY KEY,
     question_count INTEGER NOT NULL DEFAULT 0,
+    question_ids   TEXT,
     difficulty     TEXT,
     tag            TEXT,
     document_ids   TEXT,
@@ -137,6 +139,12 @@ CREATE INDEX IF NOT EXISTS idx_questions_status     ON questions(status);
 CREATE INDEX IF NOT EXISTS idx_questions_document   ON questions(source_document_id);
 PRAGMA foreign_keys=ON;
 PRAGMA legacy_alter_table=OFF;
+"""),
+    # v2: record which questions belong to a session (NULL for legacy rows)
+    # so answers/reviews for non-member questions can be rejected.
+    (2, """
+ALTER TABLE quiz_sessions ADD COLUMN question_ids TEXT;
+ALTER TABLE srs_sessions  ADD COLUMN question_ids TEXT;
 """),
 ]
 

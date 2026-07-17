@@ -124,13 +124,32 @@ class SrsRepository:
     # srs_sessions
     # ------------------------------------------------------------------
 
-    def create_session(self, *, id: str, question_count: int, started_at: str) -> dict:
+    def create_session(
+        self,
+        *,
+        id: str,
+        question_count: int,
+        started_at: str,
+        question_ids: list[str] | None = None,
+    ) -> dict:
         self._conn.execute(
-            "INSERT INTO srs_sessions (id, question_count, started_at) VALUES (?, ?, ?)",
-            (id, question_count, started_at),
+            "INSERT INTO srs_sessions (id, question_count, question_ids, started_at) "
+            "VALUES (?, ?, ?, ?)",
+            (
+                id,
+                question_count,
+                json.dumps(question_ids) if question_ids is not None else None,
+                started_at,
+            ),
         )
         self._conn.commit()
-        return {"id": id, "question_count": question_count, "started_at": started_at, "finished_at": None}
+        return {
+            "id": id,
+            "question_count": question_count,
+            "question_ids": question_ids,
+            "started_at": started_at,
+            "finished_at": None,
+        }
 
     def finish_session(self, session_id: str, finished_at: str) -> bool:
         cur = self._conn.execute(
@@ -144,7 +163,12 @@ class SrsRepository:
         row = self._conn.execute(
             "SELECT * FROM srs_sessions WHERE id = ?", (session_id,)
         ).fetchone()
-        return dict(row) if row else None
+        if row is None:
+            return None
+        d = dict(row)
+        # NULL for sessions created before the question_ids column existed.
+        d["question_ids"] = json.loads(d["question_ids"]) if d["question_ids"] else None
+        return d
 
     # ------------------------------------------------------------------
     # srs_reviews
