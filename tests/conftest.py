@@ -9,6 +9,15 @@ from quizzer.storage.document_repo import DocumentRepository
 from quizzer.storage.question_repo import QuestionRepository
 
 
+@pytest.fixture(autouse=True)
+def _isolate_default_db(tmp_path: Path, monkeypatch):
+    """Point the default DB path at a temp file so code that falls back to
+    settings.db_path (e.g. the app lifespan's init_db) never touches the
+    real data/quizzer.db during tests."""
+    from quizzer.config import settings
+    monkeypatch.setattr(settings, "db_path", tmp_path / "default-test.db")
+
+
 @pytest.fixture()
 def db_conn(tmp_path: Path) -> sqlite3.Connection:
     """In-memory-equivalent SQLite DB using a temp file."""
