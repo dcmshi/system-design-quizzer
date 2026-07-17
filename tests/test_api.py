@@ -555,6 +555,55 @@ def test_import_rejects_wrong_option_count(app_client):
     assert resp.status_code == 422
 
 
+def test_import_remaps_documents_by_source_path(app_client):
+    """Importing an export from another machine — where the same article was
+    ingested under a different document id — must remap questions onto the
+    existing document instead of failing every FK check."""
+    client, _, doc_id = app_client
+
+    foreign_doc_id = str(ULID())  # same article, different id on the other machine
+    new_q_id = str(ULID())
+    payload = {
+        "version": "1",
+        "exported_at": datetime.now(timezone.utc).isoformat(),
+        "documents": [
+            {
+                "id": foreign_doc_id,
+                "title": "Test Doc",
+                "source": "blog",
+                "content": "Content.",
+                "tags": ["caching"],
+                "source_path": "test/doc.md",  # matches the seeded document
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ],
+        "questions": [
+            {
+                "id": new_q_id,
+                "question": "What does a write-through cache do?",
+                "options": ["A", "B", "C", "D"],
+                "correct_index": 0,
+                "explanation": "It writes to cache and store synchronously on every write.",
+                "difficulty": "easy",
+                "source_document_id": foreign_doc_id,
+                "source_chunk_id": str(ULID()),
+                "status": "generated",
+                "fingerprint": "fp_remap_source_path_test",
+                "model": "m",
+                "prompt_version": "v1",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ],
+    }
+    result = client.post("/api/v1/questions/import", json=payload).json()
+    assert result["errors"] == []
+    assert result["imported"] == 1
+
+    # The question landed on the existing document, not the foreign id.
+    detail = client.get(f"/api/v1/questions/{new_q_id}").json()
+    assert detail["source_document_id"] == doc_id
+
+
 def test_import_creates_synthetic_chunks(app_client):
     client, _, doc_id = app_client
     conn = deps_module._service.questions._conn

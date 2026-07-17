@@ -192,14 +192,23 @@ class QuizService:
     def import_data(self, payload: dict) -> dict:
         imported = skipped = 0
         errors: list[str] = []
+        # The upsert conflicts on source_path and keeps the existing row's id,
+        # so when this DB already ingested the same article under a different
+        # id, imported questions must be remapped onto the existing document.
+        doc_id_map: dict[str, str] = {}
         for doc_data in payload.get("documents", []):
-            self.documents.upsert(Document(**doc_data))
+            doc = Document(**doc_data)
+            self.documents.upsert(doc)
+            stored = self.documents.get_by_source_path(doc.source_path)
+            if stored is not None:
+                doc_id_map[doc.id] = stored.id
         existing_fps = self.questions.get_all_fingerprints()
         for q in payload.get("questions", []):
+            doc_id = doc_id_map.get(q["source_document_id"], q["source_document_id"])
             try:
                 self.documents.upsert_chunk(Chunk(
                     id=q["source_chunk_id"],
-                    document_id=q["source_document_id"],
+                    document_id=doc_id,
                     content="",
                     word_count=0,
                     chunk_index=0,
@@ -215,7 +224,7 @@ class QuizService:
                     correct_index=q["correct_index"],
                     explanation=q["explanation"],
                     difficulty=q["difficulty"],
-                    source_document_id=q["source_document_id"],
+                    source_document_id=doc_id,
                     source_chunk_id=q["source_chunk_id"],
                     fingerprint=q["fingerprint"],
                     model=q["model"],
