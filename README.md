@@ -425,6 +425,7 @@ CI runs `ruff check` + the full test suite on every push and pull request (`.git
 
 ```
 system_design_quizzer/
+├── .github/workflows/ci.yml    # CI: ruff + pytest on every push/PR
 ├── content/                    # Manually curated .md articles
 │   └── <source>/<slug>.md
 ├── data/                       # SQLite DB (gitignored)
@@ -457,12 +458,17 @@ system_design_quizzer/
 │           ├── review/         # Question review/approve UI
 │           └── sources/        # Ingested-article browser
 └── tests/
-    ├── conftest.py
+    ├── conftest.py             # shared fixtures + default-DB isolation
     ├── test_loader.py          # loader + source-path resolution
+    ├── test_cleaner.py         # HTML-tag stripping vs. < > prose
     ├── test_chunker.py
     ├── test_validator.py
     ├── test_generator.py       # generation + parser robustness
+    ├── test_gemini_client.py   # throttling + retry behavior
     ├── test_html_to_md.py      # ByteByteGo frontmatter escaping
+    ├── test_database.py        # migration runner + fresh-DB stamping
+    ├── test_document_repo.py   # orphan-chunk cleanup
+    ├── test_concurrency.py     # per-thread connection safety
     ├── test_api.py
     ├── test_srs_algorithm.py   # SM-2 unit tests
     ├── test_srs_repository.py  # SRS query construction
