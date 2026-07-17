@@ -1,4 +1,5 @@
 import re as _re
+import sqlite3
 from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Literal
@@ -8,6 +9,11 @@ from quizzer.generation.factory import create_llm_client
 from quizzer.ingestion.models import Chunk, Document
 from quizzer.storage.document_repo import DocumentRepository
 from quizzer.storage.question_repo import QuestionRepository
+from quizzer.validation.duplicate_detector import fingerprint
+
+
+class DuplicateQuestionError(ValueError):
+    """An edit would make the question identical to an existing one."""
 
 _STOP = frozenset({
     'the', 'and', 'for', 'that', 'this', 'with', 'are', 'was', 'were',
@@ -114,14 +120,21 @@ class QuizService:
         explanation: str,
         difficulty: str,
     ) -> bool:
-        updated = self.questions.update_question(
-            question_id,
-            question=question,
-            options=options,
-            correct_index=correct_index,
-            explanation=explanation,
-            difficulty=difficulty,
-        )
+        try:
+            updated = self.questions.update_question(
+                question_id,
+                question=question,
+                options=options,
+                correct_index=correct_index,
+                explanation=explanation,
+                difficulty=difficulty,
+                # Keep the dedup fingerprint in sync with the new wording.
+                fingerprint=fingerprint(question),
+            )
+        except sqlite3.IntegrityError as exc:
+            raise DuplicateQuestionError(
+                "Another question with identical text already exists"
+            ) from exc
         if updated:
             self.questions.update_status(question_id, "edited")
         return updated

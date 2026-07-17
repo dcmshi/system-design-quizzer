@@ -106,11 +106,13 @@ class QuestionRepository:
         correct_index: int,
         explanation: str,
         difficulty: str,
+        fingerprint: str,
     ) -> bool:
         cur = self._conn.execute(
             """UPDATE questions SET question=?, options=?, correct_index=?,
-               explanation=?, difficulty=? WHERE id=?""",
-            (question, json.dumps(options), correct_index, explanation, difficulty, question_id),
+               explanation=?, difficulty=?, fingerprint=? WHERE id=?""",
+            (question, json.dumps(options), correct_index, explanation, difficulty,
+             fingerprint, question_id),
         )
         self._conn.commit()
         return cur.rowcount > 0

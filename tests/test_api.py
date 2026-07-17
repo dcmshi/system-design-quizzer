@@ -299,6 +299,47 @@ def test_edit_question_not_found(app_client):
     assert resp.status_code == 404
 
 
+def test_edit_question_refreshes_fingerprint(app_client):
+    """The dedup fingerprint must track the edited wording, otherwise a later
+    ingest can insert a duplicate of the edited question."""
+    from quizzer.validation.duplicate_detector import fingerprint
+
+    client, q_id, _ = app_client
+    new_text = "How does a reverse proxy differ from a forward proxy?"
+    client.put(f"/api/v1/questions/{q_id}", json={
+        "question": new_text,
+        "options": ["Opt A", "Opt B", "Opt C", "Opt D"],
+        "correct_index": 1,
+        "explanation": "A reverse proxy fronts servers; a forward proxy fronts clients.",
+        "difficulty": "medium",
+    })
+
+    conn = deps_module._service.questions._conn
+    row = conn.execute("SELECT fingerprint FROM questions WHERE id = ?", (q_id,)).fetchone()
+    assert row["fingerprint"] == fingerprint(new_text)
+
+
+def test_edit_question_colliding_with_existing_returns_409(app_client):
+    """Editing a question to duplicate another question's text must be rejected."""
+    from quizzer.validation.duplicate_detector import fingerprint
+
+    client, q_id, doc_id = app_client
+    conn = deps_module._service.questions._conn
+    _insert_question(conn, doc_id, "What is sharding?", fingerprint("What is sharding?"))
+
+    resp = client.put(f"/api/v1/questions/{q_id}", json={
+        "question": "What is sharding?",  # collides with other_id
+        "options": ["Opt A", "Opt B", "Opt C", "Opt D"],
+        "correct_index": 0,
+        "explanation": "This edit would duplicate an existing question.",
+        "difficulty": "easy",
+    })
+    assert resp.status_code == 409
+    # Original question unchanged
+    detail = client.get(f"/api/v1/questions/{q_id}").json()
+    assert detail["question"] != "What is sharding?"
+
+
 def test_reject_status(app_client):
     client, q_id, _ = app_client
     resp = client.patch(f"/api/v1/questions/{q_id}/status", json={"status": "rejected"})

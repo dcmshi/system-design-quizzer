@@ -10,7 +10,7 @@ from fastapi.responses import StreamingResponse
 
 from quizzer.ingestion.loader import resolve_source_path
 from quizzer.quiz import deps
-from quizzer.quiz.service import QuizService
+from quizzer.quiz.service import DuplicateQuestionError, QuizService
 from quizzer.quiz.session_service import QuizSessionService
 from quizzer.quiz.schemas import (
     AnswerRequest,
@@ -318,14 +318,17 @@ def edit_question(
     body: QuestionEditRequest,
     svc: QuizService = Depends(_get_service),
 ):
-    updated = svc.edit_question(
-        question_id,
-        question=body.question,
-        options=body.options,
-        correct_index=body.correct_index,
-        explanation=body.explanation,
-        difficulty=body.difficulty,
-    )
+    try:
+        updated = svc.edit_question(
+            question_id,
+            question=body.question,
+            options=body.options,
+            correct_index=body.correct_index,
+            explanation=body.explanation,
+            difficulty=body.difficulty,
+        )
+    except DuplicateQuestionError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
     if not updated:
         raise HTTPException(status_code=404, detail="Question not found")
     q = svc.get_question(question_id)
