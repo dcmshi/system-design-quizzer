@@ -1,8 +1,8 @@
 import json
 import sqlite3
-from datetime import date
 
 from quizzer.database import get_shared_connection
+from quizzer.srs.algorithm import utc_today
 
 
 class SrsRepository:
@@ -59,7 +59,7 @@ class SrsRepository:
         today: str | None = None,
     ) -> list[dict]:
         """Return up to *n* questions that are due or new, ordered due-first."""
-        cutoff = today or date.today().isoformat()
+        cutoff = today or utc_today().isoformat()
         # Build params in the exact order the placeholders appear in the SQL:
         # 1) document_id (WHERE), 2) cutoff (due-date AND), 3) n (LIMIT).
         filters = ["q.status != 'rejected'"]
@@ -88,7 +88,7 @@ class SrsRepository:
         return [self._row_to_dict(r) for r in rows]
 
     def due_count(self, document_id: str | None = None, today: str | None = None) -> dict:
-        cutoff = today or date.today().isoformat()
+        cutoff = today or utc_today().isoformat()
         params_due: list = [cutoff]
         params_new: list = []
         doc_filter = ""

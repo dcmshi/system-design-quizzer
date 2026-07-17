@@ -1,7 +1,13 @@
 """SM-2 spaced repetition algorithm (pure functions, no I/O)."""
 
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
+
+
+def utc_today() -> date:
+    """Today's date in UTC — all stored timestamps are UTC, so scheduling
+    must not drift with the server's local timezone."""
+    return datetime.now(timezone.utc).date()
 
 
 @dataclass
@@ -14,7 +20,7 @@ class CardState:
 def initial_state(today: date | None = None) -> tuple[CardState, date]:
     """Return the default state for a brand-new card and its due date (today)."""
     state = CardState(ease_factor=2.5, interval_days=0, repetitions=0)
-    due = today or date.today()
+    due = today or utc_today()
     return state, due
 
 
@@ -31,7 +37,7 @@ def apply_review(state: CardState, rating: int, today: date | None = None) -> tu
     if rating not in (0, 3, 5):
         raise ValueError(f"rating must be 0, 3, or 5; got {rating}")
 
-    _today = today or date.today()
+    _today = today or utc_today()
 
     if rating >= 3:
         # Correct answer — advance interval

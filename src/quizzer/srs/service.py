@@ -1,9 +1,8 @@
-import sqlite3
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 
 from ulid import ULID
 
-from quizzer.srs.algorithm import CardState, apply_review, initial_state
+from quizzer.srs.algorithm import CardState, apply_review, initial_state, utc_today
 from quizzer.srs.repository import SrsRepository
 from quizzer.storage.question_repo import QuestionRepository
 
@@ -61,7 +60,7 @@ class SrsService:
         # Load or initialise card state
         card = self._srs.get_card(question_id)
         now = datetime.now(timezone.utc)
-        today = date.today()
+        today = utc_today()
 
         if card is None:
             state, _ = initial_state(today)
