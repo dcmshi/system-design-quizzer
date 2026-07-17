@@ -169,9 +169,7 @@ def get_shared_connection(db_path: Path | None = None) -> sqlite3.Connection:
     return conn
 
 
-def migrate_db(db_path: Path | None = None) -> None:
-    """Apply any pending migrations recorded in _MIGRATIONS."""
-    conn = get_connection(db_path)
+def _ensure_migrations_table(conn: sqlite3.Connection) -> None:
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -181,19 +179,52 @@ def migrate_db(db_path: Path | None = None) -> None:
         """
     )
     conn.commit()
-    row = conn.execute("SELECT MAX(version) AS v FROM schema_migrations").fetchone()
-    current = row["v"] if row and row["v"] is not None else 0
-    for version, sql in _MIGRATIONS:
-        if version > current:
-            conn.executescript(sql)
-            conn.execute(
-                "INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)",
-                (version, datetime.now(timezone.utc).isoformat()),
-            )
-            conn.commit()
+
+
+def _stamp_all_migrations(conn: sqlite3.Connection) -> None:
+    """Record every migration as applied without executing it.
+
+    Used for brand-new databases: _SCHEMA already creates the final shape, so
+    replaying migrations would be wasted work at best (and fail outright for
+    non-re-runnable statements like ALTER TABLE ADD COLUMN).
+    """
+    _ensure_migrations_table(conn)
+    now = datetime.now(timezone.utc).isoformat()
+    conn.executemany(
+        "INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (?, ?)",
+        [(version, now) for version, _ in _MIGRATIONS],
+    )
+    conn.commit()
+
+
+def migrate_db(db_path: Path | None = None) -> None:
+    """Apply any pending migrations recorded in _MIGRATIONS."""
+    conn = get_connection(db_path)
+    try:
+        _ensure_migrations_table(conn)
+        row = conn.execute("SELECT MAX(version) AS v FROM schema_migrations").fetchone()
+        current = row["v"] if row and row["v"] is not None else 0
+        for version, sql in _MIGRATIONS:
+            if version > current:
+                conn.executescript(sql)
+                conn.execute(
+                    "INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)",
+                    (version, datetime.now(timezone.utc).isoformat()),
+                )
+                conn.commit()
+    finally:
+        conn.close()
 
 
 def init_db(db_path: Path | None = None) -> None:
-    with get_connection(db_path) as conn:
+    conn = get_connection(db_path)
+    try:
+        fresh = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='questions'"
+        ).fetchone() is None
         conn.executescript(_SCHEMA)
+        if fresh:
+            _stamp_all_migrations(conn)
+    finally:
+        conn.close()
     migrate_db(db_path)
