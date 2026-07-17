@@ -92,6 +92,7 @@ _(move items here when actively working on them)_
 - [x] **Typed response models for session GET routes** — `QuizSessionDetail` and `SrsSessionDetail` Pydantic schemas replace `response_model=dict`.
 - [x] **Replace module-level service globals with `app.state`** — moved to `quiz/deps.py`; eliminates deferred circular-import workarounds.
 - [x] **Database migrations** — `schema_migrations` version table + `migrate_db()` runner; applied automatically on server start.
+- [x] **2026-07-16 audit fixes (see TODO.md)** — HTML-strip regex no longer eats `<`…`>` prose; orphan-chunk cleanup on `--force` re-ingest; import remaps documents by `source_path`; explicit `status=rejected` export; fingerprint refresh on edit (409 on collision); session answers restricted to dealt questions (schema v2); fresh DBs stamped at latest migration; `SELECT 1` health check; stable pagination tiebreaker; re-ingest failure logging + per-doc concurrency guard; review-UI escaping; UTC dates in SRS; ruff-clean; GitHub Actions CI.
 
 ---
 

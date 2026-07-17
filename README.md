@@ -233,7 +233,7 @@ Base path: `/api/v1`
 | `GET` | `/questions/{id}/answer` | Get question with correct answer + explanation |
 | `POST` | `/questions/{id}/answer` | Submit answer `{"selected_index": 0}` → `{correct, correct_index, explanation}` |
 | `PATCH` | `/questions/{id}/status` | Update status `{"status": "approved"\|"edited"\|"rejected"}` |
-| `PUT` | `/questions/{id}` | Edit question content `{question, options, correct_index, explanation, difficulty}` |
+| `PUT` | `/questions/{id}` | Edit question content `{question, options, correct_index, explanation, difficulty}` — refreshes the dedup fingerprint; 409 if the new text duplicates another question |
 | `POST` | `/questions/bulk-status` | Bulk status update `{"ids": ["…"], "status": "rejected"}` → `{"updated": N}` |
 | `DELETE` | `/questions/{id}` | Permanently delete a question (removes associated SRS and quiz answer history) → 204 |
 | `GET` | `/questions/models` | Distinct model names across stored questions (review-UI filter) |
@@ -242,7 +242,7 @@ Base path: `/api/v1`
 | `GET` | `/quiz` | Random sample. Params: `n` (default 5), `difficulty`, `document_id` (repeatable), `tag` → `{questions, requested, returned}` |
 | `GET` | `/tags` | Sorted list of unique tags across all documents |
 | `GET` | `/documents` | List documents with question, chunk, and word counts |
-| `POST` | `/documents/{id}/reingest` | Re-run ingestion for a document's source file in the background → 202 `{document_id, title, status}` |
+| `POST` | `/documents/{id}/reingest` | Re-run ingestion for a document's source file in the background → 202 `{document_id, title, status}`; 409 if one is already running for that document |
 | `GET` | `/health` | DB + Ollama connectivity check |
 
 ### Quiz session endpoints
@@ -253,7 +253,7 @@ recorded for hit-rate and weak-topic tracking.
 | Method | Path | Description |
 |--------|------|-------------|
 | `POST` | `/quiz/sessions` | Start a session. Body: `{"n": 5, "difficulty": null, "tag": null, "document_ids": [], "weak": false}` → `{session_id, questions, started_at}` |
-| `POST` | `/quiz/sessions/{id}/answers` | Record an answer. Body: `{"question_id": "…", "selected_index": 0}` → `{correct, correct_index, explanation}` |
+| `POST` | `/quiz/sessions/{id}/answers` | Record an answer. Body: `{"question_id": "…", "selected_index": 0}` → `{correct, correct_index, explanation}`. 404 for questions not dealt into the session |
 | `POST` | `/quiz/sessions/{id}/finish` | Close a session → `{n_answered, n_correct, n_wrong, n_skipped, …}` |
 | `GET` | `/quiz/sessions/{id}` | Session details + full answer log |
 | `GET` | `/quiz/weak-count` | Size of the weak-topic pool (bottom-quartile hit rate). Params: `difficulty`, `document_id` (repeatable) |
@@ -264,7 +264,7 @@ recorded for hit-rate and weak-topic tracking.
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/questions/export` | Download questions as JSON or CSV. Params: `format` (`json`\|`csv`, default `json`), `status`, `document_id` (repeatable) |
+| `GET` | `/questions/export` | Download questions as JSON or CSV. Params: `format` (`json`\|`csv`, default `json`), `status`, `document_id` (repeatable). Rejected questions are excluded unless `status=rejected` is passed explicitly |
 | `POST` | `/questions/import` | Import from a JSON export payload → `{imported, skipped, errors}` |
 
 ### Spaced repetition (SRS) endpoints
@@ -414,8 +414,10 @@ QUIZZER_GEMINI_API_KEY=your_key_here
 uv run pytest tests/ -v
 ```
 
-129 tests covering: ingestion (loader, chunker, path resolution), validation (normalizer, schema, dedup),
-generation (prompt, parser robustness, generator), the ByteByteGo preprocessor (frontmatter escaping), the full API surface (including export/import validation, quiz sessions, bulk status, delete, re-ingest), the SM-2 algorithm, the SRS repository, and SRS API.
+161 tests covering: ingestion (loader, cleaner, chunker, path resolution), validation (normalizer, schema, dedup),
+generation (prompt, parser robustness, generator), the ByteByteGo preprocessor (frontmatter escaping), schema migrations, the full API surface (including export/import validation, quiz sessions, session membership, bulk status, delete, re-ingest), the SM-2 algorithm, the SRS repository, and SRS API.
+
+CI runs `ruff check` + the full test suite on every push and pull request (`.github/workflows/ci.yml`).
 
 ---
 
