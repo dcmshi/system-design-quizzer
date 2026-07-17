@@ -19,24 +19,29 @@ def test_get_shared_connection_is_per_thread(tmp_path: Path, monkeypatch):
     database.init_db(db)
     monkeypatch.setattr(settings, "db_path", db)
 
-    ids: dict[int, int] = {}
+    n = 6
+    conns: list = []  # hold strong refs so ids stay stable (no GC id-reuse)
+    lock = threading.Lock()
 
     def worker() -> None:
         c1 = get_shared_connection()
         c2 = get_shared_connection()
         # Same connection reused within a thread…
         assert c1 is c2
-        ids[threading.get_ident()] = id(c1)
+        with lock:
+            conns.append(c1)
 
-    threads = [threading.Thread(target=worker) for _ in range(6)]
+    threads = [threading.Thread(target=worker) for _ in range(n)]
     for t in threads:
         t.start()
     for t in threads:
         t.join()
 
-    # …and a distinct connection object for each thread.
-    assert len(ids) == 6
-    assert len(set(ids.values())) == 6
+    # …and a distinct connection object for each thread. Keying on the loop count
+    # (not threading.get_ident(), which is recycled when a short-lived thread
+    # exits before the next starts) keeps this deterministic on slow CI runners.
+    assert len(conns) == n
+    assert len({id(c) for c in conns}) == n
 
 
 def test_repos_without_injected_conn_are_thread_safe(tmp_path: Path, monkeypatch):
