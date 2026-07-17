@@ -612,7 +612,10 @@ async function loadPage() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     data = await res.json();
   } catch (err) {
-    listEl.innerHTML = `<div class="state-msg">Failed to load questions: ${err.message}</div>`;
+    const msg = document.createElement('div');
+    msg.className = 'state-msg';
+    msg.textContent = `Failed to load questions: ${err.message}`;
+    listEl.replaceChildren(msg);
     return;
   }
 
@@ -772,9 +775,11 @@ function buildCardView(q) {
 
   const meta = document.createElement('div');
   meta.className = 'card-meta';
-  meta.innerHTML =
-    `Model: <code>${q.model || '—'}</code>&ensp;` +
-    `Prompt: <code>${q.prompt_version || '—'}</code>`;
+  const modelCode = document.createElement('code');
+  modelCode.textContent = q.model || '—';
+  const promptCode = document.createElement('code');
+  promptCode.textContent = q.prompt_version || '—';
+  meta.append('Model: ', modelCode, ' Prompt: ', promptCode);
 
   view.append(top, qText, opts, expl, hitRate, meta);
 
