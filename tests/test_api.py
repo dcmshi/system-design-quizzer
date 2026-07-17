@@ -1170,6 +1170,55 @@ def test_reingest_unknown_document_returns_404(app_client):
     assert resp.status_code == 404
 
 
+def _reingest_article(tmp_path, monkeypatch):
+    """Point content_dir at tmp_path and create the seeded document's source file."""
+    from quizzer import config
+    monkeypatch.setattr(config.settings, "content_dir", tmp_path)
+    article = tmp_path / "test" / "doc.md"
+    article.parent.mkdir(parents=True)
+    article.write_text("---\ntitle: T\nsource: s\n---\nBody.", encoding="utf-8")
+    return article
+
+
+def test_reingest_conflict_while_already_running(app_client, tmp_path, monkeypatch):
+    """A second re-ingest for the same document must 409 while one is in flight."""
+    client, _, doc_id = app_client
+    from quizzer.quiz import router as router_mod
+    _reingest_article(tmp_path, monkeypatch)
+    monkeypatch.setattr(router_mod, "_run_reingest", lambda p: None)
+
+    assert router_mod._try_claim_reingest(doc_id)  # simulate an in-flight run
+    try:
+        resp = client.post(f"/api/v1/documents/{doc_id}/reingest")
+        assert resp.status_code == 409
+    finally:
+        router_mod._release_reingest(doc_id)
+
+    # Once released, re-ingest is accepted again (and releases itself).
+    assert client.post(f"/api/v1/documents/{doc_id}/reingest").status_code == 202
+    assert client.post(f"/api/v1/documents/{doc_id}/reingest").status_code == 202
+
+
+def test_reingest_failure_is_logged(app_client, tmp_path, monkeypatch, caplog):
+    """A failing ingest subprocess must leave a trace in the server log."""
+    import subprocess as subprocess_mod
+
+    client, _, doc_id = app_client
+    from quizzer.quiz import router as router_mod
+    _reingest_article(tmp_path, monkeypatch)
+
+    def fake_run(*args, **kwargs):
+        return subprocess_mod.CompletedProcess(
+            args, returncode=1, stdout="", stderr="boom: ingest exploded"
+        )
+
+    monkeypatch.setattr(router_mod.subprocess, "run", fake_run)
+    with caplog.at_level("ERROR"):
+        resp = client.post(f"/api/v1/documents/{doc_id}/reingest")
+    assert resp.status_code == 202
+    assert "boom: ingest exploded" in caplog.text
+
+
 def _jaccard_and_tokenize():
     """Import helpers for unit-level testing."""
     from quizzer.quiz.service import _tokenize, _jaccard

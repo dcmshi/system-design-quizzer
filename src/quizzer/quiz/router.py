@@ -1,8 +1,10 @@
 import csv
 import io
 import json as _json
+import logging
 import subprocess
 import sys
+import threading
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
@@ -41,12 +43,49 @@ from quizzer.quiz.schemas import (
 
 _INGEST_SCRIPT = Path(__file__).parents[3] / "scripts" / "ingest.py"
 
+logger = logging.getLogger(__name__)
+
+# One re-ingest per document at a time.
+_reingest_lock = threading.Lock()
+_reingest_active: set[str] = set()
+
+
+def _try_claim_reingest(document_id: str) -> bool:
+    with _reingest_lock:
+        if document_id in _reingest_active:
+            return False
+        _reingest_active.add(document_id)
+        return True
+
+
+def _release_reingest(document_id: str) -> None:
+    with _reingest_lock:
+        _reingest_active.discard(document_id)
+
 
 def _run_reingest(source_path: Path) -> None:
-    subprocess.run(
+    proc = subprocess.run(
         [sys.executable, str(_INGEST_SCRIPT), "--source", str(source_path), "--force"],
         check=False,
+        capture_output=True,
+        text=True,
     )
+    if proc.returncode != 0:
+        logger.error(
+            "Re-ingest failed for %s (exit %d): %s",
+            source_path,
+            proc.returncode,
+            (proc.stderr or proc.stdout or "")[-2000:],
+        )
+    else:
+        logger.info("Re-ingest finished for %s", source_path)
+
+
+def _reingest_task(source_path: Path, document_id: str) -> None:
+    try:
+        _run_reingest(source_path)
+    finally:
+        _release_reingest(document_id)
 
 
 router = APIRouter(prefix="/api/v1")
@@ -406,7 +445,12 @@ def reingest_document(
             status_code=422,
             detail=f"Source file not found on disk: {doc['source_path']}",
         )
-    background_tasks.add_task(_run_reingest, source_path)
+    if not _try_claim_reingest(document_id):
+        raise HTTPException(
+            status_code=409,
+            detail="A re-ingest for this document is already running",
+        )
+    background_tasks.add_task(_reingest_task, source_path, document_id)
     return ReIngestResponse(document_id=document_id, title=doc["title"], status="started")
 
 
