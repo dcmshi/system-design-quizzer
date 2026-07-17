@@ -24,7 +24,7 @@ from quizzer.ingestion.chunker import chunk_document
 from quizzer.ingestion.loader import load_document, resolve_source_path
 from quizzer.storage.document_repo import DocumentRepository
 from quizzer.storage.question_repo import QuestionRepository
-from quizzer.validation.duplicate_detector import fingerprint, is_duplicate
+from quizzer.validation.duplicate_detector import fingerprint
 from quizzer.validation.normalizer import normalize_mcq
 from quizzer.validation.schema_validator import validate_mcq
 
@@ -301,7 +301,7 @@ def main() -> None:
                     continue
 
                 fp = fingerprint(mcq.question)
-                if is_duplicate(mcq.question, existing_fingerprints):
+                if fp in existing_fingerprints:
                     log.debug("Duplicate question skipped")
                     stats["skipped_q"] += 1
                     continue
