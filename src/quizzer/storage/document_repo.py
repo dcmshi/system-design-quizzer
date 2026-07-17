@@ -56,6 +56,26 @@ class DocumentRepository:
         )
         self._conn.commit()
 
+    def delete_orphan_chunks(self, document_id: str) -> int:
+        """Delete this document's chunks that no question references.
+
+        Re-ingesting inserts a fresh set of chunk rows; without this cleanup the
+        old set accumulates and inflates chunk/word counts. Chunks referenced by
+        existing questions are kept so their FK stays valid.
+        """
+        cur = self._conn.execute(
+            """
+            DELETE FROM chunks
+            WHERE document_id = ?
+              AND NOT EXISTS (
+                  SELECT 1 FROM questions WHERE questions.source_chunk_id = chunks.id
+              )
+            """,
+            (document_id,),
+        )
+        self._conn.commit()
+        return cur.rowcount
+
     def get_by_source_path(self, source_path: str) -> Document | None:
         row = self._conn.execute(
             "SELECT * FROM documents WHERE source_path = ?", (source_path,)

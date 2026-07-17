@@ -257,6 +257,12 @@ def main() -> None:
 
         if not args.dry_run:
             doc_repo.upsert(doc)
+            if existing:
+                # Drop the previous run's chunks that produced no surviving
+                # questions, so chunk/word counts don't inflate on re-ingest.
+                removed = doc_repo.delete_orphan_chunks(doc.id)
+                if removed:
+                    log.debug("Removed %d orphan chunk(s) from previous ingest", removed)
             for chunk in chunks:
                 doc_repo.upsert_chunk(chunk)
 
