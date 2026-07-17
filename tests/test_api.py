@@ -121,6 +121,32 @@ def test_search_treats_percent_as_literal(app_client):
     assert b_id not in ids   # would match only if '%' were a wildcard
 
 
+def test_list_questions_ordering_stable_on_created_at_ties(app_client):
+    """Equal created_at (common after imports) must fall back to id order,
+    not arbitrary scan order, so pagination windows don't overlap or skip."""
+    client, _, doc_id = app_client
+    conn = deps_module._service.questions._conn
+    chunk_id = conn.execute("SELECT id FROM chunks LIMIT 1").fetchone()["id"]
+    tied_at = "2099-01-01T00:00:00+00:00"
+
+    def _add(qid, fp):
+        conn.execute(
+            "INSERT INTO questions (id, question, options, correct_index, explanation, difficulty, "
+            "source_document_id, source_chunk_id, status, fingerprint, model, prompt_version, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (qid, f"Tie question {qid}?", json.dumps(["A", "B", "C", "D"]), 0,
+             "A neutral explanation for the tie test.", "easy", doc_id, chunk_id,
+             "generated", fp, "m", "v1", tied_at),
+        )
+
+    _add("ZZZ_TIE", "fp_tie_z")  # inserted first, sorts last by id
+    _add("AAA_TIE", "fp_tie_a")  # inserted second, sorts first by id
+    conn.commit()
+
+    ids = [q["id"] for q in client.get("/api/v1/questions?limit=200").json()["items"]]
+    assert ids.index("AAA_TIE") < ids.index("ZZZ_TIE")
+
+
 def test_get_question_no_answer(app_client):
     client, q_id, _ = app_client
     resp = client.get(f"/api/v1/questions/{q_id}")

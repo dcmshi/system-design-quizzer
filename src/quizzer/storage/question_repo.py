@@ -92,7 +92,7 @@ class QuestionRepository:
         where = ("WHERE " + " AND ".join(filters)) if filters else ""
         params.extend([limit, offset])
         rows = self._conn.execute(
-            f"SELECT * FROM questions {where} ORDER BY created_at LIMIT ? OFFSET ?",
+            f"SELECT * FROM questions {where} ORDER BY created_at, id LIMIT ? OFFSET ?",
             params,
         ).fetchall()
         return [self._row_to_dict(r) for r in rows]
@@ -246,7 +246,7 @@ class QuestionRepository:
             params.extend(doc_params)
         where = "WHERE " + " AND ".join(filters)
         rows = self._conn.execute(
-            f"SELECT * FROM questions {where} ORDER BY created_at", params
+            f"SELECT * FROM questions {where} ORDER BY created_at, id", params
         ).fetchall()
         return [self._row_to_dict(r) for r in rows]
 
