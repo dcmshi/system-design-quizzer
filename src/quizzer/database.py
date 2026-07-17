@@ -168,11 +168,12 @@ def get_connection(db_path: Path | None = None) -> sqlite3.Connection:
 _local = threading.local()
 
 
-def get_shared_connection(db_path: Path | None = None) -> sqlite3.Connection:
-    """Return this thread's SQLite connection, creating it on first use."""
+def get_shared_connection() -> sqlite3.Connection:
+    """Return this thread's SQLite connection (to settings.db_path), creating
+    it on first use."""
     conn = getattr(_local, "connection", None)
     if conn is None:
-        conn = get_connection(db_path)
+        conn = get_connection()
         _local.connection = conn
     return conn
 
