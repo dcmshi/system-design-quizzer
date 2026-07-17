@@ -495,6 +495,19 @@ def test_export_status_filter(app_client):
     assert data["questions"] == []
 
 
+def test_export_rejected_when_explicitly_requested(app_client):
+    """Rejected questions are excluded by default, but an explicit
+    status=rejected filter must return them, not an empty set."""
+    client, q_id, _ = app_client
+    client.patch(f"/api/v1/questions/{q_id}/status", json={"status": "rejected"})
+
+    default_export = client.get("/api/v1/questions/export").json()
+    assert all(q["id"] != q_id for q in default_export["questions"])
+
+    rejected_export = client.get("/api/v1/questions/export?status=rejected").json()
+    assert any(q["id"] == q_id for q in rejected_export["questions"])
+
+
 def test_import_roundtrip(app_client):
     client, q_id, _ = app_client
     # Export the data

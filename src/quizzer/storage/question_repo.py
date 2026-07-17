@@ -229,11 +229,15 @@ class QuestionRepository:
         status: str | None = None,
         document_ids: list[str] | None = None,
     ) -> list[dict]:
-        filters: list[str] = ["status != 'rejected'"]
+        # Rejected questions are excluded by default, but an explicit status
+        # filter (including 'rejected') takes precedence.
+        filters: list[str] = []
         params: list = []
         if status:
             filters.append("status = ?")
             params.append(status)
+        else:
+            filters.append("status != 'rejected'")
         doc_clause, doc_params = self._document_ids_filter(document_ids)
         if doc_clause:
             filters.append(doc_clause)
