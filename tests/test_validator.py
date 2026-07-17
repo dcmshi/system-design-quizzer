@@ -1,4 +1,3 @@
-import pytest
 
 from quizzer.generation.models import RawMCQ
 from quizzer.validation.duplicate_detector import fingerprint, is_duplicate

@@ -1,6 +1,6 @@
 """Unit tests for the SM-2 spaced repetition algorithm."""
 
-from datetime import date, timedelta
+from datetime import date
 
 import pytest
 

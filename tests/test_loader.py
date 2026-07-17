@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import pytest
 
 from quizzer.ingestion.loader import load_document, resolve_source_path
 
@@ -67,7 +66,6 @@ def test_resolve_source_path_roundtrips_through_content_dir(tmp_path, monkeypatc
     from quizzer import config
     monkeypatch.setattr(config.settings, "content_dir", tmp_path)
 
-    md = _write_md(tmp_path, "article.md", "---\ntitle: T\nsource: s\n---\nBody.")
     # simulate a nested article
     nested = tmp_path / "example" / "a.md"
     nested.parent.mkdir()

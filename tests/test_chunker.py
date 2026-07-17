@@ -1,4 +1,3 @@
-import pytest
 
 from quizzer.ingestion.chunker import chunk_document
 from quizzer.ingestion.models import Document

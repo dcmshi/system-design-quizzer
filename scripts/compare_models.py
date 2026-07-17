@@ -155,7 +155,7 @@ def compare(source: Path, models: list[str], max_chunks: int | None) -> None:
     for model in models:
         client = OllamaClient(model=model)
         if not client.health_check():
-            print(f"Error: Ollama is not reachable. Is it running?", file=sys.stderr)
+            print("Error: Ollama is not reachable. Is it running?", file=sys.stderr)
             sys.exit(1)
         clients[model] = client
 
@@ -202,7 +202,6 @@ def compare(source: Path, models: list[str], max_chunks: int | None) -> None:
     print(f"  {'─'*20} {'─'*8} {'─'*8} {'─'*11} {'─'*7}")
     for model in models:
         s = summaries[model]
-        total = s.valid + s.invalid
         print(
             f"  {model:<20} {s.valid:>8} {s.invalid:>8} {s.parse_errors:>11} {s.elapsed:>6.1f}s"
         )
