@@ -149,6 +149,10 @@ class QuestionRepository:
         ).fetchall()
         return {r["difficulty"]: r["cnt"] for r in rows}
 
+    def ping(self) -> None:
+        """Cheap connectivity check for /health — raises if the DB is unusable."""
+        self._conn.execute("SELECT 1")
+
     def get_all_fingerprints(self) -> set[str]:
         rows = self._conn.execute("SELECT fingerprint FROM questions").fetchall()
         return {r["fingerprint"] for r in rows}

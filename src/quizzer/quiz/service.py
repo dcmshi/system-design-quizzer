@@ -293,7 +293,7 @@ class QuizService:
     def health(self) -> dict:
         db_ok = True
         try:
-            self.questions.get_all_fingerprints()
+            self.questions.ping()
         except Exception:
             db_ok = False
 
