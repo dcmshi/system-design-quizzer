@@ -239,11 +239,7 @@ async function loadPage() {
   listEl.innerHTML = '';
   data.items.forEach(q => listEl.appendChild(buildCard(q)));
 
-  const start = page * PAGE_SIZE + 1;
-  const end   = Math.min(start + data.items.length - 1, total);
-  summaryEl.textContent =
-    `Showing ${start}\u2013${end} of ${total} question${total !== 1 ? 's' : ''}`;
-
+  renderSummary();
   renderPagination();
 }
 
@@ -557,6 +553,19 @@ async function doDelete(card, q) {
 
 // ── Card removal ──────────────────────────────────────────────────────────
 
+/** Restate "Showing X-Y of N" from what is actually on the page. */
+function renderSummary() {
+  const shown = listEl.querySelectorAll('.question-card').length;
+  if (shown === 0) {
+    summaryEl.textContent = '0 questions';
+    return;
+  }
+  const start = page * PAGE_SIZE + 1;
+  const end   = Math.min(start + shown - 1, total);
+  summaryEl.textContent =
+    `Showing ${start}\u2013${end} of ${total} question${total !== 1 ? 's' : ''}`;
+}
+
 /** Fade the given cards out, drop them from the list and resync the footer. */
 function removeCards(cards) {
   if (!cards.length) return;
@@ -565,9 +574,9 @@ function removeCards(cards) {
     cards.forEach(c => { c.remove(); total = Math.max(0, total - 1); });
     if (listEl.children.length === 0) {
       listEl.innerHTML = EMPTY_STATE;
-      summaryEl.textContent = '0 questions';
       renderPagination();
     }
+    renderSummary();
   }, 200);
 }
 

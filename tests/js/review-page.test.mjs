@@ -159,6 +159,22 @@ describe('review page — removing cards', () => {
     assert.deepEqual(page.$$('.question-card').map((c) => c.dataset.id), ['Q3']);
   });
 
+  it('keeps the "Showing X of N" summary in step with the list', async () => {
+    const page = await bootReview({ items: makeItems(3) });
+    pages.push(page);
+    assert.equal(page.text('#summary'), 'Showing 1–3 of 3 questions');
+
+    page.$('.question-card .btn-delete').click();
+    await page.flush();
+    await page.wait(250);
+    assert.equal(page.text('#summary'), 'Showing 1–2 of 2 questions');
+
+    page.$('.question-card .btn-reject').click();
+    await page.flush();
+    await page.wait(250);
+    assert.equal(page.text('#summary'), 'Showing 1–1 of 1 question');
+  });
+
   it('falls back to the empty state when the last card goes', async () => {
     const page = await bootReview({ items: makeItems(1) });
     pages.push(page);
