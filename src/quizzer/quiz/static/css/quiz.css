@@ -78,7 +78,7 @@ select option { background: var(--surface2); }
   transition: background 0.15s, opacity 0.15s;
 }
 .btn-primary {
-  background: var(--accent);
+  background: var(--accent-fill);
   color: #fff;
   width: 100%;
 }
@@ -89,7 +89,7 @@ select option { background: var(--surface2); }
   color: var(--text);
   border: 1px solid var(--border);
 }
-.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent-text); }
 
 /* ── Loading spinner ── */
 #screen-loading {
@@ -267,9 +267,8 @@ select option { background: var(--surface2); }
 
 .kb-hint {
   text-align: center;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
-  opacity: 0.5;
   margin-top: 0.75rem;
   letter-spacing: 0.03em;
 }
@@ -395,7 +394,7 @@ select option { background: var(--surface2); }
   padding: 0.1rem 0.35rem;
   border-radius: 4px;
   font-size: 0.85rem;
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* ── Mode toggle ── */
@@ -422,7 +421,7 @@ select option { background: var(--surface2); }
   background: transparent;
 }
 .mode-btn.active {
-  background: var(--accent);
+  background: var(--accent-fill);
   color: #fff;
 }
 .mode-btn:not(.active):hover {
@@ -488,7 +487,7 @@ select option { background: var(--surface2); }
 .srs-next-info.visible { display: block; }
 .srs-interval {
   font-weight: 700;
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* ── SRS end info (end screen) ── */
@@ -588,7 +587,7 @@ select option { background: var(--surface2); }
 .doc-table .td-due   { font-weight: 700; color: var(--yellow); }
 .doc-table .td-new   { font-weight: 700; color: var(--green); }
 .doc-table .td-total { color: var(--text-muted); }
-.doc-table .td-none  { color: var(--border); }
+.doc-table .td-none  { color: var(--text-muted); }
 #stats-empty {
   text-align: center;
   color: var(--text-muted);

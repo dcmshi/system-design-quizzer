@@ -90,7 +90,7 @@ td { padding: 0.8rem 1rem; vertical-align: middle; }
   display: block;
   word-break: break-word;
 }
-.doc-title:hover { color: var(--accent); }
+.doc-title:hover { color: var(--accent-text); }
 .doc-path {
   font-size: 0.72rem;
   color: var(--text-muted);
@@ -152,7 +152,7 @@ td { padding: 0.8rem 1rem; vertical-align: middle; }
   display: inline-block;
   transition: border-color 0.15s, color 0.15s;
 }
-.btn-review:hover { border-color: var(--accent); color: var(--accent); }
+.btn-review:hover { border-color: var(--accent); color: var(--accent-text); }
 
 /* ── Stats bar ── */
 .stats-bar {

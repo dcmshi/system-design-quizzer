@@ -107,7 +107,6 @@ body {
   margin-top: 0.6rem;
   font-size: 0.75rem;
   color: var(--text-muted);
-  opacity: 0.7;
 }
 .card-meta code {
   background: var(--surface2);
@@ -145,10 +144,10 @@ body {
 .btn-approve { background: #14532d; color: #86efac; }
 .btn-approve:hover:not(:disabled) { background: #166534; }
 .btn-edit { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
-.btn-edit:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.btn-edit:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-text); }
 .btn-reject { background: #7f1d1d; color: #fca5a5; }
 .btn-reject:hover:not(:disabled) { background: #991b1b; }
-.btn-save { background: var(--accent); color: #fff; }
+.btn-save { background: var(--accent-fill); color: #fff; }
 .btn-save:hover:not(:disabled) { background: var(--accent-hover); }
 .btn-cancel { background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); }
 .btn-cancel:hover:not(:disabled) { color: var(--text); }
@@ -216,7 +215,7 @@ select.form-input option { background: var(--surface2); }
   font-family: var(--font);
   transition: border-color 0.15s;
 }
-.page-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.page-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-text); }
 .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* ── Bulk action bar ── */
@@ -246,8 +245,8 @@ select.form-input option { background: var(--surface2); }
 .btn-bulk-delete:hover:not(:disabled) { background: #7f1d1d; }
 .btn-delete { background: transparent; color: #fca5a5; border: 1px solid #7f1d1d; }
 .btn-delete:hover:not(:disabled) { background: #7f1d1d; }
-.btn-reingest { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
-.btn-reingest:hover:not(:disabled) { background: var(--accent); color: #fff; }
+.btn-reingest { background: transparent; color: var(--accent-text); border: 1px solid var(--accent); }
+.btn-reingest:hover:not(:disabled) { background: var(--accent-fill); color: #fff; }
 
 /* ── Toast ── */
 .toast {
