@@ -199,9 +199,7 @@ async function refreshDueInfo() {
 async function refreshWeakCount() {
   if (state.mode !== 'weak') return;
   try {
-    const res = await fetch('/api/v1/quiz/weak-count' + documentQuery(selectedDocumentIds()));
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
+    const data = await api('/api/v1/quiz/weak-count' + documentQuery(selectedDocumentIds()));
     weakPoolCount.textContent = data.weak_count;
   } catch (err) {
     weakPoolCount.textContent = '?';
@@ -264,9 +262,7 @@ function buildDocOption(doc) {
 }
 
 async function fetchDocuments() {
-  const res = await fetch('/api/v1/documents');
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  return api('/api/v1/documents');
 }
 
 async function loadDocuments() {
@@ -286,9 +282,7 @@ async function loadDocuments() {
 
 async function loadTags() {
   try {
-    const res = await fetch('/api/v1/tags');
-    if (!res.ok) return;
-    const tags = await res.json();
+    const tags = await api('/api/v1/tags');
     if (tags.length === 0) return;
     tags.forEach(t => {
       const opt = document.createElement('option');
@@ -298,131 +292,53 @@ async function loadTags() {
     });
     setHidden(document.getElementById('label-tag'), false);
     setHidden(inputTag, false);
-  } catch (_) {}
-}
-
-async function fetchQuestions(n, difficulty, documentIds, tag) {
-  let url = `/api/v1/quiz?n=${n}`;
-  if (difficulty) url += `&difficulty=${encodeURIComponent(difficulty)}`;
-  documentIds.forEach(id => { url += `&document_id=${encodeURIComponent(id)}`; });
-  if (tag) url += `&tag=${encodeURIComponent(tag)}`;
-  const res = await fetch(url);
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail || `HTTP ${res.status}`);
+  } catch (_) {
+    // No tag filter is a fine fallback; the quiz works without one.
   }
-  return res.json();
 }
 
-async function submitAnswer(questionId, selectedIndex) {
-  const res = await fetch(`/api/v1/questions/${questionId}/answer`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ selected_index: selectedIndex }),
+function submitAnswer(questionId, selectedIndex) {
+  return apiPost(`/api/v1/questions/${questionId}/answer`, { selected_index: selectedIndex });
+}
+
+function startSrsSession(n, documentIds) {
+  return apiPost('/api/v1/srs/sessions', { n, document_ids: documentIds });
+}
+
+function submitSrsReview(sessionId, questionId, selectedIndex) {
+  return apiPost(`/api/v1/srs/sessions/${sessionId}/reviews`,
+                 { question_id: questionId, selected_index: selectedIndex });
+}
+
+function finishSrsSession(sessionId) {
+  return apiPost(`/api/v1/srs/sessions/${sessionId}/finish`);
+}
+
+function createQuizSession(n, difficulty, documentIds, tag, weak = false) {
+  return apiPost('/api/v1/quiz/sessions', {
+    n,
+    difficulty: difficulty || null,
+    tag: tag || null,
+    document_ids: documentIds,
+    weak,
   });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail || `HTTP ${res.status}`);
-  }
-  return res.json();
 }
 
-async function startSrsSession(n, documentIds) {
-  const body = { n, document_ids: documentIds };
-  const res = await fetch('/api/v1/srs/sessions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const b = await res.json().catch(() => ({}));
-    throw new Error(b.detail || `HTTP ${res.status}`);
-  }
-  return res.json();
+function submitQuizAnswer(sessionId, questionId, selectedIndex) {
+  return apiPost(`/api/v1/quiz/sessions/${sessionId}/answers`,
+                 { question_id: questionId, selected_index: selectedIndex });
 }
 
-async function submitSrsReview(sessionId, questionId, selectedIndex) {
-  const res = await fetch(`/api/v1/srs/sessions/${sessionId}/reviews`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ question_id: questionId, selected_index: selectedIndex }),
-  });
-  if (!res.ok) {
-    const b = await res.json().catch(() => ({}));
-    throw new Error(b.detail || `HTTP ${res.status}`);
-  }
-  return res.json();
+function finishQuizSession(sessionId) {
+  return apiPost(`/api/v1/quiz/sessions/${sessionId}/finish`);
 }
 
-async function finishSrsSession(sessionId) {
-  const res = await fetch(`/api/v1/srs/sessions/${sessionId}/finish`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-  });
-  if (!res.ok) {
-    const b = await res.json().catch(() => ({}));
-    throw new Error(b.detail || `HTTP ${res.status}`);
-  }
-  return res.json();
+function loadDueInfo(documentIds) {
+  return api('/api/v1/srs/due' + documentQuery(documentIds));
 }
 
-async function createQuizSession(n, difficulty, documentIds, tag, weak = false) {
-  const res = await fetch('/api/v1/quiz/sessions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      n,
-      difficulty: difficulty || null,
-      tag: tag || null,
-      document_ids: documentIds,
-      weak,
-    }),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail || `HTTP ${res.status}`);
-  }
-  return res.json();
-}
-
-async function submitQuizAnswer(sessionId, questionId, selectedIndex) {
-  const res = await fetch(`/api/v1/quiz/sessions/${sessionId}/answers`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ question_id: questionId, selected_index: selectedIndex }),
-  });
-  if (!res.ok) {
-    const b = await res.json().catch(() => ({}));
-    throw new Error(b.detail || `HTTP ${res.status}`);
-  }
-  return res.json();
-}
-
-async function finishQuizSession(sessionId) {
-  const res = await fetch(`/api/v1/quiz/sessions/${sessionId}/finish`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-  });
-  if (!res.ok) {
-    const b = await res.json().catch(() => ({}));
-    throw new Error(b.detail || `HTTP ${res.status}`);
-  }
-  return res.json();
-}
-
-async function loadDueInfo(documentIds) {
-  const res = await fetch('/api/v1/srs/due' + documentQuery(documentIds));
-  if (!res.ok) {
-    const b = await res.json().catch(() => ({}));
-    throw new Error(b.detail || `HTTP ${res.status}`);
-  }
-  return res.json();
-}
-
-async function loadDueByDocument() {
-  const res = await fetch('/api/v1/srs/due/by-document');
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+function loadDueByDocument() {
+  return api('/api/v1/srs/due/by-document');
 }
 
 // ── Quiz flow ─────────────────────────────────────────────────────────────

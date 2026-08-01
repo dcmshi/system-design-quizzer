@@ -309,3 +309,36 @@ describe('review page — control labels', () => {
     );
   });
 });
+
+describe('shared API helper', () => {
+  const pages = [];
+  after(() => pages.forEach((p) => p.close()));
+
+  it('surfaces the server detail rather than a bare status code', async () => {
+    const page = await bootReview({
+      'GET /api/v1/questions': reply(500, { detail: 'index corrupt' }),
+    });
+    pages.push(page);
+
+    assert.match(page.text('#question-list'), /Failed to load questions: index corrupt/);
+  });
+
+  it('falls back to the status code when there is no detail', async () => {
+    const page = await bootReview({ 'GET /api/v1/questions': reply(502, {}) });
+    pages.push(page);
+
+    assert.match(page.text('#question-list'), /Failed to load questions: HTTP 502/);
+  });
+
+  it('tolerates a 204 with no body', async () => {
+    const page = await bootReview({ 'DELETE /api/v1/questions/*': reply(204, null) });
+    pages.push(page);
+
+    page.$('.question-card .btn-delete').click();
+    await page.flush();
+    await page.wait(250);
+
+    assert.equal(page.$$('.question-card').length, 1);
+    assert.deepEqual(page.alerts, []);
+  });
+});

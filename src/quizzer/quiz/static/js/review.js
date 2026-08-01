@@ -63,9 +63,7 @@ async function init() {
 
 async function loadNearDupes() {
   try {
-    const res = await fetch('/api/v1/questions/near-duplicates');
-    if (!res.ok) return;
-    const pairs = await res.json();
+    const pairs = await api('/api/v1/questions/near-duplicates');
     nearDupeMap = new Map();
     pairs.forEach(p => {
       if (!nearDupeMap.has(p.id_a)) nearDupeMap.set(p.id_a, []);
@@ -149,8 +147,8 @@ function applyNearDupeBadges() {
 async function loadFilterOptions() {
   try {
     const [models, promptVersions] = await Promise.all([
-      fetch('/api/v1/questions/models').then(r => r.ok ? r.json() : []),
-      fetch('/api/v1/questions/prompt-versions').then(r => r.ok ? r.json() : []),
+      api('/api/v1/questions/models'),
+      api('/api/v1/questions/prompt-versions'),
     ]);
     models.forEach(m => {
       const opt = document.createElement('option');
@@ -169,9 +167,7 @@ async function loadFilterOptions() {
 
 async function loadDocuments() {
   try {
-    const res = await fetch('/api/v1/documents');
-    if (!res.ok) return;
-    const docs = await res.json();
+    const docs = await api('/api/v1/documents');
     docs.forEach(doc => {
       const opt = document.createElement('option');
       opt.value = doc.id;
@@ -207,9 +203,7 @@ async function loadPage() {
 
   let data;
   try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    data = await res.json();
+    data = await api(url);
   } catch (err) {
     const msg = document.createElement('div');
     msg.className = 'state-msg';
@@ -446,15 +440,8 @@ async function doSave(card, q) {
 
   setAllBtns(card, true);
   try {
-    const res = await fetch(`/api/v1/questions/${q.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question, options, correct_index: correctIdx, explanation, difficulty }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body.detail || `HTTP ${res.status}`);
-    }
+    await apiPut(`/api/v1/questions/${q.id}`,
+                 { question, options, correct_index: correctIdx, explanation, difficulty });
 
     // Update card view in place — no reload needed
     const view = card.querySelector('.card-view');
@@ -487,15 +474,7 @@ async function doSave(card, q) {
 async function doStatusUpdate(card, q, newStatus) {
   setAllBtns(card, true);
   try {
-    const res = await fetch(`/api/v1/questions/${q.id}/status`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body.detail || `HTTP ${res.status}`);
-    }
+    await apiPatch(`/api/v1/questions/${q.id}/status`, { status: newStatus });
 
     const currentFilter = filterStatus.value;
     if (currentFilter && currentFilter !== newStatus) {
@@ -527,11 +506,7 @@ async function doDelete(card, q) {
   if (!confirm(`Permanently delete this question?\n\n"${preview}"\n\nThis cannot be undone.`)) return;
   setAllBtns(card, true);
   try {
-    const res = await fetch(`/api/v1/questions/${q.id}`, { method: 'DELETE' });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body.detail || `HTTP ${res.status}`);
-    }
+    await apiDelete(`/api/v1/questions/${q.id}`);
     selectedIds.delete(q.id);
     updateBulkBar();
     removeCards([card]);
@@ -623,12 +598,7 @@ bulkApproveBtn.addEventListener('click', async () => {
   if (!ids.length) return;
   setBulkBusy(true);
   try {
-    const res = await fetch('/api/v1/questions/bulk-status', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids, status: 'approved' }),
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    await apiPost('/api/v1/questions/bulk-status', { ids, status: 'approved' });
 
     const currentFilter = filterStatus.value;
     if (currentFilter && currentFilter !== 'approved') {
@@ -661,12 +631,7 @@ bulkRejectBtn.addEventListener('click', async () => {
   if (!ids.length) return;
   setBulkBusy(true);
   try {
-    const res = await fetch('/api/v1/questions/bulk-status', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids, status: 'rejected' }),
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    await apiPost('/api/v1/questions/bulk-status', { ids, status: 'rejected' });
 
     const currentFilter = filterStatus.value;
     if (currentFilter && currentFilter !== 'rejected') {
@@ -702,8 +667,7 @@ bulkDeleteBtn.addEventListener('click', async () => {
   const errors = [];
   await Promise.all(ids.map(async id => {
     try {
-      const res = await fetch(`/api/v1/questions/${id}`, { method: 'DELETE' });
-      if (!res.ok) errors.push(id);
+      await apiDelete(`/api/v1/questions/${id}`);
     } catch (_) {
       errors.push(id);
     }
@@ -735,12 +699,7 @@ reingestBtn.addEventListener('click', async () => {
   reingestBtn.disabled = true;
   reingestBtn.textContent = '\u21BA Starting\u2026';
   try {
-    const res = await fetch(`/api/v1/documents/${encodeURIComponent(docId)}/reingest`, { method: 'POST' });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body.detail || `HTTP ${res.status}`);
-    }
-    const data = await res.json();
+    const data = await apiPost(`/api/v1/documents/${encodeURIComponent(docId)}/reingest`);
     showToast(`Re-ingestion started for \u201C${data.title}\u201D. New questions will appear shortly.`, 'success');
   } catch (err) {
     showToast(`Re-ingest failed: ${err.message}`, 'error');

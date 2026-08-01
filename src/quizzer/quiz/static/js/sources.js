@@ -12,9 +12,7 @@ const statsBar = document.getElementById('stats-bar');
 
 async function load() {
   try {
-    const res = await fetch('/api/v1/documents');
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    allDocs = await res.json();
+    allDocs = await api('/api/v1/documents');
     populateFilters();
     renderStats();
     render();
