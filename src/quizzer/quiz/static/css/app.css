@@ -1,0 +1,43 @@
+/* Shared across the quiz, review and sources pages.
+   Page-specific rules live in quiz.css / review.css / sources.css. */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface2: #22263a;
+  --border: #2e3348;
+  --text: #e2e8f0;
+  --text-muted: #8892a4;
+  --accent: #6366f1;
+  --accent-hover: #4f51d9;
+  --green: #22c55e;
+  --green-bg: #14532d33;
+  --red: #ef4444;
+  --yellow: #eab308;
+  --radius: 10px;
+  --font: 'Segoe UI', system-ui, sans-serif;
+}
+
+/* ── Difficulty badges ── */
+.badge-easy    { background: #14532d; color: #86efac; }
+.badge-medium  { background: #713f12; color: #fde68a; }
+.badge-hard    { background: #7f1d1d; color: #fca5a5; }
+.badge-unknown { background: var(--surface2); color: var(--text-muted); }
+
+/* ── Page chrome (review + sources) ── */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 1.5rem;
+}
+.page-header h1 { font-size: 1.5rem; font-weight: 700; }
+
+.back-link { color: var(--text-muted); font-size: 0.875rem; text-decoration: none; }
+.back-link:hover { color: var(--accent); }
+
+.summary { font-size: 0.825rem; color: var(--text-muted); margin-bottom: 1rem; min-height: 1.2em; }
+
+.state-msg { text-align: center; padding: 3rem 0; color: var(--text-muted); font-size: 0.9rem; }

@@ -1,3 +1,4 @@
+import mimetypes
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -16,6 +17,10 @@ from quizzer.storage.question_repo import QuestionRepository
 from quizzer.storage.session_repo import SessionRepository
 
 _STATIC_DIR = Path(__file__).parent / "static"
+
+# Some Windows installs map .js to application/javascript, which Starlette does
+# not tag with a charset; the page scripts contain non-ASCII text.
+mimetypes.add_type("text/javascript", ".js")
 
 
 @asynccontextmanager

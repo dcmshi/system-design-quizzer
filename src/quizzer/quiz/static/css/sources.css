@@ -1,0 +1,174 @@
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 1.5rem 1rem 3rem;
+}
+
+#app { width: 100%; max-width: 1000px; margin: 0 auto; }
+
+.header-links { display: flex; gap: 1.25rem; }
+/* ── Filter bar ── */
+.filter-bar { display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+.filter-bar input[type=search] {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 0.45rem 0.75rem;
+  font-size: 0.875rem;
+  font-family: var(--font);
+  outline: none;
+  flex: 1;
+  min-width: 200px;
+}
+.filter-bar input[type=search]:focus { border-color: var(--accent); }
+.filter-bar input[type=search]::placeholder { color: var(--text-muted); }
+.filter-bar select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 0.45rem 0.75rem;
+  font-size: 0.875rem;
+  font-family: var(--font);
+  outline: none;
+  cursor: pointer;
+  min-width: 130px;
+}
+.filter-bar select:focus { border-color: var(--accent); }
+.filter-bar select option { background: var(--surface2); }
+
+/* ── Table ── */
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+thead th {
+  background: var(--surface2);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.65rem 1rem;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+}
+
+thead th.sortable { cursor: pointer; }
+thead th.sortable:hover { color: var(--text); }
+thead th .sort-icon { margin-left: 0.3rem; opacity: 0.4; }
+thead th.sort-asc .sort-icon, thead th.sort-desc .sort-icon { opacity: 1; color: var(--accent); }
+
+tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+}
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--surface2); }
+
+td { padding: 0.8rem 1rem; vertical-align: middle; }
+
+.doc-title-cell { max-width: 280px; }
+.doc-title {
+  font-weight: 500;
+  color: var(--text);
+  text-decoration: none;
+  line-height: 1.4;
+  display: block;
+  word-break: break-word;
+}
+.doc-title:hover { color: var(--accent); }
+.doc-path {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+  word-break: break-all;
+  font-family: monospace;
+}
+
+.source-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: var(--surface2);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.tags-cell { max-width: 180px; }
+.tag-list { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.tag {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: #1e3a5f;
+  color: #93c5fd;
+  white-space: nowrap;
+}
+
+.num-cell { text-align: right; color: var(--text-muted); }
+.num-cell strong { color: var(--text); }
+
+.q-count { font-weight: 700; }
+.q-zero { color: var(--text-muted); }
+
+.date-cell {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.action-cell { white-space: nowrap; }
+.btn-review {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: 6px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: var(--font);
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  transition: border-color 0.15s, color 0.15s;
+}
+.btn-review:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Stats bar ── */
+.stats-bar {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+.stat-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.stat-value { font-size: 1.4rem; font-weight: 700; color: var(--text); }
+.stat-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
