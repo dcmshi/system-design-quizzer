@@ -224,6 +224,69 @@ describe('review page — removing cards', () => {
   });
 });
 
+describe('review page — bulk status changes', () => {
+  const pages = [];
+  after(() => pages.forEach((p) => p.close()));
+
+  it('removes cards that stop matching the active filter', async () => {
+    const page = await bootReview({ items: makeItems(3) });
+    pages.push(page);
+
+    page.$$('.card-checkbox').slice(0, 2).forEach((cb) => cb.click());
+    page.$('#bulk-approve-btn').click();
+    await page.flush();
+    await page.wait(250);
+
+    assert.deepEqual(page.$$('.question-card').map((c) => c.dataset.id), ['Q3']);
+    assert.equal(page.calls.find((c) => c.path === '/api/v1/questions/bulk-status').body.status,
+      'approved');
+  });
+
+  it('updates the badges in place under "All statuses"', async () => {
+    const page = await bootReview({ items: makeItems(2) });
+    pages.push(page);
+
+    page.$('#filter-status').value = '';
+    page.$$('.card-checkbox').forEach((cb) => cb.click());
+    page.$('#bulk-reject-btn').click();
+    await page.flush();
+
+    assert.equal(page.$$('.question-card').length, 2);
+    assert.deepEqual(page.$$('[data-status-badge]').map((b) => b.textContent),
+      ['rejected', 'rejected']);
+    assert.ok(page.$('[data-status-badge]').classList.contains('badge-rejected'));
+  });
+
+  it('names the action it failed at', async () => {
+    const page = await bootReview({
+      'POST /api/v1/questions/bulk-status': reply(500, { detail: 'locked' }),
+    });
+    pages.push(page);
+
+    page.$('.card-checkbox').click();
+    page.$('#bulk-reject-btn').click();
+    await page.flush();
+
+    assert.equal(page.text('#toast'), 'Bulk reject failed: locked');
+  });
+
+  it('forgets near-duplicate pairings for bulk-rejected questions', async () => {
+    const page = await bootReview({
+      'GET /api/v1/questions/near-duplicates': DUPE_PAIR,
+      items: makeItems(3),
+    });
+    pages.push(page);
+    assert.equal(page.$$('[data-near-dupe-badge]').length, 2);
+
+    page.$('#filter-status').value = '';
+    page.$$('.card-checkbox')[0].click();
+    page.$('#bulk-reject-btn').click();
+    await page.flush();
+
+    assert.equal(page.$$('[data-near-dupe-badge]').length, 0);
+  });
+});
+
 describe('review page — near-duplicate badge', () => {
   const pages = [];
   after(() => pages.forEach((p) => p.close()));

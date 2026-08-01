@@ -591,71 +591,46 @@ selectAllCb.addEventListener('change', () => {
   updateBulkBar();
 });
 
-// ── Bulk approve ──────────────────────────────────────────────────────────
+// ── Bulk approve / reject ─────────────────────────────────────────────────
 
-bulkApproveBtn.addEventListener('click', async () => {
+/** Apply one status to every selected question. Cards that stop matching the
+ *  active status filter fade out; otherwise their badge is updated in place. */
+async function bulkSetStatus(status, label) {
   const ids = [...selectedIds];
   if (!ids.length) return;
   setBulkBusy(true);
   try {
-    await apiPost('/api/v1/questions/bulk-status', { ids, status: 'approved' });
+    await apiPost('/api/v1/questions/bulk-status', { ids, status });
 
-    const currentFilter = filterStatus.value;
-    if (currentFilter && currentFilter !== 'approved') {
-      // Fade out cards that no longer match the filter
-      const toFade = [...listEl.querySelectorAll('.question-card')]
-        .filter(c => ids.includes(c.dataset.id));
-      removeCards(toFade);
-      selectedIds.clear();
-      setBulkBusy(false);
+    const affected = [...listEl.querySelectorAll('.question-card')]
+      .filter(c => ids.includes(c.dataset.id));
+    const activeFilter = filterStatus.value;
+
+    if (activeFilter && activeFilter !== status) {
+      removeCards(affected);
     } else {
-      // "All statuses" — update badges in place
-      listEl.querySelectorAll('.question-card').forEach(c => {
-        if (!ids.includes(c.dataset.id)) return;
+      affected.forEach(c => {
         const badge = c.querySelector('[data-status-badge]');
-        if (badge) { badge.textContent = 'approved'; badge.className = 'badge badge-approved'; }
+        if (badge) {
+          badge.textContent = status;
+          badge.className = `badge badge-${status}`;
+        }
       });
-      selectedIds.clear();
-      setBulkBusy(false);
     }
+    if (status === 'rejected') {
+      ids.forEach(forgetNearDupes);
+      applyNearDupeBadges();
+    }
+    selectedIds.clear();
   } catch (err) {
-    showToast(`Bulk approve failed: ${err.message}`, 'error');
+    showToast(`Bulk ${label} failed: ${err.message}`, 'error');
+  } finally {
     setBulkBusy(false);
   }
-});
+}
 
-// ── Bulk reject ───────────────────────────────────────────────────────────
-
-bulkRejectBtn.addEventListener('click', async () => {
-  const ids = [...selectedIds];
-  if (!ids.length) return;
-  setBulkBusy(true);
-  try {
-    await apiPost('/api/v1/questions/bulk-status', { ids, status: 'rejected' });
-
-    const currentFilter = filterStatus.value;
-    if (currentFilter && currentFilter !== 'rejected') {
-      // fade out and remove cards that no longer match the filter
-      const toFade = [...listEl.querySelectorAll('.question-card')]
-        .filter(c => ids.includes(c.dataset.id));
-      removeCards(toFade);
-      selectedIds.clear();
-      setBulkBusy(false);
-    } else {
-      // "All statuses" — update badges in place
-      listEl.querySelectorAll('.question-card').forEach(c => {
-        if (!ids.includes(c.dataset.id)) return;
-        const badge = c.querySelector('[data-status-badge]');
-        if (badge) { badge.textContent = 'rejected'; badge.className = 'badge badge-rejected'; }
-      });
-      selectedIds.clear();
-      setBulkBusy(false);
-    }
-  } catch (err) {
-    showToast(`Bulk reject failed: ${err.message}`, 'error');
-    setBulkBusy(false);
-  }
-});
+bulkApproveBtn.addEventListener('click', () => bulkSetStatus('approved', 'approve'));
+bulkRejectBtn.addEventListener('click', () => bulkSetStatus('rejected', 'reject'));
 
 // ── Bulk delete ───────────────────────────────────────────────────────────
 
