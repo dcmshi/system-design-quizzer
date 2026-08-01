@@ -1,43 +1,7 @@
 import assert from 'node:assert/strict';
 import { after, describe, it } from 'node:test';
 
-import { loadPage, makeQuestions } from './harness.mjs';
-
-const DOCS = [
-  { id: 'DOC1', title: 'Consistent Hashing', question_count: 12 },
-  { id: 'DOC2', title: 'Load Balancers', question_count: 7 },
-];
-
-export function quizRoutes(overrides = {}) {
-  return {
-    'GET /api/v1/documents': DOCS,
-    'GET /api/v1/tags': ['caching', 'sharding'],
-    'GET /api/v1/srs/due': { due_count: 3, new_count: 4, total_actionable: 7 },
-    'GET /api/v1/quiz/weak-count': { weak_count: 5 },
-    'POST /api/v1/quiz/sessions': { session_id: 'S1', questions: makeQuestions(2), started_at: 'now' },
-    'POST /api/v1/quiz/sessions/*/answers': { correct: true, correct_index: 0, explanation: 'Because.' },
-    'POST /api/v1/quiz/sessions/*/finish': {
-      session_id: 'S1', finished_at: 'now', n_answered: 2, n_correct: 2, n_wrong: 0, n_skipped: 0,
-    },
-    ...overrides,
-  };
-}
-
-export async function bootQuiz(overrides = {}) {
-  return loadPage('index.html', { routes: quizRoutes(overrides) });
-}
-
-/** Start a quiz and land on the question screen. */
-export async function startQuiz(page) {
-  page.$('#btn-start').click();
-  await page.flush();
-}
-
-/** Answer the currently displayed question by option index. */
-export async function answer(page, index = 0) {
-  page.$$('#options-container .option-btn')[index].click();
-  await page.flush();
-}
+import { answer, bootQuiz, startQuiz } from './fixtures.mjs';
 
 describe('quiz page', () => {
   const pages = [];
