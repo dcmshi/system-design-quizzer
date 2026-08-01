@@ -681,8 +681,10 @@ async function showEnd(exited = false) {
 
   btnPlayAgain.textContent = state.mode === 'srs' ? 'New SRS Session' : 'Play Again';
 
-  // Session end info
-  if ((state.mode === 'srs' && state.srsSessionId) || state.quizSessionId) {
+  // Only SRS ends with a summary worth waiting for; a random session is
+  // finished silently rather than flashing a placeholder at the user.
+  const expectsSummary = state.mode === 'srs' && state.srsSessionId;
+  if (expectsSummary) {
     srsEndInfo.textContent = 'Finishing session\u2026';
     srsEndInfo.classList.add('visible');
   } else {
@@ -691,8 +693,8 @@ async function showEnd(exited = false) {
 
   showScreen('end');
 
-  // Finish SRS session asynchronously after screen is shown
-  if (state.mode === 'srs' && state.srsSessionId) {
+  // Finish the session asynchronously after the screen is shown
+  if (expectsSummary) {
     try {
       const data = await finishSrsSession(state.srsSessionId);
       state.srsFinishData = data;
@@ -707,9 +709,8 @@ async function showEnd(exited = false) {
   } else if (state.quizSessionId) {
     try {
       await finishQuizSession(state.quizSessionId);
-      srsEndInfo.classList.remove('visible');
     } catch (_) {
-      srsEndInfo.classList.remove('visible');
+      // Nothing to show either way — the results are already on screen.
     }
   }
 }

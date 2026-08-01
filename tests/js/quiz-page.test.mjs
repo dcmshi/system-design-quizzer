@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { after, describe, it } from 'node:test';
 
 import { answer, bootQuiz, startQuiz } from './fixtures.mjs';
-import { reply } from './harness.mjs';
+import { makeQuestions, reply } from './harness.mjs';
 
 /** Grade Q1 wrong and everything else right. */
 const gradeQ1Wrong = ({ body }) => ({
@@ -149,6 +149,52 @@ describe('quiz page — error screen', () => {
     await startQuiz(page);
 
     assert.match(page.text('#error-msg code'), /scripts\/ingest\.py/);
+  });
+});
+
+describe('quiz page — end-of-session pill', () => {
+  const pages = [];
+  after(() => pages.forEach((p) => p.close()));
+
+  it('never flashes "Finishing session" on a random quiz', async () => {
+    const page = await bootQuiz();
+    pages.push(page);
+
+    await startQuiz(page);
+    await answer(page, 0);
+    page.$('#btn-next').click();
+    await page.flush();
+    await answer(page, 0);
+
+    page.$('#btn-next').click();
+    assert.ok(!page.$('#srs-end-info').classList.contains('visible'), 'hidden as the screen appears');
+    await page.flush();
+    assert.ok(!page.$('#srs-end-info').classList.contains('visible'), 'still hidden once finished');
+    assert.ok(page.calls.some((c) => c.path === '/api/v1/quiz/sessions/S1/finish'));
+  });
+
+  it('shows the SRS summary once the session is finished', async () => {
+    const page = await bootQuiz({
+      'POST /api/v1/srs/sessions': { session_id: 'SRS1', questions: makeQuestions(1), started_at: 'now' },
+      'POST /api/v1/srs/sessions/*/reviews': {
+        correct: true, correct_index: 0, explanation: 'Because.', interval_days: 3,
+      },
+      'POST /api/v1/srs/sessions/*/finish': {
+        session_id: 'SRS1', finished_at: 'now', n_reviewed: 1, n_correct: 1, n_wrong: 0,
+      },
+    });
+    pages.push(page);
+
+    page.$('#btn-mode-srs').click();
+    await page.flush();
+    await startQuiz(page);
+    await answer(page, 0);
+
+    page.$('#btn-next').click();
+    assert.equal(page.text('#srs-end-info'), 'Finishing session…');
+    await page.flush();
+    assert.equal(page.text('#srs-end-info'), 'Session: 1 correct · 0 wrong');
+    assert.ok(page.$('#srs-end-info').classList.contains('visible'));
   });
 });
 
