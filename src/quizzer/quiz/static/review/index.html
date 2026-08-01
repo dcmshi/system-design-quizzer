@@ -498,6 +498,17 @@ async function loadNearDupes() {
   } catch (_) {}
 }
 
+/** Forget a question that was deleted or rejected, and any pairing with it.
+ *  Cheaper and less racy than refetching every pair in the bank. */
+function forgetNearDupes(questionId) {
+  nearDupeMap.delete(questionId);
+  nearDupeMap.forEach((dupes, id) => {
+    const remaining = dupes.filter(d => d.id !== questionId);
+    if (remaining.length) nearDupeMap.set(id, remaining);
+    else                  nearDupeMap.delete(id);
+  });
+}
+
 function buildNearDupePanel(dupes, questionId) {
   const panel = document.createElement('div');
   panel.className = 'near-dupe-panel';
@@ -933,8 +944,11 @@ async function doStatusUpdate(card, q, newStatus) {
       badge.className = `badge badge-${newStatus}`;
       setAllBtns(card, false);
     }
-    // Rejected questions are excluded from similarity — refresh map
-    if (newStatus === 'rejected') loadNearDupes().then(applyNearDupeBadges);
+    // Rejected questions are excluded from similarity
+    if (newStatus === 'rejected') {
+      forgetNearDupes(q.id);
+      applyNearDupeBadges();
+    }
   } catch (err) {
     alert(`Action failed: ${err.message}`);
     setAllBtns(card, false);
@@ -966,7 +980,8 @@ async function doDelete(card, q) {
         renderPagination();
       }
     }, 200);
-    loadNearDupes().then(applyNearDupeBadges);
+    forgetNearDupes(q.id);
+    applyNearDupeBadges();
   } catch (err) {
     alert(`Delete failed: ${err.message}`);
     setAllBtns(card, false);

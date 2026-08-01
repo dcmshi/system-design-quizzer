@@ -115,4 +115,28 @@ describe('review page — near-duplicate badge', () => {
     assert.equal(ids.length, 2);
     assert.equal(new Set(ids).size, 2);
   });
+
+  it('drops the pairing locally on delete instead of refetching the bank', async () => {
+    const page = await bootWithDupes();
+
+    page.$('.question-card .btn-delete').click();
+    await page.flush();
+    await page.wait(250);
+
+    assert.equal(page.$$('.question-card').length, 1);
+    assert.equal(page.$('[data-near-dupe-badge]'), null);
+    assert.equal(page.calls.filter((c) => c.path === '/api/v1/questions/near-duplicates').length, 1);
+  });
+
+  it('drops the pairing locally on reject instead of refetching the bank', async () => {
+    const page = await bootWithDupes();
+
+    page.$('.question-card .btn-reject').click();
+    await page.flush();
+    await page.wait(250);
+
+    assert.equal(page.$$('.question-card').length, 1);
+    assert.equal(page.$('[data-near-dupe-badge]'), null);
+    assert.equal(page.calls.filter((c) => c.path === '/api/v1/questions/near-duplicates').length, 1);
+  });
 });
