@@ -12,6 +12,23 @@ class QuestionSummary(BaseModel):
     status: str
 
 
+class QuestionListItem(QuestionSummary):
+    """A row of the review list.
+
+    Carries the answer and provenance the review UI needs so it does not have
+    to fetch /answer and /{id} for every item. Never used by the quiz
+    endpoints, which must not reveal correct_index.
+    """
+
+    correct_index: int
+    explanation: str
+    model: str
+    prompt_version: str
+    times_answered: int = 0
+    times_correct: int = 0
+    hit_rate: float | None = None
+
+
 class QuestionDetail(BaseModel):
     id: str
     question: str
@@ -87,7 +104,7 @@ class HealthResponse(BaseModel):
 
 
 class PaginatedQuestions(BaseModel):
-    items: list[QuestionSummary]
+    items: list[QuestionListItem]
     total: int
     limit: int
     offset: int

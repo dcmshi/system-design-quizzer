@@ -28,6 +28,7 @@ from quizzer.quiz.schemas import (
     QuestionAnswer,
     QuestionDetail,
     QuestionEditRequest,
+    QuestionListItem,
     QuestionSummary,
     QuizAnswerRequest,
     QuizAnswerResponse,
@@ -196,13 +197,20 @@ def list_questions(
         offset=offset,
     )
     summaries = [
-        QuestionSummary(
+        QuestionListItem(
             id=q["id"],
             question=q["question"],
             options=q["options"],
             difficulty=q["difficulty"],
             source_document_id=q["source_document_id"],
             status=q["status"],
+            correct_index=q["correct_index"],
+            explanation=q["explanation"],
+            model=q["model"],
+            prompt_version=q["prompt_version"],
+            times_answered=q["times_answered"],
+            times_correct=q["times_correct"],
+            hit_rate=q["hit_rate"],
         )
         for q in items
     ]

@@ -360,6 +360,36 @@ class QuestionRepository:
             "hit_rate":       hit_rate,
         }
 
+    def get_hit_rates(self, question_ids: list[str]) -> dict[str, dict]:
+        """Answer counts for several questions in one query (review list)."""
+        if not question_ids:
+            return {}
+        placeholders = ",".join(["?"] * len(question_ids))
+        rows = self._conn.execute(
+            f"""
+            SELECT question_id,
+                   COUNT(*)                  AS times_answered,
+                   COALESCE(SUM(correct), 0) AS times_correct
+            FROM (
+                SELECT question_id, is_correct AS correct FROM quiz_answers
+                WHERE question_id IN ({placeholders})
+                UNION ALL
+                SELECT question_id, was_correct AS correct FROM srs_reviews
+                WHERE question_id IN ({placeholders})
+            )
+            GROUP BY question_id
+            """,
+            [*question_ids, *question_ids],
+        ).fetchall()
+        return {
+            r["question_id"]: {
+                "times_answered": r["times_answered"],
+                "times_correct": r["times_correct"],
+                "hit_rate": r["times_correct"] / r["times_answered"],
+            }
+            for r in rows
+        }
+
     def count_questions(
         self,
         *,

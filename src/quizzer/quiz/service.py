@@ -73,6 +73,9 @@ class QuizService:
             model=model,
             prompt_version=prompt_version,
         )
+        rates = self.questions.get_hit_rates([item["id"] for item in items])
+        never = {"times_answered": 0, "times_correct": 0, "hit_rate": None}
+        items = [{**item, **rates.get(item["id"], never)} for item in items]
         return items, total
 
     def list_models(self) -> list[str]:

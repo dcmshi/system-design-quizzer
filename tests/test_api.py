@@ -93,6 +93,29 @@ def test_list_questions(app_client):
     assert any(q["id"] == q_id for q in data["items"])
 
 
+def test_list_questions_includes_answer_and_provenance(app_client):
+    """The review UI renders a card straight from the list row, so the answer,
+    provenance and hit-rate fields must all be present without a second call."""
+    client, q_id, _ = app_client
+    item = next(q for q in client.get("/api/v1/questions").json()["items"] if q["id"] == q_id)
+
+    assert item["correct_index"] == 1
+    assert item["explanation"].startswith("Consistent hashing distributes load")
+    assert item["model"] == "test-model"
+    assert item["prompt_version"] == "v1"
+    assert item["times_answered"] == 0
+    assert item["times_correct"] == 0
+    assert item["hit_rate"] is None
+
+
+def test_quiz_sample_still_withholds_the_correct_answer(app_client):
+    """Enriching the review list must not leak correct_index to the quiz."""
+    client, _, _ = app_client
+    for question in client.get("/api/v1/quiz?n=1").json()["questions"]:
+        assert "correct_index" not in question
+        assert "explanation" not in question
+
+
 def test_search_treats_percent_as_literal(app_client):
     """A '%' in the query must match literally, not act as a LIKE wildcard."""
     client, _, doc_id = app_client
@@ -789,6 +812,20 @@ def quiz_session_client(tmp_path: Path, monkeypatch):
         monkeypatch.setattr(deps_module, "_service", svc)
         monkeypatch.setattr(deps_module, "_quiz_session_service", session_svc)
         yield client, q_id, doc_id
+
+
+def test_list_questions_hit_rate_reflects_recorded_answers(quiz_session_client):
+    client, q_id, _ = quiz_session_client
+    session = client.post("/api/v1/quiz/sessions", json={"n": 1}).json()
+    client.post(
+        f"/api/v1/quiz/sessions/{session['session_id']}/answers",
+        json={"question_id": q_id, "selected_index": 2},
+    )
+
+    item = next(q for q in client.get("/api/v1/questions").json()["items"] if q["id"] == q_id)
+    assert item["times_answered"] == 1
+    assert item["times_correct"] == 1
+    assert item["hit_rate"] == 1.0
 
 
 def test_create_quiz_session(quiz_session_client):

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { after, describe, it } from 'node:test';
 
-import { bootReview } from './fixtures.mjs';
+import { bootReview, makeItems } from './fixtures.mjs';
 
 const DUPE_PAIR = [
   { id_a: 'Q1', question_a: 'Question 1?', id_b: 'Q2', question_b: 'Question 2?', similarity: 0.82 },
@@ -38,6 +38,35 @@ describe('review page', () => {
     page.$('.card-checkbox').click();
     assert.equal(page.text('#bulk-approve-btn'), 'Approve selected (1)');
     assert.equal(page.$('#bulk-approve-btn').disabled, false);
+  });
+});
+
+describe('review page — request volume', () => {
+  const pages = [];
+  after(() => pages.forEach((p) => p.close()));
+
+  it('loads a page of questions with a single questions request', async () => {
+    const page = await bootReview({ items: makeItems(20) });
+    pages.push(page);
+
+    assert.equal(page.$$('.question-card').length, 20);
+    const questionCalls = page.calls.filter((c) => c.path.startsWith('/api/v1/questions/'));
+    assert.deepEqual(
+      questionCalls.map((c) => c.path).sort(),
+      ['/api/v1/questions/models', '/api/v1/questions/near-duplicates', '/api/v1/questions/prompt-versions'],
+    );
+    assert.equal(page.calls.filter((c) => c.path === '/api/v1/questions').length, 1);
+  });
+
+  it('renders the hit rate that now comes with the list', async () => {
+    const items = makeItems(1);
+    items[0] = { ...items[0], times_answered: 4, times_correct: 3, hit_rate: 0.75 };
+    const page = await bootReview({ items });
+    pages.push(page);
+
+    const badge = page.$('.hit-rate');
+    assert.equal(badge.textContent, '75% hit rate (3/4)');
+    assert.ok(badge.classList.contains('hit-rate-mid'));
   });
 });
 

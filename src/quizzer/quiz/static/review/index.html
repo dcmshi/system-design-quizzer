@@ -638,32 +638,8 @@ async function loadPage() {
     return;
   }
 
-  // Fetch answer details + full detail in parallel
-  const [answers, details] = await Promise.all([
-    Promise.all(
-      data.items.map(q =>
-        fetch(`/api/v1/questions/${q.id}/answer`)
-          .then(r => r.ok ? r.json() : { correct_index: 0, explanation: '' })
-      )
-    ),
-    Promise.all(
-      data.items.map(q =>
-        fetch(`/api/v1/questions/${q.id}`)
-          .then(r => r.ok ? r.json() : { model: '', prompt_version: '' })
-      )
-    ),
-  ]);
-
-  const questions = data.items.map((q, i) => ({
-    ...q,
-    correct_index:  answers[i].correct_index,
-    explanation:    answers[i].explanation,
-    model:          details[i].model,
-    prompt_version: details[i].prompt_version,
-  }));
-
   listEl.innerHTML = '';
-  questions.forEach(q => listEl.appendChild(buildCard(q)));
+  data.items.forEach(q => listEl.appendChild(buildCard(q)));
 
   const start = page * PAGE_SIZE + 1;
   const end   = Math.min(start + data.items.length - 1, total);

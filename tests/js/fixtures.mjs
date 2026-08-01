@@ -68,12 +68,9 @@ export function reviewRoutes({ items = makeItems(2), ...overrides } = {}) {
     'GET /api/v1/questions/models': ['mock-model'],
     'GET /api/v1/questions/prompt-versions': ['v1'],
     'GET /api/v1/questions/near-duplicates': [],
+    // The list endpoint carries answers and provenance; per-item GETs are
+    // deliberately unstubbed so reintroducing them fails the tests.
     'GET /api/v1/questions': { items, total: items.length, limit: 20, offset: 0 },
-    'GET /api/v1/questions/*': ({ path }) => items.find((q) => path.endsWith(`/${q.id}`)) ?? {},
-    'GET /api/v1/questions/*/answer': ({ path }) => {
-      const q = items.find((it) => path.includes(`/${it.id}/`));
-      return { correct_index: q?.correct_index ?? 0, explanation: q?.explanation ?? '' };
-    },
     'PATCH /api/v1/questions/*/status': ({ body }) => ({ status: body.status }),
     'PUT /api/v1/questions/*': {},
     'DELETE /api/v1/questions/*': {},
