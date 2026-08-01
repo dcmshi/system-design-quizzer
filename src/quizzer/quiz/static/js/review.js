@@ -256,6 +256,7 @@ function buildCard(q) {
   cb.type = 'checkbox';
   cb.className = 'card-checkbox';
   cb.dataset.id = q.id;
+  cb.setAttribute('aria-label', 'Select this question for bulk actions');
   cb.addEventListener('change', () => {
     if (cb.checked) selectedIds.add(q.id);
     else            selectedIds.delete(q.id);

@@ -152,6 +152,18 @@ describe('quiz page — error screen', () => {
   });
 });
 
+describe('quiz page — control labels', () => {
+  const pages = [];
+  after(() => pages.forEach((p) => p.close()));
+
+  it('names the exit button, which renders as a bare times sign', async () => {
+    const page = await bootQuiz();
+    pages.push(page);
+
+    assert.equal(page.$('#btn-exit').getAttribute('aria-label'), 'End quiz');
+  });
+});
+
 describe('quiz page — mode toggle semantics', () => {
   const pages = [];
   after(() => pages.forEach((p) => p.close()));

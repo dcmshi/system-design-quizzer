@@ -288,3 +288,18 @@ describe('review page — near-duplicate badge', () => {
     assert.equal(page.calls.filter((c) => c.path === '/api/v1/questions/near-duplicates').length, 1);
   });
 });
+
+describe('review page — control labels', () => {
+  const pages = [];
+  after(() => pages.forEach((p) => p.close()));
+
+  it('names the per-card selection checkbox', async () => {
+    const page = await bootReview();
+    pages.push(page);
+
+    assert.equal(
+      page.$('.card-checkbox').getAttribute('aria-label'),
+      'Select this question for bulk actions',
+    );
+  });
+});
