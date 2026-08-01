@@ -103,6 +103,9 @@
 }
 .page-header h1 { font-size: 1.5rem; font-weight: 700; }
 
+/* One row of cross-page links, used in the review/sources headers and under
+   the quiz setup form. */
+.nav-links { display: flex; gap: 1.25rem; }
 .back-link { color: var(--text-muted); font-size: 0.875rem; text-decoration: none; }
 .back-link:hover { color: var(--accent-text); }
 

@@ -55,12 +55,21 @@ def test_markup_carries_no_static_inline_styles(client: TestClient, page: str):
     """State belongs in classes the JS toggles, not in style strings — the two
     used to be mixed for the same elements."""
     styles = re.findall(r'style="([^"]*)"', client.get(page).text)
-    assert [s for s in styles if "display:none" in s.replace(" ", "")] == []
+    # The progress bar's width is genuinely computed per question.
+    assert [s for s in styles if not s.startswith("width:")] == []
 
 
 def test_no_script_writes_display_directly():
     for path in sorted((STATIC_DIR / "js").glob("*.js")):
         assert "style.display" not in path.read_text(encoding="utf-8"), path.name
+
+
+@pytest.mark.parametrize("page", PAGES)
+def test_cross_page_links_share_one_style(client: TestClient, page: str):
+    """Each page used to hand-roll its own link row."""
+    html = client.get(page).text
+    assert 'class="nav-links' in html
+    assert html.count('class="back-link"') >= 2
 
 
 @pytest.mark.parametrize("page", PAGES)
