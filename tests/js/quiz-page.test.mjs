@@ -151,3 +151,55 @@ describe('quiz page — error screen', () => {
     assert.match(page.text('#error-msg code'), /scripts\/ingest\.py/);
   });
 });
+
+describe('quiz page — failed answer submission', () => {
+  const pages = [];
+  after(() => pages.forEach((p) => p.close()));
+
+  /** Boot a quiz whose answer endpoint fails until `state.fail` is cleared. */
+  async function bootFlaky() {
+    const state = { fail: true };
+    const page = await bootQuiz({
+      'POST /api/v1/quiz/sessions/*/answers': () => (state.fail
+        ? reply(503, { detail: 'upstream down' })
+        : { correct: true, correct_index: 0, explanation: 'Because.' }),
+    });
+    pages.push(page);
+    await startQuiz(page);
+    return { page, state };
+  }
+
+  it('keeps the user on the question instead of tearing the quiz down', async () => {
+    const { page } = await bootFlaky();
+
+    await answer(page, 0);
+
+    assert.ok(page.$('#screen-question').classList.contains('active'));
+    assert.ok(!page.$('#screen-error').classList.contains('active'));
+    assert.equal(page.text('#progress-label'), 'Question 1 of 2');
+  });
+
+  it('shows the failure inline and re-enables the options', async () => {
+    const { page } = await bootFlaky();
+
+    await answer(page, 0);
+
+    const inlineError = page.$('#answer-error');
+    assert.ok(inlineError.classList.contains('visible'));
+    assert.match(inlineError.textContent, /upstream down/);
+    assert.equal(inlineError.getAttribute('role'), 'alert');
+    assert.ok(page.$$('#options-container .option-btn').every((b) => !b.disabled));
+  });
+
+  it('lets the same answer succeed on a retry', async () => {
+    const { page, state } = await bootFlaky();
+
+    await answer(page, 0);
+    state.fail = false;
+    await answer(page, 0);
+
+    assert.ok(!page.$('#answer-error').classList.contains('visible'));
+    assert.ok(page.$('#explanation').classList.contains('visible'));
+    assert.ok(page.$('#btn-next').classList.contains('visible'));
+  });
+});

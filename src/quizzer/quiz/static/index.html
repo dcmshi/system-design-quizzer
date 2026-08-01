@@ -222,6 +222,19 @@
       color: #fca5a5;
     }
 
+    .inline-error {
+      display: none;
+      background: #7f1d1d33;
+      border: 1px solid var(--red);
+      border-radius: 6px;
+      padding: 0.6rem 0.9rem;
+      font-size: 0.85rem;
+      color: #fca5a5;
+      line-height: 1.5;
+      margin-bottom: 1.25rem;
+    }
+    .inline-error.visible { display: block; }
+
     .explanation {
       display: none;
       background: var(--surface2);
@@ -710,6 +723,7 @@
       <span class="difficulty-badge" id="difficulty-badge"></span>
       <p class="question-text" id="question-text"></p>
       <div class="options" id="options-container"></div>
+      <div class="inline-error" id="answer-error" role="alert"></div>
       <div class="explanation" id="explanation"></div>
       <div class="srs-next-info" id="srs-next-info">
         Next review: <span class="srs-interval" id="srs-interval-text"></span>
@@ -864,6 +878,7 @@
   const diffBadge    = document.getElementById('difficulty-badge');
   const questionText = document.getElementById('question-text');
   const optionsCont  = document.getElementById('options-container');
+  const answerError  = document.getElementById('answer-error');
   const explanation  = document.getElementById('explanation');
   const srsNextInfo  = document.getElementById('srs-next-info');
   const srsIntervalText = document.getElementById('srs-interval-text');
@@ -1352,6 +1367,7 @@
     });
 
     // Reset explanation + next + srs info
+    answerError.classList.remove('visible');
     explanation.textContent = '';
     explanation.classList.remove('visible');
     srsNextInfo.classList.remove('visible');
@@ -1365,6 +1381,7 @@
     const allBtns = optionsCont.querySelectorAll('.option-btn');
     allBtns.forEach(b => { b.disabled = true; });
     clearKeyboardFocus();
+    answerError.classList.remove('visible');
 
     const q = state.questions[state.current];
 
@@ -1412,9 +1429,12 @@
       btnNext.textContent = state.current + 1 < state.questions.length ? 'Next \u2192' : 'See Results';
       btnNext.classList.add('visible');
     } catch (err) {
+      // Stay on the question: swapping to the error screen would strand the
+      // user at setup on "Try Again" and lose the rest of the quiz.
       state.answered = false;
       allBtns.forEach(b => { b.disabled = false; });
-      showError('Answer submission failed', err.message);
+      answerError.textContent = `Could not submit that answer: ${err.message}. Pick an option to try again.`;
+      answerError.classList.add('visible');
     }
   }
 
