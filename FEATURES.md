@@ -32,12 +32,13 @@ _(move items here when actively working on them)_
 ### Quiz experience
 
 - [x] **End-of-quiz review** — "Review Answers" button on end screen shows all Q&A with color-coded options + explanations.
-- [x] **Keyboard shortcuts** — `1`–`4` select option, `Enter`/`Space` confirm or advance, `→` next.
+- [x] **Keyboard shortcuts** — `1`–`4` move focus to an option, `Enter`/`Space` confirm or advance, `→` next. The digit keys move real DOM focus, so tab order and screen-reader focus follow the highlight.
 - [x] **"Missed only" replay** — "Retry missed (N)" button on end screen replays wrong answers without an API call.
 - [~] **SRS hesitant-correct rating** — SM-2 `algorithm.py` already accepts rating `3`; `SrsService.submit_review` hard-codes `5 if correct else 0`. Remaining work: surface a "Struggled" button in the SRS UI and pass rating `3` through the review endpoint.
 - [ ] **Timer mode** — optional per-question countdown (e.g. 30 s). Adds pressure for exam prep.
 - [~] **Session history screen** — `quiz_sessions` table and `SessionRepository` already exist. Remaining work: `GET /api/v1/quiz/sessions` list endpoint + a "Past Sessions" UI page with date, score, and replay link.
 - [x] **Quiz progress bar** — "Question N of M" label + accent-coloured fill bar above the question card; fills to 100% on end screen.
+- [x] **Accessible quiz UI** — real focus on the option keys, `aria-live` result and score announcements, tick/cross markers alongside the colour feedback, `aria-pressed` mode toggle, labelled icon-only controls, visible focus rings, WCAG AA palette, and `prefers-reduced-motion`.
 - [ ] **Bookmark / star questions** — a flag (new status value or separate column) to mark questions for focused review, independent of the approve/reject workflow.
 - [ ] **Explanation visibility toggle** — setup option to hide the explanation until after answering, or show it only on wrong answers. Supports active recall practice.
 
@@ -50,7 +51,7 @@ _(move items here when actively working on them)_
 ### Progress tracking & spaced repetition
 
 - [x] **Session history** — `quiz_sessions` + `quiz_answers` tables; `POST /quiz/sessions`, `/answers`, `/finish`, `GET /quiz/sessions/{id}`; frontend random flow wired through session API.
-- [x] **Per-question hit rate** — `get_hit_rate()` aggregates `quiz_answers` + `srs_reviews`; exposed on `GET /questions/{id}`; colour-coded pill on review UI cards.
+- [x] **Per-question hit rate** — `get_hit_rate()` aggregates `quiz_answers` + `srs_reviews`; exposed on `GET /questions/{id}` and, via one grouped query, on every row of `GET /questions`; colour-coded pill on review UI cards.
 - [x] **Weak-topic replay** — bottom-quartile hit rate pool; `weak: bool` on `StartQuizSessionRequest`; `GET /quiz/weak-count`; "Weak Topics" mode pill on setup screen.
 - [x] **Spaced repetition mode** — SM-2 backend (`srs_cards`, `srs_sessions`, `srs_reviews`; `algorithm.py`; `/api/v1/srs/` routes) + frontend SRS mode with stats dashboard.
 - [ ] **SRS card reset** — button in review UI to wipe a card's SM-2 state back to new. Useful after significantly editing a question whose history no longer reflects true knowledge.
@@ -93,6 +94,9 @@ _(move items here when actively working on them)_
 - [x] **Replace module-level service globals with `app.state`** — moved to `quiz/deps.py`; eliminates deferred circular-import workarounds.
 - [x] **Database migrations** — `schema_migrations` version table + `migrate_db()` runner; applied automatically on server start.
 - [x] **2026-07-16 audit fixes (see TODO.md)** — HTML-strip regex no longer eats `<`…`>` prose; orphan-chunk cleanup on `--force` re-ingest; import remaps documents by `source_path`; explicit `status=rejected` export; fingerprint refresh on edit (409 on collision); session answers restricted to dealt questions (schema v2); fresh DBs stamped at latest migration; `SELECT 1` health check; stable pagination tiebreaker; re-ingest failure logging + per-doc concurrency guard; review-UI escaping; UTC dates in SRS; ruff-clean; GitHub Actions CI.
+- [x] **Frontend test suite** — `tests/js/` boots each page in jsdom against a stubbed API and drives it through the DOM; runs as its own CI job via `npm test`.
+- [x] **Shared static assets** — one `:root` token block, radius scale and badge palette in `css/app.css`; `js/api.js` and `js/toast.js` shared by all three pages; no inline `<style>`/`<script>` and no colour literals outside the shared sheet.
+- [x] **2026-08-01 frontend audit fixes (see TODO.md)** — retry-missed no longer writes into a finished session; `showError()` builds DOM nodes instead of `innerHTML`; near-duplicate badge is a real button; a failed answer keeps the quiz alive; review list costs one request instead of 41; bulk SRS due-count endpoint; local near-duplicate invalidation; double-submit guards; SRS honours the whole document selection; toast replaces `alert()`; accessibility and design token passes.
 
 ---
 

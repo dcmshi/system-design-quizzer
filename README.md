@@ -212,7 +212,11 @@ This starts both the REST API and the web UI:
 | `http://localhost:8000/api/v1/` | REST API |
 | `http://localhost:8000/docs` | Interactive API docs (Swagger) |
 
-The web UI lets you choose a question count (1–50), filter by difficulty, and work through a quiz with immediate answer feedback and explanations. An **Exit Quiz** button is always visible during a session — clicking it ends the quiz early and shows your score for the questions answered so far. No build step — plain HTML, CSS and JS served by FastAPI, with the palette and shared components in `static/css/app.css` and `static/js/`.
+The web UI lets you choose a question count (1–50), tick the documents to draw from, filter by difficulty, and work through a quiz with immediate answer feedback and explanations. An **Exit Quiz** button is always visible during a session — clicking it ends the quiz early and shows your score for the questions answered so far; leaving the page mid-question asks for confirmation first.
+
+The pages are keyboard-operable and screen-reader friendly: `1`–`4` move real focus between options, results are announced through a live region, answered options carry a tick or cross as well as a colour, and every control has a visible focus ring. The palette meets WCAG AA and `prefers-reduced-motion` is honoured.
+
+No build step — plain HTML, CSS and JS served by FastAPI, with the design tokens in `static/css/app.css` and the shared `api.js` / `toast.js` helpers in `static/js/`.
 
 The review UI at `http://localhost:8000/review/` lets you browse, approve, edit, and reject questions. Each card has a checkbox; a **Select all on page** control and a **Reject selected (N)** button let you bulk-reject batches of bad questions in one click.
 
@@ -228,7 +232,7 @@ Base path: `/api/v1`
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/questions` | List questions. Filters: `difficulty`, `status`, `document_id`, `q` (text search), `model`, `prompt_version`, `limit`, `offset` |
+| `GET` | `/questions` | List questions with their answer, provenance and hit rate — everything the review card needs, so it costs one request per page. Filters: `difficulty`, `status`, `document_id`, `q` (text search), `model`, `prompt_version`, `limit`, `offset` |
 | `GET` | `/questions/{id}` | Get question detail (no answer) — includes `times_answered`, `times_correct`, `hit_rate` |
 | `GET` | `/questions/{id}/answer` | Get question with correct answer + explanation |
 | `POST` | `/questions/{id}/answer` | Submit answer `{"selected_index": 0}` → `{correct, correct_index, explanation}` |
