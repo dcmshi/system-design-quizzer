@@ -911,9 +911,17 @@
     return `in ${days} days`;
   }
 
-  function showError(title, msg) {
+  function el(tag, text) {
+    const node = document.createElement(tag);
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  // Parts are strings or Nodes: server- and DB-controlled text stays a string
+  // so it lands as a text node, and markup is passed as real elements.
+  function showError(title, ...parts) {
     errorTitle.textContent = title;
-    errorMsg.innerHTML = msg;
+    errorMsg.replaceChildren(...parts);
     showScreen('error');
   }
 
@@ -1234,19 +1242,22 @@
         if (isWeak) {
           showError(
             'No weak-topic questions yet',
-            `Answer some questions first to build a history, then come back to drill your weak spots.`
+            'Answer some questions first to build a history, then come back to drill your weak spots.'
           );
         } else {
           const context = documentIds.length === 1
-            ? ` in <strong>${inputDoc.selectedOptions[0].text}</strong>`
+            ? [' in ', el('strong', inputDoc.selectedOptions[0].text)]
             : documentIds.length > 1
-              ? ` across <strong>${documentIds.length} selected documents</strong>`
-              : '';
+              ? [' across ', el('strong', `${documentIds.length} selected documents`)]
+              : [];
+          const diffContext = difficulty
+            ? [' for difficulty ', el('strong', difficulty)]
+            : [];
           showError(
             'No questions found',
-            `No questions are available${context}${difficulty ? ` for difficulty <strong>${difficulty}</strong>` : ''}. ` +
-            `Ingest some articles first:<br><br>` +
-            `<code>uv run python scripts/ingest.py --source content/&lt;article&gt;.md --verbose</code>`
+            'No questions are available', ...context, ...diffContext,
+            '. Ingest some articles first:', el('br'), el('br'),
+            el('code', 'uv run python scripts/ingest.py --source content/<article>.md --verbose'),
           );
         }
         return;
@@ -1460,9 +1471,11 @@
       try {
         const data = await finishSrsSession(state.srsSessionId);
         state.srsFinishData = data;
-        srsEndInfo.innerHTML =
-          `Session: <span class="srs-correct">${data.n_correct} correct</span>` +
-          ` &middot; <span class="srs-wrong">${data.n_wrong} wrong</span>`;
+        const correctSpan = el('span', `${data.n_correct} correct`);
+        correctSpan.className = 'srs-correct';
+        const wrongSpan = el('span', `${data.n_wrong} wrong`);
+        wrongSpan.className = 'srs-wrong';
+        srsEndInfo.replaceChildren('Session: ', correctSpan, ' · ', wrongSpan);
       } catch (_) {
         srsEndInfo.textContent = 'Session complete.';
       }

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { after, describe, it } from 'node:test';
 
 import { answer, bootQuiz, startQuiz } from './fixtures.mjs';
+import { reply } from './harness.mjs';
 
 /** Grade Q1 wrong and everything else right. */
 const gradeQ1Wrong = ({ body }) => ({
@@ -100,5 +101,53 @@ describe('quiz page — retry missed', () => {
     const during = page.calls.slice(before);
 
     assert.deepEqual(during.map((c) => c.path), ['/api/v1/questions/Q1/answer']);
+  });
+});
+
+describe('quiz page — error screen', () => {
+  const pages = [];
+  after(() => pages.forEach((p) => p.close()));
+
+  const EVIL = '<img src=x onerror="window.__pwned = true">';
+
+  it('renders a document title from the database as text, not markup', async () => {
+    const page = await bootQuiz({
+      'GET /api/v1/documents': [{ id: 'DOC1', title: EVIL, question_count: 3 }],
+      'POST /api/v1/quiz/sessions': { session_id: 'S1', questions: [], started_at: 'now' },
+    });
+    pages.push(page);
+
+    page.$$('#input-doc option')[0].selected = true;
+    await startQuiz(page);
+
+    assert.ok(page.$('#screen-error').classList.contains('active'));
+    assert.equal(page.$('#error-msg img'), null);
+    assert.equal(page.window.__pwned, undefined);
+    assert.match(page.text('#error-msg'), /<img src=x/);
+  });
+
+  it('renders an API error detail as text, not markup', async () => {
+    const page = await bootQuiz({
+      'POST /api/v1/quiz/sessions': reply(500, { detail: EVIL }),
+    });
+    pages.push(page);
+
+    await startQuiz(page);
+
+    assert.ok(page.$('#screen-error').classList.contains('active'));
+    assert.equal(page.$('#error-msg img'), null);
+    assert.equal(page.window.__pwned, undefined);
+    assert.match(page.text('#error-msg'), /<img src=x/);
+  });
+
+  it('still formats the ingest hint with real markup', async () => {
+    const page = await bootQuiz({
+      'POST /api/v1/quiz/sessions': { session_id: 'S1', questions: [], started_at: 'now' },
+    });
+    pages.push(page);
+
+    await startQuiz(page);
+
+    assert.match(page.text('#error-msg code'), /scripts\/ingest\.py/);
   });
 });
