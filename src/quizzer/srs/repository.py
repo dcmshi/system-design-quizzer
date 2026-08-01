@@ -52,21 +52,27 @@ class SrsRepository:
         )
         self._conn.commit()
 
+    @staticmethod
+    def _document_filter(document_ids: list[str] | None) -> tuple[str, list]:
+        if not document_ids:
+            return "", []
+        placeholders = ",".join(["?"] * len(document_ids))
+        return f"q.source_document_id IN ({placeholders})", list(document_ids)
+
     def get_due_questions(
         self,
         n: int,
-        document_id: str | None = None,
+        document_ids: list[str] | None = None,
         today: str | None = None,
     ) -> list[dict]:
         """Return up to *n* questions that are due or new, ordered due-first."""
         cutoff = today or utc_today().isoformat()
         # Build params in the exact order the placeholders appear in the SQL:
-        # 1) document_id (WHERE), 2) cutoff (due-date AND), 3) n (LIMIT).
+        # 1) document ids (WHERE), 2) cutoff (due-date AND), 3) n (LIMIT).
         filters = ["q.status != 'rejected'"]
-        params: list = []
-        if document_id:
-            filters.append("q.source_document_id = ?")
-            params.append(document_id)
+        doc_clause, params = self._document_filter(document_ids)
+        if doc_clause:
+            filters.append(doc_clause)
         where = "WHERE " + " AND ".join(filters)
         params.append(cutoff)
         params.append(n)
@@ -87,15 +93,12 @@ class SrsRepository:
         ).fetchall()
         return [self._row_to_dict(r) for r in rows]
 
-    def due_count(self, document_id: str | None = None, today: str | None = None) -> dict:
+    def due_count(self, document_ids: list[str] | None = None, today: str | None = None) -> dict:
         cutoff = today or utc_today().isoformat()
-        params_due: list = [cutoff]
-        params_new: list = []
-        doc_filter = ""
-        if document_id:
-            doc_filter = "AND q.source_document_id = ?"
-            params_due.append(document_id)
-            params_new.append(document_id)
+        doc_clause, doc_params = self._document_filter(document_ids)
+        doc_filter = f"AND {doc_clause}" if doc_clause else ""
+        params_due: list = [cutoff, *doc_params]
+        params_new: list = list(doc_params)
 
         due_row = self._conn.execute(
             f"""

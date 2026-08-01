@@ -5,7 +5,7 @@ from quizzer.quiz.schemas import QuestionSummary
 
 class StartSessionRequest(BaseModel):
     n: int = Field(10, ge=1, le=50)
-    document_id: str | None = None
+    document_ids: list[str] = Field(default_factory=list)
 
 
 class SrsSessionResponse(BaseModel):

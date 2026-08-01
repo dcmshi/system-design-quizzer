@@ -275,8 +275,9 @@ further out; wrong answers reset the interval to 1 day.
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/srs/due` | Count of due and new questions. Params: `document_id` |
-| `POST` | `/srs/sessions` | Start a session — returns due/new questions ordered by urgency. Body: `{"n": 10, "document_id": null}` |
+| `GET` | `/srs/due` | Count of due and new questions. Params: `document_id` (repeatable) |
+| `GET` | `/srs/due/by-document` | Due and new counts for every document in one call → `[{document_id, due_count, new_count, total_actionable}]` |
+| `POST` | `/srs/sessions` | Start a session — returns due/new questions ordered by urgency. Body: `{"n": 10, "document_ids": []}` |
 | `POST` | `/srs/sessions/{id}/reviews` | Submit an answer — applies SM-2, returns next due date + new interval. Body: `{"question_id": "…", "selected_index": 2}` |
 | `POST` | `/srs/sessions/{id}/finish` | Close a session — returns correct/wrong counts |
 | `GET` | `/srs/sessions/{id}` | Session details + full review log |

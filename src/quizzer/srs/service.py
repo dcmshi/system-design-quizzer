@@ -17,9 +17,9 @@ class SrsService:
         self._questions = question_repo
 
     def create_session(
-        self, n: int, document_id: str | None = None
+        self, n: int, document_ids: list[str] | None = None
     ) -> dict:
-        questions = self._srs.get_due_questions(n, document_id=document_id)
+        questions = self._srs.get_due_questions(n, document_ids=document_ids)
         session_id = str(ULID())
         started_at = datetime.now(timezone.utc).isoformat()
         self._srs.create_session(
@@ -123,8 +123,8 @@ class SrsService:
             "n_wrong": len(reviews) - n_correct,
         }
 
-    def get_due_info(self, document_id: str | None = None) -> dict:
-        counts = self._srs.due_count(document_id=document_id)
+    def get_due_info(self, document_ids: list[str] | None = None) -> dict:
+        counts = self._srs.due_count(document_ids=document_ids)
         total = counts["due_count"] + counts["new_count"]
         return {**counts, "total_actionable": total}
 

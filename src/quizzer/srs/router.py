@@ -26,7 +26,7 @@ def start_session(
     body: StartSessionRequest,
     svc: SrsService = Depends(_get_srs_service),
 ):
-    result = svc.create_session(body.n, document_id=body.document_id)
+    result = svc.create_session(body.n, document_ids=body.document_ids or None)
     questions = [
         QuestionSummary(
             id=q["id"],
@@ -81,10 +81,10 @@ def get_session(
 
 @router.get("/due", response_model=SrsDueResponse)
 def get_due(
-    document_id: str | None = Query(None),
+    document_id: list[str] | None = Query(default=None),
     svc: SrsService = Depends(_get_srs_service),
 ):
-    return SrsDueResponse(**svc.get_due_info(document_id=document_id))
+    return SrsDueResponse(**svc.get_due_info(document_ids=document_id or None))
 
 
 @router.get("/due/by-document", response_model=list[SrsDocumentDue])

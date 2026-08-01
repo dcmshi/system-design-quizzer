@@ -152,6 +152,53 @@ describe('quiz page — error screen', () => {
   });
 });
 
+describe('quiz page — SRS mode honours the document picker', () => {
+  const pages = [];
+  after(() => pages.forEach((p) => p.close()));
+
+  async function bootSrsWithBothDocsSelected() {
+    const page = await bootQuiz({
+      'POST /api/v1/srs/sessions': { session_id: 'SRS1', questions: [], started_at: 'now' },
+    });
+    pages.push(page);
+    page.$$('#input-doc option').forEach((o) => { o.selected = true; });
+    page.$('#btn-mode-srs').click();
+    await page.flush();
+    return page;
+  }
+
+  it('counts due cards across every selected document', async () => {
+    const page = await bootSrsWithBothDocsSelected();
+
+    const dueCall = page.calls.filter((c) => c.path === '/api/v1/srs/due').at(-1);
+    assert.match(dueCall.url, /document_id=DOC1/);
+    assert.match(dueCall.url, /document_id=DOC2/);
+  });
+
+  it('starts the session with every selected document', async () => {
+    const page = await bootSrsWithBothDocsSelected();
+
+    await startQuiz(page);
+    const start = page.calls.find((c) => c.path === '/api/v1/srs/sessions');
+    assert.deepEqual(start.body, { n: 10, document_ids: ['DOC1', 'DOC2'] });
+  });
+
+  it('sends no document filter when nothing is selected', async () => {
+    const page = await bootQuiz({
+      'POST /api/v1/srs/sessions': { session_id: 'SRS1', questions: [], started_at: 'now' },
+    });
+    pages.push(page);
+
+    page.$('#btn-mode-srs').click();
+    await page.flush();
+    await startQuiz(page);
+
+    assert.equal(page.calls.filter((c) => c.path === '/api/v1/srs/due').at(-1).url, '/api/v1/srs/due');
+    assert.deepEqual(page.calls.find((c) => c.path === '/api/v1/srs/sessions').body,
+      { n: 10, document_ids: [] });
+  });
+});
+
 describe('quiz page — start button', () => {
   const pages = [];
   after(() => pages.forEach((p) => p.close()));

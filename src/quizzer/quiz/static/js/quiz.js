@@ -88,6 +88,17 @@ const statsEmpty   = document.getElementById('stats-empty');
 // ── Helpers ───────────────────────────────────────────────────────────────
 const LABELS = ['A', 'B', 'C', 'D'];
 
+/** Every document the user picked; empty means "all documents". */
+function selectedDocumentIds() {
+  return Array.from(inputDoc.selectedOptions).map(o => o.value).filter(Boolean);
+}
+
+/** Repeatable ?document_id= query string, or '' for all documents. */
+function documentQuery(documentIds) {
+  if (!documentIds.length) return '';
+  return '?' + documentIds.map(id => `document_id=${encodeURIComponent(id)}`).join('&');
+}
+
 function difficultyClass(d) {
   return { easy: 'badge-easy', medium: 'badge-medium', hard: 'badge-hard' }[d] || 'badge-unknown';
 }
@@ -164,8 +175,7 @@ function setMode(mode) {
 async function refreshDueInfo() {
   if (state.mode !== 'srs') return;
   try {
-    const docId = inputDoc.selectedOptions[0]?.value || null;
-    const data = await loadDueInfo(docId || null);
+    const data = await loadDueInfo(selectedDocumentIds());
     dueCount.textContent = data.due_count;
     newCount.textContent = data.new_count;
   } catch (_) {
@@ -177,10 +187,7 @@ async function refreshDueInfo() {
 async function refreshWeakCount() {
   if (state.mode !== 'weak') return;
   try {
-    const documentIds = Array.from(inputDoc.selectedOptions).map(o => o.value).filter(Boolean);
-    let url = '/api/v1/quiz/weak-count';
-    const params = documentIds.map(id => `document_id=${encodeURIComponent(id)}`);
-    if (params.length) url += '?' + params.join('&');
+    let url = '/api/v1/quiz/weak-count' + documentQuery(selectedDocumentIds());
     const res = await fetch(url);
     if (res.ok) {
       const data = await res.json();
@@ -303,9 +310,8 @@ async function submitAnswer(questionId, selectedIndex) {
   return res.json();
 }
 
-async function startSrsSession(n, documentId) {
-  const body = { n };
-  if (documentId) body.document_id = documentId;
+async function startSrsSession(n, documentIds) {
+  const body = { n, document_ids: documentIds };
   const res = await fetch('/api/v1/srs/sessions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -387,10 +393,8 @@ async function finishQuizSession(sessionId) {
   return res.json();
 }
 
-async function loadDueInfo(documentId) {
-  let url = '/api/v1/srs/due';
-  if (documentId) url += `?document_id=${encodeURIComponent(documentId)}`;
-  const res = await fetch(url);
+async function loadDueInfo(documentIds) {
+  const res = await fetch('/api/v1/srs/due' + documentQuery(documentIds));
   if (!res.ok) {
     const b = await res.json().catch(() => ({}));
     throw new Error(b.detail || `HTTP ${res.status}`);
@@ -430,7 +434,7 @@ async function startRandomFlow() {
   n = Math.min(n, 50);
 
   const difficulty = inputDiff.value.trim();
-  const documentIds = Array.from(inputDoc.selectedOptions).map(o => o.value).filter(Boolean);
+  const documentIds = selectedDocumentIds();
   const tag = inputTag.value.trim();
 
   state.totalRequested = n;
@@ -501,7 +505,7 @@ async function startSrsFlow() {
   if (!n || n < 1) n = 1;
   n = Math.min(n, 100);
 
-  const documentId = inputDoc.selectedOptions[0]?.value || null;
+  const documentIds = selectedDocumentIds();
 
   state.totalRequested = n;
   state.questions = [];
@@ -516,7 +520,7 @@ async function startSrsFlow() {
   showScreen('loading');
 
   try {
-    const data = await startSrsSession(n, documentId || null);
+    const data = await startSrsSession(n, documentIds);
 
     if (!data.questions || data.questions.length === 0) {
       showError(
@@ -802,7 +806,7 @@ async function showStats() {
 
   try {
     // Overall counts
-    const overall = await loadDueInfo(null);
+    const overall = await loadDueInfo([]);
     statsDue.textContent = overall.due_count;
     statsNew.textContent = overall.new_count;
     statsTotal.textContent = overall.total_actionable;

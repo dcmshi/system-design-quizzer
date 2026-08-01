@@ -96,6 +96,33 @@ def test_due_counts_new_questions(srs_client):
     assert data["total_actionable"] == data["new_count"] + data["due_count"]
 
 
+def test_due_accepts_repeated_document_id(srs_client):
+    """SRS mode's picker is a multi-select, so /due must sum across documents."""
+    client, _ = srs_client
+    doc_id = client.get("/api/v1/documents").json()[0]["id"]
+
+    scoped = client.get(f"/api/v1/srs/due?document_id={doc_id}&document_id=NO_SUCH_DOC").json()
+    assert scoped == client.get(f"/api/v1/srs/due?document_id={doc_id}").json()
+
+    absent = client.get("/api/v1/srs/due?document_id=NO_SUCH_DOC").json()
+    assert absent == {"due_count": 0, "new_count": 0, "total_actionable": 0}
+
+
+def test_start_session_scopes_to_the_selected_documents(srs_client):
+    client, q_id = srs_client
+    doc_id = client.get("/api/v1/documents").json()[0]["id"]
+
+    both = client.post(
+        "/api/v1/srs/sessions", json={"n": 5, "document_ids": [doc_id, "NO_SUCH_DOC"]}
+    ).json()
+    assert [q["id"] for q in both["questions"]] == [q_id]
+
+    none_matching = client.post(
+        "/api/v1/srs/sessions", json={"n": 5, "document_ids": ["NO_SUCH_DOC"]}
+    ).json()
+    assert none_matching["questions"] == []
+
+
 def test_due_by_document_reports_every_document_in_one_call(srs_client):
     """The stats screen used to call /due once per document."""
     client, q_id = srs_client
