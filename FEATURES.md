@@ -44,7 +44,7 @@ _(move items here when actively working on them)_
 ### Filtering & discovery
 
 - [x] **Tag-based filtering** — `GET /tags` + `GET /quiz?tag=…`; tag selector dropdown in random-mode setup (hidden when no tags exist).
-- [x] **Multi-document selection** — `<select multiple>` on setup screen; `GET /quiz` accepts repeated `document_id` params; nothing selected = all documents.
+- [x] **Multi-document selection** — checkbox list on the setup screen; every mode (random, weak, SRS) honours the whole selection; nothing selected = all documents.
 - [x] **Question count guard** — `GET /quiz` returns `{questions, requested, returned}`; UI shows amber notice when fewer questions served than requested.
 
 ### Progress tracking & spaced repetition
