@@ -22,6 +22,13 @@
   --font: 'Segoe UI', system-ui, sans-serif;
 }
 
+/* Keyboard focus must be visible everywhere; a border-colour shift alone is
+   easy to miss and buttons had no focus style at all. */
+:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+
 /* Visible to assistive technology only. */
 .sr-only {
   position: absolute;

@@ -62,6 +62,19 @@ def test_palette_pair_meets_wcag_aa(description: str, fg: str, bg: str, minimum:
     )
 
 
+def test_keyboard_focus_is_always_visible():
+    """A border-colour shift is easy to miss and buttons had no focus style at
+    all, so the shared sheet owns one ring and nothing suppresses it."""
+    css_dir = APP_CSS.parent
+    assert re.search(r":focus-visible\s*\{[^}]*outline:", APP_CSS.read_text(encoding="utf-8"))
+
+    suppressed = [
+        path.name for path in sorted(css_dir.glob("*.css"))
+        if re.search(r"outline:\s*(none|0)\b", path.read_text(encoding="utf-8"))
+    ]
+    assert suppressed == []
+
+
 def test_no_page_dims_small_text_with_opacity():
     """Half-opacity muted text was 2.35:1. Dim small text by choosing a colour
     that still passes, not by fading one that does."""

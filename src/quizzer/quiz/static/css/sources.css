@@ -19,7 +19,6 @@ body {
   padding: 0.45rem 0.75rem;
   font-size: 0.875rem;
   font-family: var(--font);
-  outline: none;
   flex: 1;
   min-width: 200px;
 }
@@ -33,7 +32,6 @@ body {
   padding: 0.45rem 0.75rem;
   font-size: 0.875rem;
   font-family: var(--font);
-  outline: none;
   cursor: pointer;
   min-width: 130px;
 }
