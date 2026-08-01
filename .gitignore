@@ -42,6 +42,9 @@ CLAUDE.md
 .DS_Store
 Thumbs.db
 
+# Node (frontend test harness only)
+node_modules/
+
 # Test / coverage
 .pytest_cache/
 .coverage
