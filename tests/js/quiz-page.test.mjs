@@ -20,8 +20,8 @@ describe('quiz page', () => {
     pages.push(page);
 
     assert.deepEqual(page.errors, []);
-    const options = page.$$('#input-doc option').map((o) => o.textContent);
-    assert.deepEqual(options, ['Consistent Hashing (12 Q)', 'Load Balancers (7 Q)']);
+    const options = page.$$('#input-doc .doc-option').map((o) => o.textContent);
+    assert.deepEqual(options, ['Consistent Hashing12 Q', 'Load Balancers7 Q']);
     assert.ok(page.$('#screen-setup').classList.contains('active'));
   });
 
@@ -117,7 +117,7 @@ describe('quiz page — error screen', () => {
     });
     pages.push(page);
 
-    page.$$('#input-doc option')[0].selected = true;
+    page.$$('#input-doc input[type=checkbox]')[0].click();
     await startQuiz(page);
 
     assert.ok(page.$('#screen-error').classList.contains('active'));
@@ -152,6 +152,44 @@ describe('quiz page — error screen', () => {
   });
 });
 
+describe('quiz page — document picker', () => {
+  const pages = [];
+  after(() => pages.forEach((p) => p.close()));
+
+  it('offers a checkbox per document rather than a ctrl-click multi-select', async () => {
+    const page = await bootQuiz();
+    pages.push(page);
+
+    assert.equal(page.$('#input-doc').tagName, 'DIV');
+    assert.equal(page.$('#input-doc').getAttribute('role'), 'group');
+    assert.equal(page.$('#input-doc').getAttribute('aria-labelledby'), 'doc-picker-label');
+    assert.deepEqual(
+      page.$$('#input-doc input[type=checkbox]').map((cb) => cb.value),
+      ['DOC1', 'DOC2'],
+    );
+  });
+
+  it('scopes the quiz to whatever is ticked', async () => {
+    const page = await bootQuiz();
+    pages.push(page);
+
+    page.$$('#input-doc input[type=checkbox]')[1].click();
+    await startQuiz(page);
+
+    assert.deepEqual(
+      page.calls.find((c) => c.path === '/api/v1/quiz/sessions').body.document_ids,
+      ['DOC2'],
+    );
+  });
+
+  it('says so when there is nothing to pick', async () => {
+    const page = await bootQuiz({ 'GET /api/v1/documents': [] });
+    pages.push(page);
+
+    assert.match(page.text('#input-doc'), /No documents ingested yet/);
+  });
+});
+
 describe('quiz page — document list failure', () => {
   const pages = [];
   after(() => pages.forEach((p) => p.close()));
@@ -160,7 +198,7 @@ describe('quiz page — document list failure', () => {
     const page = await bootQuiz({ 'GET /api/v1/documents': reply(503, {}) });
     pages.push(page);
 
-    assert.equal(page.$$('#input-doc option').length, 0);
+    assert.equal(page.$$('#input-doc .doc-option').length, 0);
     assert.match(page.text('#doc-hint'), /Could not load the document list/);
     assert.ok(page.$('#doc-hint').classList.contains('input-hint-error'));
   });
@@ -239,7 +277,7 @@ describe('quiz page — SRS mode honours the document picker', () => {
       'POST /api/v1/srs/sessions': { session_id: 'SRS1', questions: [], started_at: 'now' },
     });
     pages.push(page);
-    page.$$('#input-doc option').forEach((o) => { o.selected = true; });
+    page.$$('#input-doc input[type=checkbox]').forEach((cb) => cb.click());
     page.$('#btn-mode-srs').click();
     await page.flush();
     return page;

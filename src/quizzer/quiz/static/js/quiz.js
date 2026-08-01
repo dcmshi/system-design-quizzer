@@ -89,9 +89,13 @@ const statsEmpty   = document.getElementById('stats-empty');
 // ── Helpers ───────────────────────────────────────────────────────────────
 const LABELS = ['A', 'B', 'C', 'D'];
 
-/** Every document the user picked; empty means "all documents". */
+/** Checkboxes for every document the user picked; empty means "all". */
+function selectedDocuments() {
+  return Array.from(inputDoc.querySelectorAll('input[type=checkbox]:checked'));
+}
+
 function selectedDocumentIds() {
-  return Array.from(inputDoc.selectedOptions).map(o => o.value).filter(Boolean);
+  return selectedDocuments().map(cb => cb.value);
 }
 
 /** Repeatable ?document_id= query string, or '' for all documents. */
@@ -247,6 +251,23 @@ function handleKeyDown(e) {
 }
 
 // ── API calls ─────────────────────────────────────────────────────────────
+/** One checkbox row: a multi-select's ctrl-click semantics are undiscoverable
+ *  on desktop and unusable on touch. */
+function buildDocOption(doc) {
+  const row = el('label');
+  row.className = 'doc-option';
+  const box = document.createElement('input');
+  box.type = 'checkbox';
+  box.value = doc.id;
+  box.dataset.title = doc.title;
+  const title = el('span', doc.title);
+  title.className = 'doc-option-title';
+  const count = el('span', `${doc.question_count} Q`);
+  count.className = 'doc-option-count';
+  row.append(box, title, count);
+  return row;
+}
+
 async function fetchDocuments() {
   const res = await fetch('/api/v1/documents');
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -256,13 +277,9 @@ async function fetchDocuments() {
 async function loadDocuments() {
   try {
     const docs = await fetchDocuments();
-    inputDoc.innerHTML = '';
-    docs.forEach(doc => {
-      const opt = document.createElement('option');
-      opt.value = doc.id;
-      opt.textContent = `${doc.title} (${doc.question_count} Q)`;
-      inputDoc.appendChild(opt);
-    });
+    inputDoc.replaceChildren(...(docs.length
+      ? docs.map(buildDocOption)
+      : [Object.assign(el('div', 'No documents ingested yet.'), { className: 'doc-picker-empty' })]));
   } catch (err) {
     // Not fatal — a quiz with no document filter still works — but an empty
     // picker with no explanation looks like there is nothing to study.
@@ -471,7 +488,7 @@ async function startRandomFlow() {
         );
       } else {
         const context = documentIds.length === 1
-          ? [' in ', el('strong', inputDoc.selectedOptions[0].text)]
+          ? [' in ', el('strong', selectedDocuments()[0].dataset.title)]
           : documentIds.length > 1
             ? [' across ', el('strong', `${documentIds.length} selected documents`)]
             : [];
@@ -908,8 +925,8 @@ btnStatsStartSrs.addEventListener('click', () => {
 });
 
 // Allow Enter key in the setup inputs to start the quiz
-[inputDoc, inputN, inputDiff, inputSrsN].forEach(el => {
-  el.addEventListener('keydown', e => {
+[inputDoc, inputN, inputDiff, inputSrsN].forEach(field => {
+  field.addEventListener('keydown', e => {
     if (e.key === 'Enter') startQuiz();
   });
 });
