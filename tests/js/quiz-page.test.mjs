@@ -3,6 +3,13 @@ import { after, describe, it } from 'node:test';
 
 import { answer, bootQuiz, startQuiz } from './fixtures.mjs';
 
+/** Grade Q1 wrong and everything else right. */
+const gradeQ1Wrong = ({ body }) => ({
+  correct: body.question_id !== 'Q1',
+  correct_index: 0,
+  explanation: 'Because.',
+});
+
 describe('quiz page', () => {
   const pages = [];
   after(() => pages.forEach((p) => p.close()));
@@ -52,5 +59,46 @@ describe('quiz page', () => {
 
     assert.ok(page.calls.some((c) => c.path === '/api/v1/quiz/sessions/S1/answers'));
     assert.ok(!page.calls.some((c) => c.path.endsWith('/answer')));
+  });
+});
+
+describe('quiz page — retry missed', () => {
+  const pages = [];
+  after(() => pages.forEach((p) => p.close()));
+
+  /** Play both questions, getting Q1 wrong, and land on the end screen. */
+  async function playToEnd() {
+    const page = await bootQuiz({ 'POST /api/v1/quiz/sessions/*/answers': gradeQ1Wrong });
+    pages.push(page);
+
+    await startQuiz(page);
+    await answer(page, 1);
+    page.$('#btn-next').click();
+    await page.flush();
+    await answer(page, 0);
+    page.$('#btn-next').click();
+    await page.flush();
+    return page;
+  }
+
+  it('offers a retry for the missed question', async () => {
+    const page = await playToEnd();
+
+    assert.equal(page.$('#btn-retry-missed').style.display, 'block');
+    assert.equal(page.text('#btn-retry-missed'), 'Retry missed (1)');
+  });
+
+  it('replays retried answers outside the finished session', async () => {
+    const page = await playToEnd();
+
+    page.$('#btn-retry-missed').click();
+    await page.flush();
+    assert.equal(page.text('#progress-label'), 'Question 1 of 1');
+
+    const before = page.calls.length;
+    await answer(page, 0);
+    const during = page.calls.slice(before);
+
+    assert.deepEqual(during.map((c) => c.path), ['/api/v1/questions/Q1/answer']);
   });
 });

@@ -1484,6 +1484,10 @@
     state.answered = false;
     state.results = [];
     state.keyboardFocus = null;
+    // The session was finished on the end screen; retried answers must not be
+    // recorded against it, so fall back to the standalone /answer endpoint.
+    state.quizSessionId = null;
+    state.srsSessionId = null;
     shortfallNotice.classList.remove('visible');
     renderQuestion();
     showScreen('question');
