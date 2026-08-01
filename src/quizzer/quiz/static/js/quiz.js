@@ -89,6 +89,12 @@ const statsEmpty   = document.getElementById('stats-empty');
 // ── Helpers ───────────────────────────────────────────────────────────────
 const LABELS = ['A', 'B', 'C', 'D'];
 
+/** Letter for an option. The schema guarantees four, but a malformed question
+ *  should still render every option with something in front of it. */
+function optionLabel(index) {
+  return LABELS[index] ?? String(index + 1);
+}
+
 /** Checkboxes for every document the user picked; empty means "all". */
 function selectedDocuments() {
   return Array.from(inputDoc.querySelectorAll('input[type=checkbox]:checked'));
@@ -208,7 +214,7 @@ async function refreshWeakCount() {
 }
 
 // ── Keyboard shortcuts ────────────────────────────────────────────────────
-const KEY_TO_INDEX = { '1': 0, '2': 1, '3': 2, '4': 3 };
+const KEY_TO_INDEX = Object.fromEntries(LABELS.map((_, i) => [String(i + 1), i]));
 
 /** Move real focus to an option so Tab order, the focus ring and the screen
  *  reader all agree on where the user is. */
@@ -498,7 +504,7 @@ function renderQuestion() {
   q.options.forEach((opt, i) => {
     const btn = document.createElement('button');
     btn.className = 'option-btn';
-    btn.append(el('span', `${LABELS[i]}. ${opt}`));
+    btn.append(el('span', `${optionLabel(i)}. ${opt}`));
     btn.addEventListener('click', () => handleAnswer(i, btn));
     optionsCont.appendChild(btn);
   });
@@ -559,7 +565,7 @@ async function handleAnswer(selectedIndex, clickedBtn) {
     // The colour change and score bump are silent otherwise.
     answerSaid.textContent = result.correct
       ? `Correct. ${result.explanation}`
-      : `Incorrect. The correct answer is ${LABELS[result.correct_index]}. ${result.explanation}`;
+      : `Incorrect. The correct answer is ${optionLabel(result.correct_index)}. ${result.explanation}`;
 
     // SRS next-review info
     if (state.mode === 'srs' && result.interval_days !== undefined) {
@@ -706,7 +712,7 @@ function showReview() {
       const isSelected = oi === r.selectedIndex;
       if (isCorrect)       optDiv.classList.add('correct');
       else if (isSelected) optDiv.classList.add('wrong');
-      let text = `${LABELS[oi]}. ${opt}`;
+      let text = `${optionLabel(oi)}. ${opt}`;
       if (isSelected && !isCorrect) text += '  \u2190 your answer';
       optDiv.textContent = text;
       optsDiv.appendChild(optDiv);

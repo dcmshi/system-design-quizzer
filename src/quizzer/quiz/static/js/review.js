@@ -2,6 +2,12 @@
 
 const PAGE_SIZE = 20;
 const LABELS = ['A', 'B', 'C', 'D'];
+
+/** Letter for an option; the edit form is fixed at four by the API schema, but
+ *  the read-only list must label whatever it is given. */
+function optionLabel(index) {
+  return LABELS[index] ?? String(index + 1);
+}
 const EMPTY_STATE = '<div class="state-msg">No questions match the current filters.</div>';
 
 let page        = 0;
@@ -351,7 +357,7 @@ function renderOptionsList(ul, options, correctIndex) {
 
     const label = document.createElement('span');
     label.className = 'option-label';
-    label.textContent = LABELS[i] + '.';
+    label.textContent = optionLabel(i) + '.';
 
     const text = document.createElement('span');
     text.textContent = opt;
@@ -402,7 +408,12 @@ function buildEditForm(q) {
 
 function prefillForm(form, q) {
   form.querySelector('[name=question]').value = q.question;
-  q.options.forEach((opt, i) => { form.querySelector(`[name=option_${i}]`).value = opt; });
+  // The form has one input per schema-guaranteed option; a question with more
+  // still has to render rather than throwing on the missing field.
+  q.options.forEach((opt, i) => {
+    const input = form.querySelector(`[name=option_${i}]`);
+    if (input) input.value = opt;
+  });
   form.querySelector('[name=correct_index]').value = String(q.correct_index);
   form.querySelector('[name=difficulty]').value = q.difficulty;
   form.querySelector('[name=explanation]').value = q.explanation;

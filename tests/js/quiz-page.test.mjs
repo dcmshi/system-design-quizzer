@@ -164,6 +164,40 @@ describe('quiz page — control labels', () => {
   });
 });
 
+describe('quiz page — malformed questions', () => {
+  const pages = [];
+  after(() => pages.forEach((p) => p.close()));
+
+  it('labels every option even when there are more than four', async () => {
+    const page = await bootQuiz({
+      'POST /api/v1/quiz/sessions': {
+        session_id: 'S1',
+        questions: [{ ...makeQuestions(1)[0], options: ['A1', 'B1', 'C1', 'D1', 'E1', 'F1'] }],
+        started_at: 'now',
+      },
+    });
+    pages.push(page);
+
+    await startQuiz(page);
+
+    assert.deepEqual(
+      page.$$('#options-container .option-btn').map((b) => b.textContent),
+      ['A. A1', 'B. B1', 'C. C1', 'D. D1', '5. E1', '6. F1'],
+    );
+  });
+
+  it('still maps the number keys to the four lettered options', async () => {
+    const page = await bootQuiz();
+    pages.push(page);
+    await startQuiz(page);
+
+    page.document.dispatchEvent(
+      new page.window.KeyboardEvent('keydown', { key: '4', bubbles: true, cancelable: true }));
+
+    assert.equal(page.document.activeElement, page.$$('#options-container .option-btn')[3]);
+  });
+});
+
 describe('quiz page — transient feedback', () => {
   const pages = [];
   after(() => pages.forEach((p) => p.close()));

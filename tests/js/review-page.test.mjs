@@ -405,3 +405,20 @@ describe('shared API helper', () => {
     assert.deepEqual(page.alerts, []);
   });
 });
+
+describe('review page — malformed questions', () => {
+  const pages = [];
+  after(() => pages.forEach((p) => p.close()));
+
+  it('labels every option even when there are more than four', async () => {
+    const items = makeItems(1);
+    items[0] = { ...items[0], options: ['A1', 'B1', 'C1', 'D1', 'E1'] };
+    const page = await bootReview({ items });
+    pages.push(page);
+
+    assert.deepEqual(
+      page.$$('.card-options .option-label').map((s) => s.textContent),
+      ['A.', 'B.', 'C.', 'D.', '5.'],
+    );
+  });
+});
