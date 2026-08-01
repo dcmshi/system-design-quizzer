@@ -42,7 +42,11 @@
   --tint-amber-line: #713f1259;
   --tint-red:   #7f1d1d33;
 
-  --radius: 10px;
+  --radius-sm:   4px;   /* inline code, the progress bar */
+  --radius-md:   6px;   /* inputs, buttons, inset panels */
+  --radius-lg:   8px;   /* option buttons, stat cards */
+  --radius-xl:   10px;  /* cards and table wrappers */
+  --radius-pill: 999px;
   --font: 'Segoe UI', system-ui, sans-serif;
 }
 

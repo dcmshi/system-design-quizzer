@@ -57,6 +57,20 @@ PAIRS = [
 ]
 
 
+def test_radii_come_from_the_shared_scale():
+    """6px / 8px / 10px were applied loosely across the three sheets."""
+    offenders = {}
+    for path in sorted(APP_CSS.parent.glob("*.css")):
+        loose = [
+            value for value in re.findall(r"border-radius:\s*([^;]+);",
+                                          path.read_text(encoding="utf-8"))
+            if re.search(r"\d+px", value) and value.strip() != "50%"
+        ]
+        if loose:
+            offenders[path.name] = loose
+    assert offenders == {}
+
+
 def test_page_stylesheets_hold_no_colour_literals():
     """Every colour lives in app.css, so a theme change is one file."""
     offenders = {}

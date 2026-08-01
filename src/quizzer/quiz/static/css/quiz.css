@@ -22,7 +22,7 @@ body {
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-xl);
   padding: 2rem;
 }
 
@@ -52,7 +52,7 @@ input[type="number"], select {
   width: 100%;
   background: var(--surface2);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--text);
   padding: 0.6rem 0.8rem;
   font-size: 1rem;
@@ -69,7 +69,7 @@ select option { background: var(--surface2); }
 .btn {
   display: inline-block;
   padding: 0.65rem 1.5rem;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   border: none;
   cursor: pointer;
   font-size: 0.95rem;
@@ -122,14 +122,14 @@ select option { background: var(--surface2); }
 .progress-bar {
   height: 4px;
   background: var(--border);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   margin-bottom: 1.5rem;
   overflow: hidden;
 }
 .progress-fill {
   height: 100%;
   background: var(--accent);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   transition: width 0.3s ease;
 }
 
@@ -140,7 +140,7 @@ select option { background: var(--surface2); }
   text-transform: uppercase;
   letter-spacing: 0.08em;
   padding: 0.2rem 0.6rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   margin-bottom: 0.75rem;
 }
 
@@ -166,7 +166,7 @@ select option { background: var(--surface2); }
   text-align: left;
   background: var(--surface2);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   color: var(--text);
   padding: 0.75rem 1rem;
   font-size: 0.95rem;
@@ -202,7 +202,7 @@ select option { background: var(--surface2); }
   display: none;
   background: var(--tint-red);
   border: 1px solid var(--red);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 0.6rem 0.9rem;
   font-size: 0.85rem;
   color: var(--badge-red-fg);
@@ -215,7 +215,7 @@ select option { background: var(--surface2); }
   display: none;
   background: var(--surface2);
   border-left: 3px solid var(--accent);
-  border-radius: 0 6px 6px 0;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
   padding: 0.9rem 1rem;
   font-size: 0.9rem;
   color: var(--text-muted);
@@ -247,7 +247,7 @@ select option { background: var(--surface2); }
   line-height: 1;
   cursor: pointer;
   padding: 0.25rem 0.4rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   transition: color 0.15s, background 0.15s;
 }
 .btn-exit-quiz:hover { color: var(--red); background: var(--surface2); }
@@ -257,7 +257,7 @@ select option { background: var(--surface2); }
   color: var(--badge-amber-fg);
   background: var(--tint-amber);
   border: 1px solid var(--badge-amber-line);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 0.4rem 0.75rem;
   margin-bottom: 1rem;
   text-align: center;
@@ -334,7 +334,7 @@ select option { background: var(--surface2); }
   font-size: 0.78rem;
   font-weight: 700;
   padding: 0.18rem 0.55rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 .review-result-badge.correct { background: var(--badge-green-bg); color: var(--badge-green-fg); }
 .review-result-badge.wrong   { background: var(--badge-red-bg); color: var(--badge-red-fg); }
@@ -352,7 +352,7 @@ select option { background: var(--surface2); }
 }
 .review-option {
   padding: 0.65rem 1rem;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   background: var(--surface2);
   font-size: 0.92rem;
@@ -372,7 +372,7 @@ select option { background: var(--surface2); }
 .review-expl {
   background: var(--surface2);
   border-left: 3px solid var(--accent);
-  border-radius: 0 6px 6px 0;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
   padding: 0.85rem 1rem;
   font-size: 0.88rem;
   color: var(--text-muted);
@@ -392,7 +392,7 @@ select option { background: var(--surface2); }
 .error-msg code {
   background: var(--surface2);
   padding: 0.1rem 0.35rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 0.85rem;
   color: var(--accent-text);
 }
@@ -402,7 +402,7 @@ select option { background: var(--surface2); }
   display: flex;
   background: var(--surface2);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: 3px;
   margin-bottom: 1.75rem;
   gap: 3px;
@@ -411,7 +411,7 @@ select option { background: var(--surface2); }
   flex: 1;
   padding: 0.5rem 1rem;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   font-size: 0.9rem;
   font-weight: 600;
   font-family: var(--font);
@@ -433,7 +433,7 @@ select option { background: var(--surface2); }
   display: none;
   background: var(--surface2);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: 0.65rem 1rem;
   margin-bottom: 1.25rem;
   font-size: 0.88rem;
@@ -451,7 +451,7 @@ select option { background: var(--surface2); }
   display: none;
   background: var(--surface2);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: 0.65rem 1rem;
   margin-bottom: 1.25rem;
   font-size: 0.88rem;
@@ -477,7 +477,7 @@ select option { background: var(--surface2); }
   display: none;
   background: var(--surface2);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 0.55rem 0.9rem;
   font-size: 0.85rem;
   color: var(--text-muted);
@@ -495,7 +495,7 @@ select option { background: var(--surface2); }
   display: none;
   background: var(--surface2);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 0.65rem 1rem;
   font-size: 0.9rem;
   color: var(--text-muted);
@@ -526,7 +526,7 @@ select option { background: var(--surface2); }
 .stat-card {
   background: var(--surface2);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: 1rem;
   text-align: center;
 }
@@ -555,7 +555,7 @@ select option { background: var(--surface2); }
 .doc-table-wrap {
   overflow-x: auto;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   margin-bottom: 1.5rem;
 }
 .doc-table {
@@ -608,7 +608,7 @@ select option { background: var(--surface2); }
 .doc-picker {
   background: var(--surface2);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   max-height: 11rem;
   overflow-y: auto;
   margin-bottom: 1.25rem;

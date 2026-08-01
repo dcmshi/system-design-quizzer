@@ -14,7 +14,7 @@ body {
 .filter-bar input[type=search] {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--text);
   padding: 0.45rem 0.75rem;
   font-size: 0.875rem;
@@ -27,7 +27,7 @@ body {
 .filter-bar select {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   color: var(--text);
   padding: 0.45rem 0.75rem;
   font-size: 0.875rem;
@@ -42,7 +42,7 @@ body {
 .table-wrap {
   overflow-x: auto;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-xl);
 }
 
 table {
@@ -104,7 +104,7 @@ td { padding: 0.8rem 1rem; vertical-align: middle; }
   text-transform: uppercase;
   letter-spacing: 0.06em;
   padding: 0.2rem 0.55rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface2);
   color: var(--text-muted);
   white-space: nowrap;
@@ -117,7 +117,7 @@ td { padding: 0.8rem 1rem; vertical-align: middle; }
   font-size: 0.68rem;
   font-weight: 600;
   padding: 0.15rem 0.45rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--badge-blue-bg);
   color: var(--badge-blue-fg);
   white-space: nowrap;
@@ -140,7 +140,7 @@ td { padding: 0.8rem 1rem; vertical-align: middle; }
   background: transparent;
   border: 1px solid var(--border);
   color: var(--text-muted);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: 0.3rem 0.7rem;
   font-size: 0.75rem;
   font-weight: 600;
@@ -162,7 +162,7 @@ td { padding: 0.8rem 1rem; vertical-align: middle; }
 .stat-item {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: 0.6rem 1rem;
   display: flex;
   flex-direction: column;
