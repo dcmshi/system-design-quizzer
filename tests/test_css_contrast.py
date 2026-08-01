@@ -48,7 +48,27 @@ PAIRS = [
     ("white on a hovered filled button", "#ffffff",     "accent-hover", AA_NORMAL),
     ("display numerals on a card",       "accent",      "surface",   AA_LARGE),
     ("accent borders on a card",         "accent",      "surface",   AA_LARGE),
+    ("green badge pair",                 "badge-green-fg",  "badge-green-bg",  AA_NORMAL),
+    ("amber badge pair",                 "badge-amber-fg",  "badge-amber-bg",  AA_NORMAL),
+    ("red badge pair",                   "badge-red-fg",    "badge-red-bg",    AA_NORMAL),
+    ("blue badge pair",                  "badge-blue-fg",   "badge-blue-bg",   AA_NORMAL),
+    ("violet badge pair",                "badge-violet-fg", "badge-violet-bg", AA_NORMAL),
+    ("rejected badge pair",              "badge-red-fg",    "badge-red-deep",  AA_NORMAL),
 ]
+
+
+def test_page_stylesheets_hold_no_colour_literals():
+    """Every colour lives in app.css, so a theme change is one file."""
+    offenders = {}
+    for path in sorted(APP_CSS.parent.glob("*.css")):
+        if path.name == "app.css":
+            continue
+        literals = [c for c in re.findall(r"#[0-9a-fA-F]{3,8}\b|rgba?\([^)]*\)",
+                                          path.read_text(encoding="utf-8"))
+                    if c.lower() not in {"#fff", "#ffffff"}]
+        if literals:
+            offenders[path.name] = sorted(set(literals))
+    assert offenders == {}
 
 
 @pytest.mark.parametrize("description,fg,bg,minimum", PAIRS)

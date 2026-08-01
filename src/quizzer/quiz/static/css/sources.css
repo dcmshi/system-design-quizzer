@@ -118,8 +118,8 @@ td { padding: 0.8rem 1rem; vertical-align: middle; }
   font-weight: 600;
   padding: 0.15rem 0.45rem;
   border-radius: 999px;
-  background: #1e3a5f;
-  color: #93c5fd;
+  background: var(--badge-blue-bg);
+  color: var(--badge-blue-fg);
   white-space: nowrap;
 }
 

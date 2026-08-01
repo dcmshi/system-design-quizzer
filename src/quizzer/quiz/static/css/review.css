@@ -58,10 +58,10 @@ body {
   padding: 0.2rem 0.55rem;
   border-radius: 999px;
 }
-.badge-generated { background: #1e3a5f; color: #93c5fd; }
-.badge-approved  { background: #14532d; color: #86efac; }
-.badge-edited    { background: #3b1f6e; color: #c4b5fd; }
-.badge-rejected  { background: #3f1f1f; color: #fca5a5; }
+.badge-generated { background: var(--badge-blue-bg); color: var(--badge-blue-fg); }
+.badge-approved  { background: var(--badge-green-bg); color: var(--badge-green-fg); }
+.badge-edited    { background: var(--badge-violet-bg); color: var(--badge-violet-fg); }
+.badge-rejected  { background: var(--badge-red-deep); color: var(--badge-red-fg); }
 
 .card-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
 
@@ -85,8 +85,8 @@ body {
 }
 .card-options li.correct {
   border-color: var(--green);
-  background: var(--green-bg);
-  color: #86efac;
+  background: var(--tint-green);
+  color: var(--badge-green-fg);
 }
 .option-label { font-weight: 700; flex-shrink: 0; }
 .correct-mark { margin-left: auto; font-weight: 700; flex-shrink: 0; }
@@ -123,9 +123,9 @@ body {
   border-radius: 999px;
 }
 .hit-rate-none    { background: var(--surface2); color: var(--text-muted); font-weight: 400; }
-.hit-rate-good    { background: #14532d; color: #86efac; }
-.hit-rate-mid     { background: #713f12; color: #fde68a; }
-.hit-rate-bad     { background: #7f1d1d; color: #fca5a5; }
+.hit-rate-good    { background: var(--badge-green-bg); color: var(--badge-green-fg); }
+.hit-rate-mid     { background: var(--badge-amber-bg); color: var(--badge-amber-fg); }
+.hit-rate-bad     { background: var(--badge-red-bg); color: var(--badge-red-fg); }
 
 /* ── Buttons ── */
 .btn {
@@ -140,12 +140,12 @@ body {
   white-space: nowrap;
 }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.btn-approve { background: #14532d; color: #86efac; }
-.btn-approve:hover:not(:disabled) { background: #166534; }
+.btn-approve { background: var(--badge-green-bg); color: var(--badge-green-fg); }
+.btn-approve:hover:not(:disabled) { background: var(--badge-green-hover); }
 .btn-edit { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
 .btn-edit:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-text); }
-.btn-reject { background: #7f1d1d; color: #fca5a5; }
-.btn-reject:hover:not(:disabled) { background: #991b1b; }
+.btn-reject { background: var(--badge-red-bg); color: var(--badge-red-fg); }
+.btn-reject:hover:not(:disabled) { background: var(--badge-red-hover); }
 .btn-save { background: var(--accent-fill); color: #fff; }
 .btn-save:hover:not(:disabled) { background: var(--accent-hover); }
 .btn-cancel { background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); }
@@ -235,14 +235,14 @@ select.form-input option { background: var(--surface2); }
 }
 .bulk-bar input[type=checkbox] { accent-color: var(--accent); cursor: pointer; }
 .bulk-spacer { flex: 1; }
-.btn-bulk-approve { background: #14532d; color: #86efac; }
-.btn-bulk-approve:hover:not(:disabled) { background: #166534; }
-.btn-bulk-reject { background: #7f1d1d; color: #fca5a5; }
-.btn-bulk-reject:hover:not(:disabled) { background: #991b1b; }
-.btn-bulk-delete { background: transparent; color: #fca5a5; border: 1px solid #7f1d1d; }
-.btn-bulk-delete:hover:not(:disabled) { background: #7f1d1d; }
-.btn-delete { background: transparent; color: #fca5a5; border: 1px solid #7f1d1d; }
-.btn-delete:hover:not(:disabled) { background: #7f1d1d; }
+.btn-bulk-approve { background: var(--badge-green-bg); color: var(--badge-green-fg); }
+.btn-bulk-approve:hover:not(:disabled) { background: var(--badge-green-hover); }
+.btn-bulk-reject { background: var(--badge-red-bg); color: var(--badge-red-fg); }
+.btn-bulk-reject:hover:not(:disabled) { background: var(--badge-red-hover); }
+.btn-bulk-delete { background: transparent; color: var(--badge-red-fg); border: 1px solid var(--badge-red-bg); }
+.btn-bulk-delete:hover:not(:disabled) { background: var(--badge-red-bg); }
+.btn-delete { background: transparent; color: var(--badge-red-fg); border: 1px solid var(--badge-red-bg); }
+.btn-delete:hover:not(:disabled) { background: var(--badge-red-bg); }
 .btn-reingest { background: transparent; color: var(--accent-text); border: 1px solid var(--accent); }
 .btn-reingest:hover:not(:disabled) { background: var(--accent-fill); color: #fff; }
 
@@ -266,24 +266,24 @@ select.form-input option { background: var(--surface2); }
 }
 .toast.show { opacity: 1; }
 .toast.success { border-color: var(--green); }
-.toast.error { border-color: #fca5a5; }
+.toast.error { border-color: var(--badge-red-fg); }
 
 /* ── Near-duplicate badge & panel ── */
 .badge-near-dupe {
-  background: #713f12;
-  color: #fde68a;
+  background: var(--badge-amber-bg);
+  color: var(--badge-amber-fg);
   cursor: pointer;
   border: none;
   font-family: var(--font);
 }
-.badge-near-dupe:hover { background: #854d0e; }
+.badge-near-dupe:hover { background: var(--badge-amber-hover); }
 
 .near-dupe-panel {
   display: none;
   margin-top: 0.5rem;
   padding: 0.5rem 0.75rem;
-  background: rgba(113, 63, 18, 0.12);
-  border: 1px solid #713f12;
+  background: var(--tint-amber-soft);
+  border: 1px solid var(--badge-amber-bg);
   border-radius: 6px;
   font-size: 0.8rem;
 }
@@ -293,8 +293,8 @@ select.form-input option { background: var(--surface2); }
   line-height: 1.45;
   color: var(--text-muted);
 }
-.near-dupe-entry + .near-dupe-entry { border-top: 1px solid rgba(113, 63, 18, 0.35); }
-.near-dupe-sim { font-weight: 700; color: #fde68a; margin-right: 0.3rem; }
+.near-dupe-entry + .near-dupe-entry { border-top: 1px solid var(--tint-amber-line); }
+.near-dupe-sim { font-weight: 700; color: var(--badge-amber-fg); margin-right: 0.3rem; }
 .near-dupe-text { color: var(--text); }
 
 /* ── Card checkbox ── */

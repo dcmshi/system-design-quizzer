@@ -15,9 +15,33 @@
   --accent-fill: #5457dd;     /* filled buttons carrying white text (5.5:1) */
   --accent-text: #8f92f6;     /* accent-coloured text on dark surfaces (5.4:1) */
   --green: #22c55e;
-  --green-bg: #14532d33;
   --red: #ef4444;
   --yellow: #eab308;
+
+  /* Badge and status colour pairs, reused by difficulty, status and actions */
+  --badge-green-bg:    #14532d;
+  --badge-green-fg:    #86efac;
+  --badge-green-hover: #166534;
+  --badge-amber-bg:    #713f12;
+  --badge-amber-fg:    #fde68a;
+  --badge-amber-hover: #854d0e;
+  --badge-amber-line:  #92400e;
+  --badge-red-bg:      #7f1d1d;
+  --badge-red-fg:      #fca5a5;
+  --badge-red-hover:   #991b1b;
+  --badge-red-deep:    #3f1f1f;
+  --badge-blue-bg:     #1e3a5f;
+  --badge-blue-fg:     #93c5fd;
+  --badge-violet-bg:   #3b1f6e;
+  --badge-violet-fg:   #c4b5fd;
+
+  /* Translucent versions, for fills laid over a surface */
+  --tint-green: #14532d33;
+  --tint-amber: #713f1233;
+  --tint-amber-soft: #713f121f;
+  --tint-amber-line: #713f1259;
+  --tint-red:   #7f1d1d33;
+
   --radius: 10px;
   --font: 'Segoe UI', system-ui, sans-serif;
 }
@@ -53,9 +77,9 @@
 }
 
 /* ── Difficulty badges ── */
-.badge-easy    { background: #14532d; color: #86efac; }
-.badge-medium  { background: #713f12; color: #fde68a; }
-.badge-hard    { background: #7f1d1d; color: #fca5a5; }
+.badge-easy    { background: var(--badge-green-bg); color: var(--badge-green-fg); }
+.badge-medium  { background: var(--badge-amber-bg); color: var(--badge-amber-fg); }
+.badge-hard    { background: var(--badge-red-bg); color: var(--badge-red-fg); }
 .badge-unknown { background: var(--surface2); color: var(--text-muted); }
 
 /* ── Page chrome (review + sources) ── */

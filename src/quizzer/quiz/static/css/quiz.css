@@ -189,23 +189,23 @@ select option { background: var(--surface2); }
 }
 .option-btn.correct {
   border-color: var(--green);
-  background: #14532d33;
-  color: #86efac;
+  background: var(--tint-green);
+  color: var(--badge-green-fg);
 }
 .option-btn.wrong {
   border-color: var(--red);
-  background: #7f1d1d33;
-  color: #fca5a5;
+  background: var(--tint-red);
+  color: var(--badge-red-fg);
 }
 
 .inline-error {
   display: none;
-  background: #7f1d1d33;
+  background: var(--tint-red);
   border: 1px solid var(--red);
   border-radius: 6px;
   padding: 0.6rem 0.9rem;
   font-size: 0.85rem;
-  color: #fca5a5;
+  color: var(--badge-red-fg);
   line-height: 1.5;
   margin-bottom: 1.25rem;
 }
@@ -254,9 +254,9 @@ select option { background: var(--surface2); }
 
 .shortfall-notice {
   font-size: 0.8rem;
-  color: #fde68a;
-  background: #71400833;
-  border: 1px solid #92400e;
+  color: var(--badge-amber-fg);
+  background: var(--tint-amber);
+  border: 1px solid var(--badge-amber-line);
   border-radius: 6px;
   padding: 0.4rem 0.75rem;
   margin-bottom: 1rem;
@@ -336,8 +336,8 @@ select option { background: var(--surface2); }
   padding: 0.18rem 0.55rem;
   border-radius: 999px;
 }
-.review-result-badge.correct { background: #14532d; color: #86efac; }
-.review-result-badge.wrong   { background: #7f1d1d; color: #fca5a5; }
+.review-result-badge.correct { background: var(--badge-green-bg); color: var(--badge-green-fg); }
+.review-result-badge.wrong   { background: var(--badge-red-bg); color: var(--badge-red-fg); }
 .review-q-text {
   font-size: 1rem;
   font-weight: 500;
@@ -361,13 +361,13 @@ select option { background: var(--surface2); }
 }
 .review-option.correct {
   border-color: var(--green);
-  background: #14532d33;
-  color: #86efac;
+  background: var(--tint-green);
+  color: var(--badge-green-fg);
 }
 .review-option.wrong {
   border-color: var(--red);
-  background: #7f1d1d33;
-  color: #fca5a5;
+  background: var(--tint-red);
+  color: var(--badge-red-fg);
 }
 .review-expl {
   background: var(--surface2);
@@ -602,7 +602,7 @@ select option { background: var(--surface2); }
   margin-top: -0.9rem;
   margin-bottom: 1.25rem;
 }
-.input-hint-error { color: #fca5a5; }
+.input-hint-error { color: var(--badge-red-fg); }
 
 /* ── Document picker ── */
 .doc-picker {
