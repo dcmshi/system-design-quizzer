@@ -598,6 +598,7 @@ select option { background: var(--surface2); }
   margin-top: -0.9rem;
   margin-bottom: 1.25rem;
 }
+.input-hint-error { color: #fca5a5; }
 
 select[multiple] {
   padding: 0;

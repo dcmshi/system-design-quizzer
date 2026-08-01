@@ -152,6 +152,38 @@ describe('quiz page — error screen', () => {
   });
 });
 
+describe('quiz page — document list failure', () => {
+  const pages = [];
+  after(() => pages.forEach((p) => p.close()));
+
+  it('says why the picker is empty instead of looking like an empty bank', async () => {
+    const page = await bootQuiz({ 'GET /api/v1/documents': reply(503, {}) });
+    pages.push(page);
+
+    assert.equal(page.$$('#input-doc option').length, 0);
+    assert.match(page.text('#doc-hint'), /Could not load the document list/);
+    assert.ok(page.$('#doc-hint').classList.contains('input-hint-error'));
+  });
+
+  it('still lets the quiz start against all documents', async () => {
+    const page = await bootQuiz({ 'GET /api/v1/documents': reply(503, {}) });
+    pages.push(page);
+
+    await startQuiz(page);
+
+    assert.deepEqual(page.calls.find((c) => c.path === '/api/v1/quiz/sessions').body.document_ids, []);
+    assert.ok(page.$('#screen-question').classList.contains('active'));
+  });
+
+  it('leaves the normal hint alone when the list loads', async () => {
+    const page = await bootQuiz();
+    pages.push(page);
+
+    assert.equal(page.text('#doc-hint'), 'Nothing selected = all documents');
+    assert.ok(!page.$('#doc-hint').classList.contains('input-hint-error'));
+  });
+});
+
 describe('quiz page — end-of-session pill', () => {
   const pages = [];
   after(() => pages.forEach((p) => p.close()));

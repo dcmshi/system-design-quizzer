@@ -36,6 +36,7 @@ const state = {
 
 // ── DOM refs ──────────────────────────────────────────────────────────────
 const inputDoc     = document.getElementById('input-doc');
+const docHint      = document.getElementById('doc-hint');
 const inputN       = document.getElementById('input-n');
 const inputTag     = document.getElementById('input-tag');
 const inputDiff    = document.getElementById('input-diff');
@@ -262,8 +263,12 @@ async function loadDocuments() {
       opt.textContent = `${doc.title} (${doc.question_count} Q)`;
       inputDoc.appendChild(opt);
     });
-  } catch (_) {
-    // Non-fatal
+  } catch (err) {
+    // Not fatal — a quiz with no document filter still works — but an empty
+    // picker with no explanation looks like there is nothing to study.
+    docHint.textContent =
+      `Could not load the document list (${err.message}). Starting a quiz will use all documents.`;
+    docHint.classList.add('input-hint-error');
   }
 }
 
