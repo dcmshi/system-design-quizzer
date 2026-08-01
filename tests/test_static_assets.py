@@ -14,7 +14,7 @@ from quizzer.quiz.app import create_app
 STATIC_DIR = Path(__file__).parents[1] / "src" / "quizzer" / "quiz" / "static"
 PAGES = ["/", "/review/", "/sources/"]
 
-ASSET_REF = re.compile(r'(?:href|src)="(/(?:css|js)/[^"]+)"')
+ASSET_REF = re.compile(r'(?:href|src)="(/(?:css/|js/|favicon)[^"]+)"')
 
 
 @pytest.fixture()
@@ -37,7 +37,9 @@ def test_every_referenced_asset_resolves(client: TestClient, page: str):
     for ref in refs:
         resp = client.get(ref)
         assert resp.status_code == 200, f"{page} -> {ref}"
-        assert "charset=utf-8" in resp.headers["content-type"]
+        if ref.endswith((".css", ".js")):
+            # Both carry non-ASCII text and are parsed with the declared charset.
+            assert "charset=utf-8" in resp.headers["content-type"], ref
 
 
 @pytest.mark.parametrize("page", PAGES)
@@ -46,6 +48,20 @@ def test_pages_carry_no_inline_style_or_script_blocks(client: TestClient, page: 
     html = client.get(page).text
     assert "<style>" not in html
     assert re.search(r"<script(?![^>]*\bsrc=)", html) is None
+
+
+@pytest.mark.parametrize("page", PAGES)
+def test_page_declares_a_favicon_and_description(client: TestClient, page: str):
+    """Without an icon link every load 404s on /favicon.ico."""
+    html = client.get(page).text
+    assert '<link rel="icon" href="/favicon.svg"' in html
+    description = re.search(r'<meta name="description" content="([^"]+)"', html)
+    assert description and len(description.group(1)) > 40
+
+
+def test_no_page_falls_back_to_favicon_ico(client: TestClient):
+    assert client.get("/favicon.ico").status_code == 404
+    assert client.get("/favicon.svg").status_code == 200
 
 
 def test_quiz_page_centres_without_clipping_tall_content():
