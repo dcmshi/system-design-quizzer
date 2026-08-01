@@ -27,7 +27,7 @@ const state = {
   answered: false,
   totalRequested: 5,
   results: [],
-  mode: 'random',        // 'random' | 'srs'
+  mode: 'random',        // 'random' | 'srs' | 'weak'
   srsSessionId: null,
   srsFinishData: null,
   quizSessionId: null,
