@@ -4,14 +4,15 @@ body {
   color: var(--text);
   min-height: 100vh;
   display: flex;
-  align-items: center;
-  justify-content: center;
   padding: 1rem;
 }
 
 #app {
   width: 100%;
   max-width: 680px;
+  /* Auto margins centre without clipping: align-items:center pushes the top
+     of an over-tall card (stats, long reviews) out of scroll reach. */
+  margin: auto;
 }
 
 .screen { display: none; }

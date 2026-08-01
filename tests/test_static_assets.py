@@ -48,6 +48,18 @@ def test_pages_carry_no_inline_style_or_script_blocks(client: TestClient, page: 
     assert re.search(r"<script(?![^>]*\bsrc=)", html) is None
 
 
+def test_quiz_page_centres_without_clipping_tall_content():
+    """align-items:center on a flex body pushes the top of an over-tall card
+    out of scroll reach; auto margins on the child centre without clipping."""
+    css = (STATIC_DIR / "css" / "quiz.css").read_text(encoding="utf-8")
+    body = re.search(r"^body \{(.*?)\}", css, re.S | re.M).group(1)
+    app = re.search(r"^#app \{(.*?)\}", css, re.S | re.M).group(1)
+
+    assert "align-items: center" not in body
+    assert "justify-content: center" not in body
+    assert "margin: auto" in app
+
+
 def test_shared_stylesheet_is_the_only_token_block():
     """One :root block, so the palette cannot drift between pages again."""
     with_tokens = [
