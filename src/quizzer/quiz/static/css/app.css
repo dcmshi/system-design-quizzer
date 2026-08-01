@@ -88,6 +88,42 @@
   border: 0;
 }
 
+/* ── Shared feedback ── */
+.inline-error {
+  display: none;
+  background: var(--tint-red);
+  border: 1px solid var(--red);
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0.9rem;
+  font-size: 0.85rem;
+  color: var(--badge-red-fg);
+  line-height: 1.5;
+  margin-bottom: 1.25rem;
+}
+.inline-error.visible { display: block; }
+
+/* ── Toast ── */
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 0.75rem 1.25rem;
+  font-size: 0.875rem;
+  color: var(--text);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  z-index: 100;
+  max-width: 320px;
+  line-height: 1.4;
+}
+.toast.show { opacity: 1; }
+.toast.success { border-color: var(--green); }
+.toast.error { border-color: var(--badge-red-fg); }
+
 /* ── Difficulty badges ── */
 .badge-easy    { background: var(--badge-green-bg); color: var(--badge-green-fg); }
 .badge-medium  { background: var(--badge-amber-bg); color: var(--badge-amber-fg); }

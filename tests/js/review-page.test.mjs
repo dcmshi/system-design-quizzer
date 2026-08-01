@@ -106,8 +106,14 @@ describe('review page — failure feedback', () => {
   });
 
   it('announces the toast to assistive technology', async () => {
-    const page = await bootReview();
+    const page = await bootReview({
+      'PATCH /api/v1/questions/*/status': reply(500, { detail: 'db down' }),
+    });
     pages.push(page);
+    assert.equal(page.$('#toast'), null, 'built only when something needs saying');
+
+    page.$('.question-card .btn-approve').click();
+    await page.flush();
 
     assert.equal(page.$('#toast').getAttribute('role'), 'status');
     assert.equal(page.$('#toast').getAttribute('aria-live'), 'polite');

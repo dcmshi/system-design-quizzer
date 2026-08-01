@@ -23,15 +23,6 @@ const bulkApproveBtn = document.getElementById('bulk-approve-btn');
 const bulkRejectBtn  = document.getElementById('bulk-reject-btn');
 const bulkDeleteBtn  = document.getElementById('bulk-delete-btn');
 const reingestBtn    = document.getElementById('reingest-btn');
-const toastEl        = document.getElementById('toast');
-
-let toastTimer = null;
-function showToast(msg, type = 'success') {
-  if (toastTimer) clearTimeout(toastTimer);
-  toastEl.textContent = msg;
-  toastEl.className = `toast show ${type}`;
-  toastTimer = setTimeout(() => { toastEl.className = 'toast'; }, 5000);
-}
 
 // ── Bulk bar ──────────────────────────────────────────────────────────────
 

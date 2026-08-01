@@ -189,23 +189,23 @@ async function refreshDueInfo() {
     const data = await loadDueInfo(selectedDocumentIds());
     dueCount.textContent = data.due_count;
     newCount.textContent = data.new_count;
-  } catch (_) {
+  } catch (err) {
     dueCount.textContent = '?';
     newCount.textContent = '?';
+    showToast(`Could not count due cards: ${err.message}`, 'error');
   }
 }
 
 async function refreshWeakCount() {
   if (state.mode !== 'weak') return;
   try {
-    let url = '/api/v1/quiz/weak-count' + documentQuery(selectedDocumentIds());
-    const res = await fetch(url);
-    if (res.ok) {
-      const data = await res.json();
-      weakPoolCount.textContent = data.weak_count;
-    }
-  } catch (_) {
+    const res = await fetch('/api/v1/quiz/weak-count' + documentQuery(selectedDocumentIds()));
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    weakPoolCount.textContent = data.weak_count;
+  } catch (err) {
     weakPoolCount.textContent = '?';
+    showToast(`Could not size the weak pool: ${err.message}`, 'error');
   }
 }
 

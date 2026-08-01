@@ -164,6 +164,33 @@ describe('quiz page — control labels', () => {
   });
 });
 
+describe('quiz page — transient feedback', () => {
+  const pages = [];
+  after(() => pages.forEach((p) => p.close()));
+
+  it('toasts a failed due-count instead of only showing a question mark', async () => {
+    const page = await bootQuiz({ 'GET /api/v1/srs/due': reply(503, { detail: 'srs down' }) });
+    pages.push(page);
+
+    page.$('#btn-mode-srs').click();
+    await page.flush();
+
+    assert.equal(page.text('#due-count'), '?');
+    assert.equal(page.text('#toast'), 'Could not count due cards: srs down');
+    assert.ok(page.$('#toast').classList.contains('error'));
+  });
+
+  it('toasts a failed weak-pool count', async () => {
+    const page = await bootQuiz({ 'GET /api/v1/quiz/weak-count': reply(503, {}) });
+    pages.push(page);
+
+    page.$('#btn-mode-weak').click();
+    await page.flush();
+
+    assert.match(page.text('#toast'), /Could not size the weak pool/);
+  });
+});
+
 describe('quiz page — mode toggle semantics', () => {
   const pages = [];
   after(() => pages.forEach((p) => p.close()));
