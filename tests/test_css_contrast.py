@@ -96,6 +96,13 @@ def test_palette_pair_meets_wcag_aa(description: str, fg: str, bg: str, minimum:
     )
 
 
+def test_the_dark_palette_is_declared_to_the_browser():
+    """Without color-scheme, UA-painted chrome (scrollbars, select popups,
+    date pickers) renders light against a dark page."""
+    root = re.search(r":root\s*\{(.*?)\}", APP_CSS.read_text(encoding="utf-8"), re.S)
+    assert "color-scheme: dark" in root.group(1)
+
+
 def test_reduced_motion_is_honoured():
     css = APP_CSS.read_text(encoding="utf-8")
     block = re.search(r"@media \(prefers-reduced-motion: reduce\)\s*\{(.*?)\n\}", css, re.S)

@@ -4,6 +4,10 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
+  /* The palette is dark-only; tell the UA so form controls, scrollbars
+     and the canvas fallback match instead of rendering light. */
+  color-scheme: dark;
+
   --bg: #0f1117;
   --surface: #1a1d27;
   --surface2: #22263a;
