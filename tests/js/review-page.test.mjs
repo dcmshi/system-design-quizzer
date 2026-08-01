@@ -143,6 +143,36 @@ describe('review page — request volume', () => {
   });
 });
 
+describe('review page — removing cards', () => {
+  const pages = [];
+  after(() => pages.forEach((p) => p.close()));
+
+  it('removes every selected card on bulk delete', async () => {
+    const page = await bootReview({ items: makeItems(3) });
+    pages.push(page);
+
+    page.$$('.card-checkbox').slice(0, 2).forEach((cb) => cb.click());
+    page.$('#bulk-delete-btn').click();
+    await page.flush();
+    await page.wait(250);
+
+    assert.deepEqual(page.$$('.question-card').map((c) => c.dataset.id), ['Q3']);
+  });
+
+  it('falls back to the empty state when the last card goes', async () => {
+    const page = await bootReview({ items: makeItems(1) });
+    pages.push(page);
+
+    page.$('.question-card .btn-delete').click();
+    await page.flush();
+    await page.wait(250);
+
+    assert.equal(page.$$('.question-card').length, 0);
+    assert.match(page.text('#question-list'), /No questions match/);
+    assert.equal(page.text('#summary'), '0 questions');
+  });
+});
+
 describe('review page — near-duplicate badge', () => {
   const pages = [];
   after(() => pages.forEach((p) => p.close()));

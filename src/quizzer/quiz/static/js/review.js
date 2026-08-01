@@ -2,6 +2,7 @@
 
 const PAGE_SIZE = 20;
 const LABELS = ['A', 'B', 'C', 'D'];
+const EMPTY_STATE = '<div class="state-msg">No questions match the current filters.</div>';
 
 let page        = 0;
 let total       = 0;
@@ -229,7 +230,7 @@ async function loadPage() {
   total = data.total;
 
   if (data.items.length === 0) {
-    listEl.innerHTML = '<div class="state-msg">No questions match the current filters.</div>';
+    listEl.innerHTML = EMPTY_STATE;
     summaryEl.textContent = '0 questions';
     renderPagination();
     return;
@@ -511,17 +512,7 @@ async function doStatusUpdate(card, q, newStatus) {
     const currentFilter = filterStatus.value;
     if (currentFilter && currentFilter !== newStatus) {
       // Fade out and remove — no longer matches current filter
-      card.style.transition = 'opacity 0.2s';
-      card.style.opacity = '0';
-      setTimeout(() => {
-        card.remove();
-        total = Math.max(0, total - 1);
-        if (listEl.children.length === 0) {
-          listEl.innerHTML = '<div class="state-msg">No questions match the current filters.</div>';
-          summaryEl.textContent = '0 questions';
-          renderPagination();
-        }
-      }, 200);
+      removeCards([card]);
     } else {
       // Update badge in place (filter is "all statuses")
       q.status = newStatus;
@@ -555,23 +546,29 @@ async function doDelete(card, q) {
     }
     selectedIds.delete(q.id);
     updateBulkBar();
-    card.style.transition = 'opacity 0.2s';
-    card.style.opacity = '0';
-    setTimeout(() => {
-      card.remove();
-      total = Math.max(0, total - 1);
-      if (listEl.children.length === 0) {
-        listEl.innerHTML = '<div class="state-msg">No questions match the current filters.</div>';
-        summaryEl.textContent = '0 questions';
-        renderPagination();
-      }
-    }, 200);
+    removeCards([card]);
     forgetNearDupes(q.id);
     applyNearDupeBadges();
   } catch (err) {
     showToast(`Delete failed: ${err.message}`, 'error');
     setAllBtns(card, false);
   }
+}
+
+// ── Card removal ──────────────────────────────────────────────────────────
+
+/** Fade the given cards out, drop them from the list and resync the footer. */
+function removeCards(cards) {
+  if (!cards.length) return;
+  cards.forEach(c => { c.style.transition = 'opacity 0.2s'; c.style.opacity = '0'; });
+  setTimeout(() => {
+    cards.forEach(c => { c.remove(); total = Math.max(0, total - 1); });
+    if (listEl.children.length === 0) {
+      listEl.innerHTML = EMPTY_STATE;
+      summaryEl.textContent = '0 questions';
+      renderPagination();
+    }
+  }, 200);
 }
 
 // ── Pagination ────────────────────────────────────────────────────────────
@@ -630,17 +627,9 @@ bulkApproveBtn.addEventListener('click', async () => {
       // Fade out cards that no longer match the filter
       const toFade = [...listEl.querySelectorAll('.question-card')]
         .filter(c => ids.includes(c.dataset.id));
-      toFade.forEach(c => { c.style.transition = 'opacity 0.2s'; c.style.opacity = '0'; });
-      setTimeout(() => {
-        toFade.forEach(c => { c.remove(); total = Math.max(0, total - 1); });
-        selectedIds.clear();
-        setBulkBusy(false);
-        if (listEl.children.length === 0) {
-          listEl.innerHTML = '<div class="state-msg">No questions match the current filters.</div>';
-          summaryEl.textContent = '0 questions';
-          renderPagination();
-        }
-      }, 220);
+      removeCards(toFade);
+      selectedIds.clear();
+      setBulkBusy(false);
     } else {
       // "All statuses" — update badges in place
       listEl.querySelectorAll('.question-card').forEach(c => {
@@ -676,17 +665,9 @@ bulkRejectBtn.addEventListener('click', async () => {
       // fade out and remove cards that no longer match the filter
       const toFade = [...listEl.querySelectorAll('.question-card')]
         .filter(c => ids.includes(c.dataset.id));
-      toFade.forEach(c => { c.style.transition = 'opacity 0.2s'; c.style.opacity = '0'; });
-      setTimeout(() => {
-        toFade.forEach(c => { c.remove(); total = Math.max(0, total - 1); });
-        selectedIds.clear();
-        setBulkBusy(false);
-        if (listEl.children.length === 0) {
-          listEl.innerHTML = '<div class="state-msg">No questions match the current filters.</div>';
-          summaryEl.textContent = '0 questions';
-          renderPagination();
-        }
-      }, 220);
+      removeCards(toFade);
+      selectedIds.clear();
+      setBulkBusy(false);
     } else {
       // "All statuses" — update badges in place
       listEl.querySelectorAll('.question-card').forEach(c => {
@@ -722,17 +703,9 @@ bulkDeleteBtn.addEventListener('click', async () => {
   const deleted = ids.filter(id => !errors.includes(id));
   const toFade = [...listEl.querySelectorAll('.question-card')]
     .filter(c => deleted.includes(c.dataset.id));
-  toFade.forEach(c => { c.style.transition = 'opacity 0.2s'; c.style.opacity = '0'; });
-  setTimeout(() => {
-    toFade.forEach(c => { c.remove(); total = Math.max(0, total - 1); });
-    deleted.forEach(id => selectedIds.delete(id));
-    setBulkBusy(false);
-    if (listEl.children.length === 0) {
-      listEl.innerHTML = '<div class="state-msg">No questions match the current filters.</div>';
-      summaryEl.textContent = '0 questions';
-      renderPagination();
-    }
-  }, 220);
+  removeCards(toFade);
+  deleted.forEach(id => selectedIds.delete(id));
+  setBulkBusy(false);
   if (errors.length) showToast(`${errors.length} deletion${errors.length !== 1 ? 's' : ''} failed.`, 'error');
 });
 
