@@ -175,6 +175,35 @@ describe('review page — removing cards', () => {
     assert.equal(page.text('#summary'), 'Showing 1–1 of 1 question');
   });
 
+  it('steps back a page when the last page is emptied', async () => {
+    const all = makeItems(25);
+    const deleted = new Set();
+    const remaining = () => all.filter((q) => !deleted.has(q.id));
+    const page = await bootReview({
+      'GET /api/v1/questions': ({ url }) => {
+        const offset = Number(new URL(url, 'http://localhost').searchParams.get('offset'));
+        const items = remaining();
+        return { items: items.slice(offset, offset + 20), total: items.length, limit: 20, offset };
+      },
+      'DELETE /api/v1/questions/*': ({ path }) => { deleted.add(path.split('/').pop()); return {}; },
+    });
+    pages.push(page);
+
+    page.$$('#pagination .page-btn').at(-1).click();  // Next
+    await page.flush();
+    assert.equal(page.$$('.question-card').length, 5);
+
+    page.$('#select-all').click();
+    page.$('#bulk-delete-btn').click();
+    await page.flush();
+    await page.wait(250);
+    await page.flush();
+
+    assert.equal(page.$$('.question-card').length, 20);
+    assert.equal(page.text('#summary'), 'Showing 1–20 of 20 questions');
+    assert.equal(page.text('#pagination'), '');  // one page left, no pager
+  });
+
   it('falls back to the empty state when the last card goes', async () => {
     const page = await bootReview({ items: makeItems(1) });
     pages.push(page);

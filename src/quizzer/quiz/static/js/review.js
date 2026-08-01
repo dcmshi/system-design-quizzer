@@ -573,6 +573,13 @@ function removeCards(cards) {
   setTimeout(() => {
     cards.forEach(c => { c.remove(); total = Math.max(0, total - 1); });
     if (listEl.children.length === 0) {
+      if (total > 0) {
+        // Emptying page 3 of 3 must not strand the user on a page that no
+        // longer exists — fall back to the last page that still has items.
+        page = Math.min(page, Math.ceil(total / PAGE_SIZE) - 1);
+        loadPage();
+        return;
+      }
       listEl.innerHTML = EMPTY_STATE;
       renderPagination();
     }
