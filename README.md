@@ -212,7 +212,7 @@ This starts both the REST API and the web UI:
 | `http://localhost:8000/api/v1/` | REST API |
 | `http://localhost:8000/docs` | Interactive API docs (Swagger) |
 
-The web UI lets you choose a question count (1–50), filter by difficulty, and work through a quiz with immediate answer feedback and explanations. An **Exit Quiz** button is always visible during a session — clicking it ends the quiz early and shows your score for the questions answered so far. No build step — it's a single static HTML file served by FastAPI.
+The web UI lets you choose a question count (1–50), filter by difficulty, and work through a quiz with immediate answer feedback and explanations. An **Exit Quiz** button is always visible during a session — clicking it ends the quiz early and shows your score for the questions answered so far. No build step — plain HTML, CSS and JS served by FastAPI, with the palette and shared components in `static/css/app.css` and `static/js/`.
 
 The review UI at `http://localhost:8000/review/` lets you browse, approve, edit, and reject questions. Each card has a checkbox; a **Select all on page** control and a **Reject selected (N)** button let you bulk-reject batches of bad questions in one click.
 
@@ -412,13 +412,19 @@ QUIZZER_GEMINI_API_KEY=your_key_here
 ## Running Tests
 
 ```bash
-uv run pytest tests/ -v
+uv run pytest tests/ -v     # backend
+npm test                    # frontend (jsdom, needs `npm ci` once)
 ```
 
-161 tests covering: ingestion (loader, cleaner, chunker, path resolution), validation (normalizer, schema, dedup),
-generation (prompt, parser robustness, generator), the ByteByteGo preprocessor (frontmatter escaping), schema migrations, the full API surface (including export/import validation, quiz sessions, session membership, bulk status, delete, re-ingest), the SM-2 algorithm, the SRS repository, and SRS API.
+220 Python tests covering: ingestion (loader, cleaner, chunker, path resolution), validation (normalizer, schema, dedup),
+generation (prompt, parser robustness, generator), the ByteByteGo preprocessor (frontmatter escaping), schema migrations, the full API surface (including export/import validation, quiz sessions, session membership, bulk status, delete, re-ingest), the SM-2 algorithm, the SRS repository, SRS API, static-asset wiring, and the WCAG AA palette.
 
-CI runs `ruff check` + the full test suite on every push and pull request (`.github/workflows/ci.yml`).
+82 frontend tests boot each page in jsdom against a stubbed API and drive it
+through the DOM — quiz flow, SRS mode, review actions, and the accessibility
+contract. `tests/js/harness.mjs` inlines each page's scripts from disk, so the
+tests run without a server.
+
+CI runs `ruff check` + pytest, and the frontend suite as a separate job (`.github/workflows/ci.yml`).
 
 ---
 
@@ -454,8 +460,11 @@ system_design_quizzer/
 │       ├── service.py          # Business logic
 │       ├── session_service.py  # Quiz-session + weak-topic logic
 │       ├── schemas.py          # Pydantic request/response models
-│       └── static/
-│           ├── index.html      # Single-file quiz UI (no build step)
+│       └── static/             # Plain HTML/CSS/JS — no build step
+│           ├── index.html      # Quiz UI
+│           ├── favicon.svg
+│           ├── css/            # app.css (shared tokens) + one file per page
+│           ├── js/             # api.js · toast.js + one file per page
 │           ├── review/         # Question review/approve UI
 │           └── sources/        # Ingested-article browser
 └── tests/
@@ -473,7 +482,10 @@ system_design_quizzer/
     ├── test_api.py
     ├── test_srs_algorithm.py   # SM-2 unit tests
     ├── test_srs_repository.py  # SRS query construction
-    └── test_srs_api.py         # SRS API integration tests
+    ├── test_srs_api.py         # SRS API integration tests
+    ├── test_static_assets.py   # asset wiring + markup conventions
+    ├── test_css_contrast.py    # WCAG AA palette + focus/motion rules
+    └── js/                     # jsdom tests for the three pages (npm test)
 ```
 
 ---
