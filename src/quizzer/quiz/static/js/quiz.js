@@ -147,9 +147,11 @@ function showError(title, ...parts) {
 // ── Mode switching ─────────────────────────────────────────────────────────
 function setMode(mode) {
   state.mode = mode;
-  btnModeRandom.classList.toggle('active', mode === 'random');
-  btnModeSrs.classList.toggle('active', mode === 'srs');
-  btnModeWeak.classList.toggle('active', mode === 'weak');
+  // The active mode is otherwise conveyed by background colour alone.
+  [[btnModeRandom, 'random'], [btnModeSrs, 'srs'], [btnModeWeak, 'weak']].forEach(([btn, name]) => {
+    btn.classList.toggle('active', mode === name);
+    btn.setAttribute('aria-pressed', String(mode === name));
+  });
 
   // Reset all mode-specific UI first
   randomOnlyFields.style.display = 'none';

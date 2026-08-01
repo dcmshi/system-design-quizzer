@@ -152,6 +152,36 @@ describe('quiz page — error screen', () => {
   });
 });
 
+describe('quiz page — mode toggle semantics', () => {
+  const pages = [];
+  after(() => pages.forEach((p) => p.close()));
+
+  const pressed = (page) => page.$$('.mode-btn').map((b) => b.getAttribute('aria-pressed'));
+
+  it('groups and labels the three modes', async () => {
+    const page = await bootQuiz();
+    pages.push(page);
+
+    assert.equal(page.$('.mode-toggle').getAttribute('role'), 'group');
+    assert.equal(page.$('.mode-toggle').getAttribute('aria-label'), 'Quiz mode');
+    assert.ok(page.$$('.mode-btn').every((b) => b.type === 'button'));
+  });
+
+  it('reports which mode is selected, not just which one is coloured', async () => {
+    const page = await bootQuiz();
+    pages.push(page);
+    assert.deepEqual(pressed(page), ['true', 'false', 'false']);
+
+    page.$('#btn-mode-weak').click();
+    await page.flush();
+    assert.deepEqual(pressed(page), ['false', 'false', 'true']);
+
+    page.$('#btn-mode-srs').click();
+    await page.flush();
+    assert.deepEqual(pressed(page), ['false', 'true', 'false']);
+  });
+});
+
 describe('quiz page — non-colour answer feedback', () => {
   const pages = [];
   after(() => pages.forEach((p) => p.close()));

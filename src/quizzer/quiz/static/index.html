@@ -17,10 +17,10 @@
       <p class="subtitle">Test your knowledge of distributed systems &amp; architecture</p>
 
       <!-- Mode toggle -->
-      <div class="mode-toggle">
-        <button class="mode-btn active" id="btn-mode-random">Random Quiz</button>
-        <button class="mode-btn" id="btn-mode-srs">SRS Review</button>
-        <button class="mode-btn" id="btn-mode-weak">Weak Topics</button>
+      <div class="mode-toggle" role="group" aria-label="Quiz mode">
+        <button type="button" class="mode-btn active" id="btn-mode-random" aria-pressed="true">Random Quiz</button>
+        <button type="button" class="mode-btn" id="btn-mode-srs" aria-pressed="false">SRS Review</button>
+        <button type="button" class="mode-btn" id="btn-mode-weak" aria-pressed="false">Weak Topics</button>
       </div>
 
       <span class="field-label" id="doc-picker-label">Question bank</span>
