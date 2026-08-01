@@ -2,6 +2,13 @@ let allDocs = [];
 let sortCol = 'title';
 let sortDir = 1; // 1 = asc, -1 = desc
 
+// Counts are most useful biggest-first; titles and dates read better ascending.
+const NUMERIC_COLUMNS = new Set(['question_count', 'word_count', 'chunk_count']);
+
+function defaultSortDir(column) {
+  return NUMERIC_COLUMNS.has(column) ? -1 : 1;
+}
+
 const tbody = document.getElementById('doc-body');
 const summary = document.getElementById('summary');
 const searchInput = document.getElementById('search');
@@ -153,7 +160,7 @@ filterSource.addEventListener('change', render);
 filterTag.addEventListener('change', render);
 sortSelect.addEventListener('change', () => {
   sortCol = sortSelect.value;
-  sortDir = ['question_count', 'word_count', 'chunk_count'].includes(sortCol) ? -1 : 1;
+  sortDir = defaultSortDir(sortCol);
   render();
 });
 
@@ -163,7 +170,7 @@ document.querySelectorAll('thead th[data-col]').forEach(th => {
       sortDir = -sortDir;
     } else {
       sortCol = th.dataset.col;
-      sortDir = ['question_count', 'word_count', 'chunk_count'].includes(sortCol) ? -1 : 1;
+      sortDir = defaultSortDir(sortCol);
     }
     sortSelect.value = sortCol;
     render();
