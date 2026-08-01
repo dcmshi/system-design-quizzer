@@ -451,7 +451,7 @@ async function doSave(card, q) {
   const explanation = form.querySelector('[name=explanation]').value.trim();
 
   if (!question || options.some(o => !o)) {
-    alert('Question and all four options are required.');
+    showToast('Question and all four options are required.', 'error');
     return;
   }
 
@@ -487,7 +487,7 @@ async function doSave(card, q) {
 
     closeEdit(card);
   } catch (err) {
-    alert(`Save failed: ${err.message}`);
+    showToast(`Save failed: ${err.message}`, 'error');
   } finally {
     setAllBtns(card, false);
   }
@@ -536,7 +536,7 @@ async function doStatusUpdate(card, q, newStatus) {
       applyNearDupeBadges();
     }
   } catch (err) {
-    alert(`Action failed: ${err.message}`);
+    showToast(`Action failed: ${err.message}`, 'error');
     setAllBtns(card, false);
   }
 }
@@ -569,7 +569,7 @@ async function doDelete(card, q) {
     forgetNearDupes(q.id);
     applyNearDupeBadges();
   } catch (err) {
-    alert(`Delete failed: ${err.message}`);
+    showToast(`Delete failed: ${err.message}`, 'error');
     setAllBtns(card, false);
   }
 }
@@ -652,7 +652,7 @@ bulkApproveBtn.addEventListener('click', async () => {
       setBulkBusy(false);
     }
   } catch (err) {
-    alert(`Bulk approve failed: ${err.message}`);
+    showToast(`Bulk approve failed: ${err.message}`, 'error');
     setBulkBusy(false);
   }
 });
@@ -698,7 +698,7 @@ bulkRejectBtn.addEventListener('click', async () => {
       setBulkBusy(false);
     }
   } catch (err) {
-    alert(`Bulk reject failed: ${err.message}`);
+    showToast(`Bulk reject failed: ${err.message}`, 'error');
     setBulkBusy(false);
   }
 });
@@ -733,7 +733,7 @@ bulkDeleteBtn.addEventListener('click', async () => {
       renderPagination();
     }
   }, 220);
-  if (errors.length) alert(`${errors.length} deletion${errors.length !== 1 ? 's' : ''} failed.`);
+  if (errors.length) showToast(`${errors.length} deletion${errors.length !== 1 ? 's' : ''} failed.`, 'error');
 });
 
 // ── Filters ───────────────────────────────────────────────────────────────

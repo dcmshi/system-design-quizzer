@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { after, describe, it } from 'node:test';
 
 import { bootReview, makeItems } from './fixtures.mjs';
+import { reply } from './harness.mjs';
 
 const DUPE_PAIR = [
   { id_a: 'Q1', question_a: 'Question 1?', id_b: 'Q2', question_b: 'Question 2?', similarity: 0.82 },
@@ -56,6 +57,60 @@ describe('review page', () => {
 
     page.$('.card-checkbox').click();
     assert.ok(bulkButtons().every((b) => !b.disabled));
+  });
+});
+
+describe('review page — failure feedback', () => {
+  const pages = [];
+  after(() => pages.forEach((p) => p.close()));
+
+  it('reports a failed save through the toast, not a native alert', async () => {
+    const page = await bootReview({ 'PUT /api/v1/questions/*': reply(409, { detail: 'duplicate' }) });
+    pages.push(page);
+
+    page.$('.question-card .btn-edit').click();
+    page.$('.question-card .btn-save').click();
+    await page.flush();
+
+    assert.deepEqual(page.alerts, []);
+    assert.equal(page.text('#toast'), 'Save failed: duplicate');
+    assert.ok(page.$('#toast').classList.contains('error'));
+  });
+
+  it('reports a failed status change through the toast', async () => {
+    const page = await bootReview({
+      'PATCH /api/v1/questions/*/status': reply(500, { detail: 'db down' }),
+    });
+    pages.push(page);
+
+    page.$('.question-card .btn-approve').click();
+    await page.flush();
+
+    assert.deepEqual(page.alerts, []);
+    assert.equal(page.text('#toast'), 'Action failed: db down');
+  });
+
+  it('rejects an empty edit through the toast', async () => {
+    const page = await bootReview();
+    pages.push(page);
+
+    const card = page.$('.question-card');
+    card.querySelector('.btn-edit').click();
+    card.querySelector('[name=question]').value = '   ';
+    card.querySelector('.btn-save').click();
+    await page.flush();
+
+    assert.deepEqual(page.alerts, []);
+    assert.match(page.text('#toast'), /all four options are required/);
+    assert.ok(!page.calls.some((c) => c.method === 'PUT'));
+  });
+
+  it('announces the toast to assistive technology', async () => {
+    const page = await bootReview();
+    pages.push(page);
+
+    assert.equal(page.$('#toast').getAttribute('role'), 'status');
+    assert.equal(page.$('#toast').getAttribute('aria-live'), 'polite');
   });
 });
 
