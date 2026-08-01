@@ -152,6 +152,54 @@ describe('quiz page — error screen', () => {
   });
 });
 
+describe('quiz page — result announcements', () => {
+  const pages = [];
+  after(() => pages.forEach((p) => p.close()));
+
+  it('announces a correct answer with its explanation', async () => {
+    const page = await bootQuiz();
+    pages.push(page);
+    await startQuiz(page);
+
+    await answer(page, 0);
+
+    const live = page.$('#answer-announcement');
+    assert.equal(live.getAttribute('aria-live'), 'polite');
+    assert.equal(live.textContent, 'Correct. Because.');
+  });
+
+  it('announces a wrong answer with the correct option letter', async () => {
+    const page = await bootQuiz({
+      'POST /api/v1/quiz/sessions/*/answers': { correct: false, correct_index: 2, explanation: 'Nope.' },
+    });
+    pages.push(page);
+    await startQuiz(page);
+
+    await answer(page, 0);
+
+    assert.equal(page.text('#answer-announcement'), 'Incorrect. The correct answer is C. Nope.');
+  });
+
+  it('clears the announcement for the next question', async () => {
+    const page = await bootQuiz();
+    pages.push(page);
+    await startQuiz(page);
+    await answer(page, 0);
+
+    page.$('#btn-next').click();
+    await page.flush();
+
+    assert.equal(page.text('#answer-announcement'), '');
+  });
+
+  it('makes the running score a live region', async () => {
+    const page = await bootQuiz();
+    pages.push(page);
+
+    assert.equal(page.$('#score-label').getAttribute('aria-live'), 'polite');
+  });
+});
+
 describe('quiz page — option keyboard focus', () => {
   const pages = [];
   after(() => pages.forEach((p) => p.close()));

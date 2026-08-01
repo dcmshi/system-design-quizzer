@@ -84,7 +84,7 @@
       <button class="btn-exit-quiz" id="btn-exit" title="End quiz">&times;</button>
       <div class="quiz-header">
         <span id="progress-label">Question 1 of 5</span>
-        <span class="score-display" id="score-label">Score: 0</span>
+        <span class="score-display" id="score-label" aria-live="polite">Score: 0</span>
       </div>
       <div class="progress-bar">
         <div class="progress-fill" id="progress-fill" style="width:0%"></div>
@@ -93,6 +93,7 @@
       <span class="difficulty-badge" id="difficulty-badge"></span>
       <p class="question-text" id="question-text"></p>
       <div class="options" id="options-container"></div>
+      <p class="sr-only" id="answer-announcement" aria-live="polite"></p>
       <div class="inline-error" id="answer-error" role="alert"></div>
       <div class="explanation" id="explanation"></div>
       <div class="srs-next-info" id="srs-next-info">

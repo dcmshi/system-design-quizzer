@@ -59,6 +59,7 @@ const diffBadge    = document.getElementById('difficulty-badge');
 const questionText = document.getElementById('question-text');
 const optionsCont  = document.getElementById('options-container');
 const answerError  = document.getElementById('answer-error');
+const answerSaid   = document.getElementById('answer-announcement');
 const explanation  = document.getElementById('explanation');
 const srsNextInfo  = document.getElementById('srs-next-info');
 const srsIntervalText = document.getElementById('srs-interval-text');
@@ -582,6 +583,7 @@ function renderQuestion() {
 
   // Reset explanation + next + srs info
   answerError.classList.remove('visible');
+  answerSaid.textContent = '';
   explanation.textContent = '';
   explanation.classList.remove('visible');
   srsNextInfo.classList.remove('visible');
@@ -631,6 +633,11 @@ async function handleAnswer(selectedIndex, clickedBtn) {
     explLabel.textContent = 'Explanation:';
     explanation.append(explLabel, ' ' + result.explanation);
     explanation.classList.add('visible');
+
+    // The colour change and score bump are silent otherwise.
+    answerSaid.textContent = result.correct
+      ? `Correct. ${result.explanation}`
+      : `Incorrect. The correct answer is ${LABELS[result.correct_index]}. ${result.explanation}`;
 
     // SRS next-review info
     if (state.mode === 'srs' && result.interval_days !== undefined) {
