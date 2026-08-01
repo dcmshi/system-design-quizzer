@@ -885,6 +885,14 @@ async function showStats() {
 // ── Event listeners ───────────────────────────────────────────────────────
 document.addEventListener('keydown', handleKeyDown);
 
+// A quiz lives only in memory, so a reload or back-nav mid-question throws
+// the session away with no way to resume it.
+window.addEventListener('beforeunload', e => {
+  if (currentScreen !== 'question') return;
+  e.preventDefault();
+  e.returnValue = '';
+});
+
 btnModeRandom.addEventListener('click', () => setMode('random'));
 btnModeSrs.addEventListener('click', () => setMode('srs'));
 btnModeWeak.addEventListener('click', () => setMode('weak'));

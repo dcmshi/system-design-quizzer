@@ -152,6 +152,47 @@ describe('quiz page — error screen', () => {
   });
 });
 
+describe('quiz page — unsaved progress guard', () => {
+  const pages = [];
+  after(() => pages.forEach((p) => p.close()));
+
+  const unload = (page) => {
+    const event = new page.window.Event('beforeunload', { cancelable: true });
+    page.window.dispatchEvent(event);
+    return event.defaultPrevented;
+  };
+
+  it('does not interrupt navigation away from setup', async () => {
+    const page = await bootQuiz();
+    pages.push(page);
+
+    assert.equal(unload(page), false);
+  });
+
+  it('warns before leaving mid-quiz', async () => {
+    const page = await bootQuiz();
+    pages.push(page);
+
+    await startQuiz(page);
+    assert.equal(unload(page), true);
+  });
+
+  it('stops warning once the results are on screen', async () => {
+    const page = await bootQuiz();
+    pages.push(page);
+
+    await startQuiz(page);
+    await answer(page, 0);
+    page.$('#btn-next').click();
+    await page.flush();
+    await answer(page, 0);
+    page.$('#btn-next').click();
+    await page.flush();
+
+    assert.equal(unload(page), false);
+  });
+});
+
 describe('quiz page — document picker', () => {
   const pages = [];
   after(() => pages.forEach((p) => p.close()));
