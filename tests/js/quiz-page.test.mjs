@@ -85,7 +85,7 @@ describe('quiz page — retry missed', () => {
   it('offers a retry for the missed question', async () => {
     const page = await playToEnd();
 
-    assert.equal(page.$('#btn-retry-missed').style.display, 'block');
+    assert.ok(!page.$('#btn-retry-missed').classList.contains('hidden'));
     assert.equal(page.text('#btn-retry-missed'), 'Retry missed (1)');
   });
 

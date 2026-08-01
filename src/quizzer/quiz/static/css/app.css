@@ -72,6 +72,10 @@
   outline-offset: 2px;
 }
 
+/* State utility: JS toggles this instead of writing style strings, so the
+   element keeps whatever display its own rules give it. */
+.hidden { display: none !important; }
+
 /* Visible to assistive technology only. */
 .sr-only {
   position: absolute;

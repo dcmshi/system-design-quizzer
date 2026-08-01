@@ -45,7 +45,7 @@ function renderStats() {
   const totalWords = allDocs.reduce((s, d) => s + (d.word_count || 0), 0);
   const totalQs = allDocs.reduce((s, d) => s + (d.question_count || 0), 0);
 
-  statsBar.style.display = 'flex';
+  statsBar.classList.remove('hidden');
   statsBar.innerHTML = [
     ['Documents', totalDocs.toLocaleString()],
     ['Chunks', totalChunks.toLocaleString()],

@@ -45,8 +45,8 @@
         <label for="input-n">Number of questions</label>
         <input type="number" id="input-n" value="5" min="1" max="50">
 
-        <label for="input-tag" id="label-tag" style="display:none;">Tag</label>
-        <select id="input-tag" style="display:none;">
+        <label for="input-tag" id="label-tag" class="hidden">Tag</label>
+        <select id="input-tag" class="hidden">
           <option value="">Any tag</option>
         </select>
 
@@ -59,8 +59,8 @@
         </select>
       </div>
 
-      <label for="input-srs-n" id="label-srs-n" style="display:none;">Cards per session</label>
-      <input type="number" id="input-srs-n" value="10" min="1" max="100" style="display:none;">
+      <label for="input-srs-n" id="label-srs-n" class="hidden">Cards per session</label>
+      <input type="number" id="input-srs-n" value="10" min="1" max="100" class="hidden">
 
       <button class="btn btn-primary" id="btn-start">Start Quiz</button>
       <p style="text-align:center;margin-top:1rem;display:flex;justify-content:center;gap:1.5rem;">
@@ -121,8 +121,8 @@
         <button class="btn btn-secondary" id="btn-review">Back to Setup</button>
         <button class="btn btn-primary" id="btn-play-again">Play Again</button>
       </div>
-      <button class="btn btn-secondary" id="btn-show-review" style="width:100%;margin-top:0.5rem;">Review Answers</button>
-      <button class="btn btn-secondary" id="btn-retry-missed" style="width:100%;margin-top:0.5rem;display:none;"></button>
+      <button class="btn btn-secondary btn-block" id="btn-show-review">Review Answers</button>
+      <button class="btn btn-secondary btn-block hidden" id="btn-retry-missed"></button>
     </div>
   </div>
 
@@ -130,7 +130,7 @@
   <div id="screen-review" class="screen">
     <div class="review-header">
       <h2>Quiz Review</h2>
-      <button class="btn btn-secondary" id="btn-back-end" style="padding:0.4rem 1rem;font-size:0.85rem;">&larr; Results</button>
+      <button class="btn btn-secondary btn-compact" id="btn-back-end">&larr; Results</button>
     </div>
     <div id="review-list"></div>
   </div>
@@ -139,7 +139,7 @@
   <div id="screen-stats" class="screen">
     <div class="card">
       <div class="stats-header">
-        <button class="btn btn-secondary" id="btn-stats-back" style="padding:0.4rem 0.9rem;font-size:0.85rem;">&larr; Back</button>
+        <button class="btn btn-secondary btn-compact" id="btn-stats-back">&larr; Back</button>
         <h2>SRS Progress</h2>
       </div>
 
@@ -171,7 +171,7 @@
           </thead>
           <tbody id="doc-table-body"></tbody>
         </table>
-        <div id="stats-empty">No documents found. Ingest articles to get started.</div>
+        <div id="stats-empty" class="hidden">No documents found. Ingest articles to get started.</div>
       </div>
 
       <button class="btn btn-primary" id="btn-stats-start-srs">Start SRS Session &rarr;</button>
@@ -180,7 +180,7 @@
 
   <!-- Error -->
   <div id="screen-error" class="screen">
-    <div class="card" style="text-align:center">
+    <div class="card">
       <div class="error-icon">&#9888;</div>
       <div class="error-title" id="error-title">Something went wrong</div>
       <p class="error-msg" id="error-msg"></p>

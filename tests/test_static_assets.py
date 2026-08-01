@@ -51,6 +51,19 @@ def test_pages_carry_no_inline_style_or_script_blocks(client: TestClient, page: 
 
 
 @pytest.mark.parametrize("page", PAGES)
+def test_markup_carries_no_static_inline_styles(client: TestClient, page: str):
+    """State belongs in classes the JS toggles, not in style strings — the two
+    used to be mixed for the same elements."""
+    styles = re.findall(r'style="([^"]*)"', client.get(page).text)
+    assert [s for s in styles if "display:none" in s.replace(" ", "")] == []
+
+
+def test_no_script_writes_display_directly():
+    for path in sorted((STATIC_DIR / "js").glob("*.js")):
+        assert "style.display" not in path.read_text(encoding="utf-8"), path.name
+
+
+@pytest.mark.parametrize("page", PAGES)
 def test_page_declares_a_favicon_and_description(client: TestClient, page: str):
     """Without an icon link every load 404s on /favicon.ico."""
     html = client.get(page).text

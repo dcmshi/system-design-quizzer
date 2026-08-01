@@ -130,6 +130,10 @@ function formatInterval(days) {
   return `in ${days} days`;
 }
 
+function setHidden(node, hidden) {
+  node.classList.toggle('hidden', hidden);
+}
+
 function el(tag, text) {
   const node = document.createElement(tag);
   if (text !== undefined) node.textContent = text;
@@ -153,35 +157,27 @@ function setMode(mode) {
     btn.setAttribute('aria-pressed', String(mode === name));
   });
 
-  // Reset all mode-specific UI first
-  randomOnlyFields.style.display = 'none';
-  labelSrsN.style.display = 'none';
-  inputSrsN.style.display = 'none';
-  dueInfo.classList.remove('visible');
-  weakInfo.classList.remove('visible');
-
   const labelDiff = document.getElementById('label-diff');
+  const labelTag = document.getElementById('label-tag');
+
+  // Weak mode picks by history, so its tag and difficulty filters make no sense.
+  setHidden(randomOnlyFields, mode === 'srs');
+  setHidden(labelSrsN, mode !== 'srs');
+  setHidden(inputSrsN, mode !== 'srs');
+  setHidden(labelDiff, mode !== 'random');
+  setHidden(inputDiff, mode !== 'random');
+  dueInfo.classList.toggle('visible', mode === 'srs');
+  weakInfo.classList.toggle('visible', mode === 'weak');
 
   if (mode === 'random') {
-    randomOnlyFields.style.display = 'block';
-    labelDiff.style.display = 'block';
-    inputDiff.style.display = 'block';
     btnStart.textContent = 'Start Quiz';
   } else if (mode === 'srs') {
-    labelSrsN.style.display = 'block';
-    inputSrsN.style.display = 'block';
-    dueInfo.classList.add('visible');
     btnStart.textContent = 'Start SRS Session';
     refreshDueInfo();
   } else {
-    // weak — show n input but hide tag/diff (selected by history, not filter)
-    randomOnlyFields.style.display = 'block';
-    document.getElementById('label-tag').style.display = 'none';
-    inputTag.style.display = 'none';
+    setHidden(labelTag, true);
+    setHidden(inputTag, true);
     inputDiff.value = '';
-    labelDiff.style.display = 'none';
-    inputDiff.style.display = 'none';
-    weakInfo.classList.add('visible');
     btnStart.textContent = 'Start Weak Topics Quiz';
     refreshWeakCount();
   }
@@ -300,8 +296,8 @@ async function loadTags() {
       opt.textContent = t;
       inputTag.appendChild(opt);
     });
-    document.getElementById('label-tag').style.display = 'block';
-    inputTag.style.display = 'block';
+    setHidden(document.getElementById('label-tag'), false);
+    setHidden(inputTag, false);
   } catch (_) {}
 }
 
@@ -697,12 +693,9 @@ async function showEnd(exited = false) {
   }
 
   const missedCount = state.results.filter(r => !r.correct).length;
-  if (missedCount > 0 && state.mode === 'random') {
-    btnRetryMissed.textContent = `Retry missed (${missedCount})`;
-    btnRetryMissed.style.display = 'block';
-  } else {
-    btnRetryMissed.style.display = 'none';
-  }
+  const canRetry = missedCount > 0 && state.mode === 'random';
+  if (canRetry) btnRetryMissed.textContent = `Retry missed (${missedCount})`;
+  setHidden(btnRetryMissed, !canRetry);
 
   btnPlayAgain.textContent = state.mode === 'srs' ? 'New SRS Session' : 'Play Again';
 
@@ -825,7 +818,7 @@ async function showStats() {
   statsNew.textContent = '—';
   statsTotal.textContent = '—';
   docTableBody.innerHTML = '';
-  statsEmpty.style.display = 'none';
+  setHidden(statsEmpty, true);
   showScreen('stats');
   window.scrollTo({ top: 0, behavior: 'instant' });
 
@@ -840,7 +833,7 @@ async function showStats() {
     const [docs, byDoc] = await Promise.all([fetchDocuments(), loadDueByDocument()]);
 
     if (docs.length === 0) {
-      statsEmpty.style.display = 'block';
+      setHidden(statsEmpty, false);
       return;
     }
 
