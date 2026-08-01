@@ -406,10 +406,21 @@ async function loadDueByDocument() {
 
 // ── Quiz flow ─────────────────────────────────────────────────────────────
 async function startQuiz() {
-  if (state.mode === 'srs') {
-    await startSrsFlow();
-  } else {
-    await startRandomFlow();
+  // Creating a session is a POST: a second click before it resolves would
+  // start a second session and orphan the first.
+  if (btnStart.disabled) return;
+  const label = btnStart.textContent;
+  btnStart.disabled = true;
+  btnStart.textContent = 'Starting…';
+  try {
+    if (state.mode === 'srs') {
+      await startSrsFlow();
+    } else {
+      await startRandomFlow();
+    }
+  } finally {
+    btnStart.disabled = false;
+    btnStart.textContent = label;
   }
 }
 

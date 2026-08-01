@@ -39,6 +39,24 @@ describe('review page', () => {
     assert.equal(page.text('#bulk-approve-btn'), 'Approve selected (1)');
     assert.equal(page.$('#bulk-approve-btn').disabled, false);
   });
+
+  it('locks every bulk action while one is in flight', async () => {
+    const page = await bootReview();
+    pages.push(page);
+    const bulkButtons = () =>
+      ['#bulk-approve-btn', '#bulk-reject-btn', '#bulk-delete-btn'].map((s) => page.$(s));
+
+    page.$('.card-checkbox').click();
+    page.$('#bulk-approve-btn').click();
+    assert.ok(bulkButtons().every((b) => b.disabled), 'all locked during the request');
+
+    await page.flush();
+    await page.wait(250);
+    assert.ok(bulkButtons().every((b) => b.disabled), 'all disabled again with nothing selected');
+
+    page.$('.card-checkbox').click();
+    assert.ok(bulkButtons().every((b) => !b.disabled));
+  });
 });
 
 describe('review page — request volume', () => {

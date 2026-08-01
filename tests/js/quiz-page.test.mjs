@@ -152,6 +152,46 @@ describe('quiz page — error screen', () => {
   });
 });
 
+describe('quiz page — start button', () => {
+  const pages = [];
+  after(() => pages.forEach((p) => p.close()));
+
+  it('creates one session however fast the button is double-clicked', async () => {
+    const page = await bootQuiz();
+    pages.push(page);
+
+    page.$('#btn-start').click();
+    page.$('#btn-start').click();
+    page.$('#btn-start').click();
+    await page.flush();
+
+    assert.equal(page.calls.filter((c) => c.path === '/api/v1/quiz/sessions').length, 1);
+  });
+
+  it('shows a busy state while the session is being created', async () => {
+    const page = await bootQuiz();
+    pages.push(page);
+
+    page.$('#btn-start').click();
+    assert.equal(page.$('#btn-start').disabled, true);
+    assert.equal(page.text('#btn-start'), 'Starting…');
+  });
+
+  it('restores the mode-specific label afterwards', async () => {
+    const page = await bootQuiz({
+      'POST /api/v1/quiz/sessions': reply(500, { detail: 'nope' }),
+    });
+    pages.push(page);
+
+    page.$('#btn-mode-weak').click();
+    await page.flush();
+    await startQuiz(page);
+
+    assert.equal(page.$('#btn-start').disabled, false);
+    assert.equal(page.text('#btn-start'), 'Start Weak Topics Quiz');
+  });
+});
+
 describe('quiz page — SRS stats screen', () => {
   const pages = [];
   after(() => pages.forEach((p) => p.close()));

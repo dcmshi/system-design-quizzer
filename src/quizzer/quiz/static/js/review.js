@@ -34,6 +34,12 @@ function showToast(msg, type = 'success') {
 
 // ── Bulk bar ──────────────────────────────────────────────────────────────
 
+/** Lock every bulk action while one is in flight, not just the one clicked. */
+function setBulkBusy(busy) {
+  [bulkApproveBtn, bulkRejectBtn, bulkDeleteBtn].forEach(b => { b.disabled = busy; });
+  if (!busy) updateBulkBar();
+}
+
 function updateBulkBar() {
   const n = selectedIds.size;
   bulkApproveBtn.textContent = `Approve selected (${n})`;
@@ -610,7 +616,7 @@ selectAllCb.addEventListener('change', () => {
 bulkApproveBtn.addEventListener('click', async () => {
   const ids = [...selectedIds];
   if (!ids.length) return;
-  bulkApproveBtn.disabled = true;
+  setBulkBusy(true);
   try {
     const res = await fetch('/api/v1/questions/bulk-status', {
       method: 'POST',
@@ -628,7 +634,7 @@ bulkApproveBtn.addEventListener('click', async () => {
       setTimeout(() => {
         toFade.forEach(c => { c.remove(); total = Math.max(0, total - 1); });
         selectedIds.clear();
-        updateBulkBar();
+        setBulkBusy(false);
         if (listEl.children.length === 0) {
           listEl.innerHTML = '<div class="state-msg">No questions match the current filters.</div>';
           summaryEl.textContent = '0 questions';
@@ -643,11 +649,11 @@ bulkApproveBtn.addEventListener('click', async () => {
         if (badge) { badge.textContent = 'approved'; badge.className = 'badge badge-approved'; }
       });
       selectedIds.clear();
-      updateBulkBar();
+      setBulkBusy(false);
     }
   } catch (err) {
     alert(`Bulk approve failed: ${err.message}`);
-    bulkApproveBtn.disabled = selectedIds.size === 0;
+    setBulkBusy(false);
   }
 });
 
@@ -656,7 +662,7 @@ bulkApproveBtn.addEventListener('click', async () => {
 bulkRejectBtn.addEventListener('click', async () => {
   const ids = [...selectedIds];
   if (!ids.length) return;
-  bulkRejectBtn.disabled = true;
+  setBulkBusy(true);
   try {
     const res = await fetch('/api/v1/questions/bulk-status', {
       method: 'POST',
@@ -674,7 +680,7 @@ bulkRejectBtn.addEventListener('click', async () => {
       setTimeout(() => {
         toFade.forEach(c => { c.remove(); total = Math.max(0, total - 1); });
         selectedIds.clear();
-        updateBulkBar();
+        setBulkBusy(false);
         if (listEl.children.length === 0) {
           listEl.innerHTML = '<div class="state-msg">No questions match the current filters.</div>';
           summaryEl.textContent = '0 questions';
@@ -689,11 +695,11 @@ bulkRejectBtn.addEventListener('click', async () => {
         if (badge) { badge.textContent = 'rejected'; badge.className = 'badge badge-rejected'; }
       });
       selectedIds.clear();
-      updateBulkBar();
+      setBulkBusy(false);
     }
   } catch (err) {
     alert(`Bulk reject failed: ${err.message}`);
-    bulkRejectBtn.disabled = selectedIds.size === 0;
+    setBulkBusy(false);
   }
 });
 
@@ -703,7 +709,7 @@ bulkDeleteBtn.addEventListener('click', async () => {
   const ids = [...selectedIds];
   if (!ids.length) return;
   if (!confirm(`Permanently delete ${ids.length} question${ids.length !== 1 ? 's' : ''}? This cannot be undone.`)) return;
-  bulkDeleteBtn.disabled = true;
+  setBulkBusy(true);
   const errors = [];
   await Promise.all(ids.map(async id => {
     try {
@@ -720,7 +726,7 @@ bulkDeleteBtn.addEventListener('click', async () => {
   setTimeout(() => {
     toFade.forEach(c => { c.remove(); total = Math.max(0, total - 1); });
     deleted.forEach(id => selectedIds.delete(id));
-    updateBulkBar();
+    setBulkBusy(false);
     if (listEl.children.length === 0) {
       listEl.innerHTML = '<div class="state-msg">No questions match the current filters.</div>';
       summaryEl.textContent = '0 questions';
