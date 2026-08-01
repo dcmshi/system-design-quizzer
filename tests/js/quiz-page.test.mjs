@@ -152,6 +152,49 @@ describe('quiz page — error screen', () => {
   });
 });
 
+describe('quiz page — option keyboard focus', () => {
+  const pages = [];
+  after(() => pages.forEach((p) => p.close()));
+
+  const press = (page, key) => page.window.document.dispatchEvent(
+    new page.window.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+
+  it('moves real focus, so tab order and the screen reader agree', async () => {
+    const page = await bootQuiz();
+    pages.push(page);
+    await startQuiz(page);
+
+    press(page, '3');
+
+    const options = page.$$('#options-container .option-btn');
+    assert.equal(page.document.activeElement, options[2]);
+  });
+
+  it('does not move focus once the question is answered', async () => {
+    const page = await bootQuiz();
+    pages.push(page);
+    await startQuiz(page);
+    await answer(page, 0);
+
+    press(page, '2');
+
+    const options = page.$$('#options-container .option-btn');
+    assert.notEqual(page.document.activeElement, options[1]);
+  });
+
+  it('advances to the next question with the arrow key', async () => {
+    const page = await bootQuiz();
+    pages.push(page);
+    await startQuiz(page);
+    await answer(page, 0);
+
+    press(page, 'ArrowRight');
+    await page.flush();
+
+    assert.equal(page.text('#progress-label'), 'Question 2 of 2');
+  });
+});
+
 describe('quiz page — unsaved progress guard', () => {
   const pages = [];
   after(() => pages.forEach((p) => p.close()));

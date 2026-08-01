@@ -176,7 +176,7 @@ select option { background: var(--surface2); }
   background: var(--surface);
 }
 .option-btn:disabled { cursor: default; }
-.option-btn.focused:not(:disabled) {
+.option-btn:focus-visible:not(:disabled) {
   border-color: var(--accent);
   background: var(--surface);
   outline: 2px solid var(--accent);

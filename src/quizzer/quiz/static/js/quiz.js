@@ -26,7 +26,6 @@ const state = {
   score: 0,
   answered: false,
   totalRequested: 5,
-  keyboardFocus: null,
   results: [],
   mode: 'random',        // 'random' | 'srs'
   srsSessionId: null,
@@ -206,16 +205,11 @@ async function refreshWeakCount() {
 // ── Keyboard shortcuts ────────────────────────────────────────────────────
 const KEY_TO_INDEX = { '1': 0, '2': 1, '3': 2, '4': 3 };
 
-function setKeyboardFocus(idx) {
-  state.keyboardFocus = idx;
-  optionsCont.querySelectorAll('.option-btn').forEach((b, i) => {
-    b.classList.toggle('focused', i === idx);
-  });
-}
-
-function clearKeyboardFocus() {
-  state.keyboardFocus = null;
-  optionsCont.querySelectorAll('.option-btn').forEach(b => b.classList.remove('focused'));
+/** Move real focus to an option so Tab order, the focus ring and the screen
+ *  reader all agree on where the user is. */
+function focusOption(idx) {
+  const btns = optionsCont.querySelectorAll('.option-btn');
+  if (idx < btns.length && !state.answered) btns[idx].focus();
 }
 
 function handleKeyDown(e) {
@@ -223,31 +217,25 @@ function handleKeyDown(e) {
 
   const digit = KEY_TO_INDEX[e.key];
   if (digit !== undefined) {
-    const btns = optionsCont.querySelectorAll('.option-btn');
-    if (digit < btns.length && !state.answered) {
-      e.preventDefault();
-      setKeyboardFocus(digit);
-    }
+    e.preventDefault();
+    focusOption(digit);
     return;
   }
+
+  const wantsNext = state.answered && btnNext.classList.contains('visible');
 
   if (e.key === 'Enter' || e.key === ' ') {
+    // A focused option or button activates natively; this only covers
+    // confirming from elsewhere on the page.
     if (document.activeElement?.tagName === 'BUTTON') return;
-    e.preventDefault();
-    if (!state.answered && state.keyboardFocus !== null) {
-      const btns = optionsCont.querySelectorAll('.option-btn');
-      handleAnswer(state.keyboardFocus, btns[state.keyboardFocus]);
-    } else if (state.answered && btnNext.classList.contains('visible')) {
+    if (wantsNext) {
+      e.preventDefault();
       nextQuestion();
     }
     return;
   }
 
-  if (e.key === 'ArrowRight') {
-    if (state.answered && btnNext.classList.contains('visible')) {
-      nextQuestion();
-    }
-  }
+  if (e.key === 'ArrowRight' && wantsNext) nextQuestion();
 }
 
 // ── API calls ─────────────────────────────────────────────────────────────
@@ -569,7 +557,6 @@ function renderQuestion() {
   const idx = state.current;
 
   state.answered = false;
-  state.keyboardFocus = null;
 
   // Header
   progressLbl.textContent = `Question ${idx + 1} of ${total}`;
@@ -607,7 +594,6 @@ async function handleAnswer(selectedIndex, clickedBtn) {
 
   const allBtns = optionsCont.querySelectorAll('.option-btn');
   allBtns.forEach(b => { b.disabled = true; });
-  clearKeyboardFocus();
   answerError.classList.remove('visible');
 
   const q = state.questions[state.current];
@@ -744,7 +730,6 @@ function replayMissed() {
   state.score = 0;
   state.answered = false;
   state.results = [];
-  state.keyboardFocus = null;
   // The session was finished on the end screen; retried answers must not be
   // recorded against it, so fall back to the standalone /answer endpoint.
   state.quizSessionId = null;
