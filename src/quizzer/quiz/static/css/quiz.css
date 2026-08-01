@@ -159,6 +159,10 @@ select option { background: var(--surface2); }
 }
 
 .option-btn {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
   text-align: left;
   background: var(--surface2);
   border: 1px solid var(--border);
@@ -171,6 +175,7 @@ select option { background: var(--surface2); }
   transition: border-color 0.15s, background 0.15s;
   line-height: 1.4;
 }
+.option-mark { font-weight: 700; flex-shrink: 0; }
 .option-btn:hover:not(:disabled) {
   border-color: var(--accent);
   background: var(--surface);

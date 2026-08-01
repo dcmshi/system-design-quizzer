@@ -116,6 +116,14 @@ function scoreMessage(pct) {
   return 'Keep studying — you\'ll get there!';
 }
 
+/** Flag an answered option with both a colour class and a glyph. */
+function markOption(btn, kind, symbol) {
+  btn.classList.add(kind);
+  const mark = el('span', symbol);
+  mark.className = 'option-mark';
+  btn.append(mark);
+}
+
 function formatInterval(days) {
   if (days <= 0) return 'today';
   if (days === 1) return 'in 1 day';
@@ -576,7 +584,7 @@ function renderQuestion() {
   q.options.forEach((opt, i) => {
     const btn = document.createElement('button');
     btn.className = 'option-btn';
-    btn.textContent = `${LABELS[i]}. ${opt}`;
+    btn.append(el('span', `${LABELS[i]}. ${opt}`));
     btn.addEventListener('click', () => handleAnswer(i, btn));
     optionsCont.appendChild(btn);
   });
@@ -611,10 +619,10 @@ async function handleAnswer(selectedIndex, clickedBtn) {
       result = await submitAnswer(q.id, selectedIndex);
     }
 
-    // Colour feedback
-    allBtns[result.correct_index].classList.add('correct');
+    // Colour plus a symbol: green/red alone is invisible to colour-blind users
+    markOption(allBtns[result.correct_index], 'correct', '✓');
     if (!result.correct) {
-      clickedBtn.classList.add('wrong');
+      markOption(clickedBtn, 'wrong', '✗');
     }
 
     if (result.correct) state.score++;

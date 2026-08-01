@@ -152,6 +152,49 @@ describe('quiz page — error screen', () => {
   });
 });
 
+describe('quiz page — non-colour answer feedback', () => {
+  const pages = [];
+  after(() => pages.forEach((p) => p.close()));
+
+  it('ticks the correct option and crosses the wrong choice', async () => {
+    const page = await bootQuiz({
+      'POST /api/v1/quiz/sessions/*/answers': { correct: false, correct_index: 2, explanation: 'Nope.' },
+    });
+    pages.push(page);
+    await startQuiz(page);
+
+    await answer(page, 0);
+
+    const marks = page.$$('#options-container .option-btn')
+      .map((b) => b.querySelector('.option-mark')?.textContent ?? '');
+    assert.deepEqual(marks, ['✗', '', '✓', '']);
+  });
+
+  it('ticks only the chosen option when it is right', async () => {
+    const page = await bootQuiz();
+    pages.push(page);
+    await startQuiz(page);
+
+    await answer(page, 0);
+
+    const marks = page.$$('#options-container .option-btn')
+      .map((b) => b.querySelector('.option-mark')?.textContent ?? '');
+    assert.deepEqual(marks, ['✓', '', '', '']);
+  });
+
+  it('clears the markers on the next question', async () => {
+    const page = await bootQuiz();
+    pages.push(page);
+    await startQuiz(page);
+    await answer(page, 0);
+
+    page.$('#btn-next').click();
+    await page.flush();
+
+    assert.equal(page.$$('#options-container .option-mark').length, 0);
+  });
+});
+
 describe('quiz page — result announcements', () => {
   const pages = [];
   after(() => pages.forEach((p) => p.close()));
