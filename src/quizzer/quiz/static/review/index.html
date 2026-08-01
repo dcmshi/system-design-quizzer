@@ -498,10 +498,11 @@ async function loadNearDupes() {
   } catch (_) {}
 }
 
-function buildNearDupePanel(dupes) {
+function buildNearDupePanel(dupes, questionId) {
   const panel = document.createElement('div');
   panel.className = 'near-dupe-panel';
   panel.dataset.nearDupePanel = '';
+  panel.id = `near-dupes-${questionId}`;
   dupes.forEach(d => {
     const entry = document.createElement('div');
     entry.className = 'near-dupe-entry';
@@ -518,30 +519,39 @@ function buildNearDupePanel(dupes) {
   return panel;
 }
 
+/** Add the "N similar" toggle and its panel to a card view, if it has dupes. */
+function addNearDupeToggle(view, badges, questionId, dupes) {
+  if (dupes.length === 0) return;
+
+  const panel = buildNearDupePanel(dupes, questionId);
+  const badge = document.createElement('button');
+  badge.type = 'button';
+  badge.className = 'badge badge-near-dupe';
+  badge.dataset.nearDupeBadge = '';
+  badge.title = 'Show similar questions';
+  badge.textContent = `\u26a0 ${dupes.length} similar`;
+  badge.setAttribute('aria-expanded', 'false');
+  badge.setAttribute('aria-controls', panel.id);
+  badge.addEventListener('click', () => {
+    const open = panel.classList.toggle('open');
+    badge.setAttribute('aria-expanded', String(open));
+  });
+
+  badges.append(badge);
+  view.append(panel);
+}
+
 function applyNearDupeBadges() {
   listEl.querySelectorAll('.question-card').forEach(card => {
-    const id = card.dataset.id;
     const view = card.querySelector('.card-view');
     const badges = view.querySelector('.badges');
-    const dupes = nearDupeMap.get(id) || [];
 
     const oldBadge = badges.querySelector('[data-near-dupe-badge]');
     if (oldBadge) oldBadge.remove();
     const oldPanel = view.querySelector('[data-near-dupe-panel]');
     if (oldPanel) oldPanel.remove();
 
-    if (dupes.length > 0) {
-      const dupeBadge = document.createElement('span');
-      dupeBadge.className = 'badge badge-near-dupe';
-      dupeBadge.dataset.nearDupeBadge = '';
-      dupeBadge.title = 'Click to see similar questions';
-      dupeBadge.textContent = `\u26a0 ${dupes.length} similar`;
-      badges.append(dupeBadge);
-
-      const panel = buildNearDupePanel(dupes);
-      view.append(panel);
-      dupeBadge.addEventListener('click', () => panel.classList.toggle('open'));
-    }
+    addNearDupeToggle(view, badges, card.dataset.id, nearDupeMap.get(card.dataset.id) || []);
   });
 }
 
@@ -720,16 +730,6 @@ function buildCardView(q) {
 
   badges.append(diffBadge, statusBadge);
 
-  const dupes = nearDupeMap.get(q.id) || [];
-  if (dupes.length > 0) {
-    const dupeBadge = document.createElement('span');
-    dupeBadge.className = 'badge badge-near-dupe';
-    dupeBadge.dataset.nearDupeBadge = '';
-    dupeBadge.title = 'Click to see similar questions';
-    dupeBadge.textContent = `\u26a0 ${dupes.length} similar`;
-    badges.append(dupeBadge);
-  }
-
   const actions = document.createElement('div');
   actions.className = 'card-actions';
   actions.innerHTML =
@@ -782,13 +782,7 @@ function buildCardView(q) {
   meta.append('Model: ', modelCode, ' Prompt: ', promptCode);
 
   view.append(top, qText, opts, expl, hitRate, meta);
-
-  if (dupes.length > 0) {
-    const panel = buildNearDupePanel(dupes);
-    view.append(panel);
-    badges.querySelector('[data-near-dupe-badge]')
-      .addEventListener('click', () => panel.classList.toggle('open'));
-  }
+  addNearDupeToggle(view, badges, q.id, nearDupeMap.get(q.id) || []);
 
   return view;
 }
