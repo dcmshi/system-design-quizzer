@@ -152,6 +152,51 @@ describe('quiz page — error screen', () => {
   });
 });
 
+describe('quiz page — SRS stats screen', () => {
+  const pages = [];
+  after(() => pages.forEach((p) => p.close()));
+
+  const BY_DOC = [
+    { document_id: 'DOC2', due_count: 1, new_count: 2, total_actionable: 3 },
+    { document_id: 'DOC1', due_count: 5, new_count: 0, total_actionable: 5 },
+  ];
+
+  async function openStats(overrides = {}) {
+    const page = await bootQuiz({ 'GET /api/v1/srs/due/by-document': BY_DOC, ...overrides });
+    pages.push(page);
+    page.$('#link-stats').click();
+    await page.flush();
+    return page;
+  }
+
+  it('reads per-document counts in one call instead of one per document', async () => {
+    const page = await openStats();
+
+    assert.equal(page.calls.filter((c) => c.path === '/api/v1/srs/due').length, 1);
+    assert.equal(page.calls.filter((c) => c.path === '/api/v1/srs/due/by-document').length, 1);
+  });
+
+  it('joins the bulk counts onto the document rows, busiest first', async () => {
+    const page = await openStats();
+
+    const rows = page.$$('#doc-table-body tr').map((tr) =>
+      [...tr.children].map((td) => td.textContent));
+    assert.deepEqual(rows, [
+      ['Consistent Hashing', '5', '0', '12'],
+      ['Load Balancers', '1', '2', '7'],
+    ]);
+    assert.equal(page.text('#stats-due'), '3');
+  });
+
+  it('shows zeroes for a document with no SRS rows', async () => {
+    const page = await openStats({ 'GET /api/v1/srs/due/by-document': [] });
+
+    const first = page.$('#doc-table-body tr');
+    assert.deepEqual([...first.children].map((td) => td.textContent),
+      ['Consistent Hashing', '0', '0', '12']);
+  });
+});
+
 describe('quiz page — failed answer submission', () => {
   const pages = [];
   after(() => pages.forEach((p) => p.close()));

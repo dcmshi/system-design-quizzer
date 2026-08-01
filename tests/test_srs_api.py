@@ -96,6 +96,47 @@ def test_due_counts_new_questions(srs_client):
     assert data["total_actionable"] == data["new_count"] + data["due_count"]
 
 
+def test_due_by_document_reports_every_document_in_one_call(srs_client):
+    """The stats screen used to call /due once per document."""
+    client, q_id = srs_client
+    rows = client.get("/api/v1/srs/due/by-document").json()
+
+    doc_id = client.get("/api/v1/documents").json()[0]["id"]
+    row = next(r for r in rows if r["document_id"] == doc_id)
+    assert row == {
+        "document_id": doc_id,
+        "due_count": 0,
+        "new_count": 1,
+        "total_actionable": 1,
+    }
+
+
+def test_due_by_document_drops_a_reviewed_card_from_the_new_pool(srs_client):
+    client, q_id = srs_client
+    session = client.post("/api/v1/srs/sessions", json={"n": 1}).json()
+    client.post(
+        f"/api/v1/srs/sessions/{session['session_id']}/reviews",
+        json={"question_id": q_id, "selected_index": 1},
+    )
+
+    row = client.get("/api/v1/srs/due/by-document").json()[0]
+    assert row["new_count"] == 0
+    assert row["due_count"] == 0  # scheduled for a future day
+    assert row["total_actionable"] == 0
+
+
+def test_due_by_document_matches_the_single_document_endpoint(srs_client):
+    client, _ = srs_client
+    doc_id = client.get("/api/v1/documents").json()[0]["id"]
+
+    single = client.get(f"/api/v1/srs/due?document_id={doc_id}").json()
+    bulk = next(
+        r for r in client.get("/api/v1/srs/due/by-document").json()
+        if r["document_id"] == doc_id
+    )
+    assert {k: bulk[k] for k in single} == single
+
+
 # ------------------------------------------------------------------
 # POST /api/v1/srs/sessions
 # ------------------------------------------------------------------

@@ -64,3 +64,48 @@ def test_get_due_questions_with_other_document_filter_excludes(db_conn):
     ids = {q["id"] for q in due}
     assert q_a in ids
     assert q_b not in ids
+
+
+def _add_card(conn, question_id: str, due_date: str) -> None:
+    now = datetime.now(timezone.utc).isoformat()
+    conn.execute(
+        "INSERT INTO srs_cards (question_id, ease_factor, interval_days, repetitions, "
+        "due_date, last_reviewed, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (question_id, 2.5, 1, 1, due_date, now, now),
+    )
+    conn.commit()
+
+
+def test_due_counts_by_document_splits_due_from_new(db_conn):
+    doc_a, q_due, q_new = str(ULID()), str(ULID()), str(ULID())
+    doc_b, q_future = str(ULID()), str(ULID())
+    _seed_question(db_conn, doc_id=doc_a, q_id=q_due)
+    _seed_question(db_conn, doc_id=doc_a, q_id=q_new)
+    _seed_question(db_conn, doc_id=doc_b, q_id=q_future)
+    _add_card(db_conn, q_due, "2026-01-01")
+    _add_card(db_conn, q_future, "2099-01-01")
+
+    counts = SrsRepository(db_conn).due_counts_by_document(today="2026-06-01")
+
+    assert counts[doc_a] == {"due_count": 1, "new_count": 1}
+    assert counts[doc_b] == {"due_count": 0, "new_count": 0}
+
+
+def test_due_counts_by_document_matches_the_per_document_query(db_conn):
+    doc_id, q_due, q_new = str(ULID()), str(ULID()), str(ULID())
+    _seed_question(db_conn, doc_id=doc_id, q_id=q_due)
+    _seed_question(db_conn, doc_id=doc_id, q_id=q_new)
+    _add_card(db_conn, q_due, "2026-01-01")
+    repo = SrsRepository(db_conn)
+
+    bulk = repo.due_counts_by_document(today="2026-06-01")[doc_id]
+    assert bulk == repo.due_count(document_id=doc_id, today="2026-06-01")
+
+
+def test_due_counts_by_document_ignores_rejected_questions(db_conn):
+    doc_id, q_id = str(ULID()), str(ULID())
+    _seed_question(db_conn, doc_id=doc_id, q_id=q_id)
+    db_conn.execute("UPDATE questions SET status = 'rejected' WHERE id = ?", (q_id,))
+    db_conn.commit()
+
+    assert SrsRepository(db_conn).due_counts_by_document() == {}

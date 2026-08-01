@@ -42,6 +42,10 @@ class SrsDueResponse(BaseModel):
     total_actionable: int  # due + new
 
 
+class SrsDocumentDue(SrsDueResponse):
+    document_id: str
+
+
 class SrsReviewRecord(BaseModel):
     id: str
     session_id: str

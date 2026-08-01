@@ -120,6 +120,27 @@ class SrsRepository:
             "new_count": new_row["cnt"] if new_row else 0,
         }
 
+    def due_counts_by_document(self, today: str | None = None) -> dict[str, dict]:
+        """due/new counts for every document in one pass (SRS stats screen)."""
+        cutoff = today or utc_today().isoformat()
+        rows = self._conn.execute(
+            """
+            SELECT q.source_document_id AS document_id,
+                   SUM(CASE WHEN c.question_id IS NOT NULL AND c.due_date <= ?
+                            THEN 1 ELSE 0 END) AS due_count,
+                   SUM(CASE WHEN c.question_id IS NULL THEN 1 ELSE 0 END) AS new_count
+            FROM questions q
+            LEFT JOIN srs_cards c ON q.id = c.question_id
+            WHERE q.status != 'rejected'
+            GROUP BY q.source_document_id
+            """,
+            (cutoff,),
+        ).fetchall()
+        return {
+            r["document_id"]: {"due_count": r["due_count"], "new_count": r["new_count"]}
+            for r in rows
+        }
+
     # ------------------------------------------------------------------
     # srs_sessions
     # ------------------------------------------------------------------

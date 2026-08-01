@@ -1059,11 +1059,15 @@
   }
 
   // ── API calls ─────────────────────────────────────────────────────────────
+  async function fetchDocuments() {
+    const res = await fetch('/api/v1/documents');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  }
+
   async function loadDocuments() {
     try {
-      const res = await fetch('/api/v1/documents');
-      if (!res.ok) return;
-      const docs = await res.json();
+      const docs = await fetchDocuments();
       inputDoc.innerHTML = '';
       docs.forEach(doc => {
         const opt = document.createElement('option');
@@ -1211,6 +1215,12 @@
       const b = await res.json().catch(() => ({}));
       throw new Error(b.detail || `HTTP ${res.status}`);
     }
+    return res.json();
+  }
+
+  async function loadDueByDocument() {
+    const res = await fetch('/api/v1/srs/due/by-document');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res.json();
   }
 
@@ -1606,27 +1616,19 @@
       statsNew.textContent = overall.new_count;
       statsTotal.textContent = overall.total_actionable;
 
-      // Per-document counts
-      const docsRes = await fetch('/api/v1/documents');
-      if (!docsRes.ok) return;
-      const docs = await docsRes.json();
+      // Per-document counts — one bulk call, not one per document
+      const [docs, byDoc] = await Promise.all([fetchDocuments(), loadDueByDocument()]);
 
       if (docs.length === 0) {
         statsEmpty.style.display = 'block';
         return;
       }
 
-      // Fetch per-doc due info in parallel
-      const perDoc = await Promise.all(
-        docs.map(async doc => {
-          try {
-            const info = await loadDueInfo(doc.id);
-            return { doc, due: info.due_count, new: info.new_count };
-          } catch (_) {
-            return { doc, due: 0, new: 0 };
-          }
-        })
-      );
+      const counts = new Map(byDoc.map(row => [row.document_id, row]));
+      const perDoc = docs.map(doc => {
+        const row = counts.get(doc.id);
+        return { doc, due: row?.due_count ?? 0, new: row?.new_count ?? 0 };
+      });
 
       // Sort by (due + new) descending
       perDoc.sort((a, b) => (b.due + b.new) - (a.due + a.new));

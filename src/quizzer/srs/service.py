@@ -128,6 +128,16 @@ class SrsService:
         total = counts["due_count"] + counts["new_count"]
         return {**counts, "total_actionable": total}
 
+    def get_due_info_by_document(self) -> list[dict]:
+        return [
+            {
+                "document_id": document_id,
+                **counts,
+                "total_actionable": counts["due_count"] + counts["new_count"],
+            }
+            for document_id, counts in self._srs.due_counts_by_document().items()
+        ]
+
     def get_session(self, session_id: str) -> dict | None:
         session = self._srs.get_session(session_id)
         if session is None:

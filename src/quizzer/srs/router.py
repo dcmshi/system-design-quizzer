@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from quizzer.quiz.schemas import QuestionSummary
 from quizzer.srs.schemas import (
+    SrsDocumentDue,
     SrsDueResponse,
     SrsFinishResponse,
     SrsReviewRequest,
@@ -84,3 +85,8 @@ def get_due(
     svc: SrsService = Depends(_get_srs_service),
 ):
     return SrsDueResponse(**svc.get_due_info(document_id=document_id))
+
+
+@router.get("/due/by-document", response_model=list[SrsDocumentDue])
+def get_due_by_document(svc: SrsService = Depends(_get_srs_service)):
+    return [SrsDocumentDue(**row) for row in svc.get_due_info_by_document()]
