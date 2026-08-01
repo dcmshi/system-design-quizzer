@@ -62,6 +62,14 @@ def test_palette_pair_meets_wcag_aa(description: str, fg: str, bg: str, minimum:
     )
 
 
+def test_reduced_motion_is_honoured():
+    css = APP_CSS.read_text(encoding="utf-8")
+    block = re.search(r"@media \(prefers-reduced-motion: reduce\)\s*\{(.*?)\n\}", css, re.S)
+    assert block, "app.css has no prefers-reduced-motion block"
+    assert "animation-duration" in block.group(1)
+    assert "transition-duration" in block.group(1)
+
+
 def test_keyboard_focus_is_always_visible():
     """A border-colour shift is easy to miss and buttons had no focus style at
     all, so the shared sheet owns one ring and nothing suppresses it."""

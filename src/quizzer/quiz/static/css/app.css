@@ -22,6 +22,17 @@
   --font: 'Segoe UI', system-ui, sans-serif;
 }
 
+/* The spinner rotates forever and cards fade in and out; honour a stated
+   preference for less motion across every page. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Keyboard focus must be visible everywhere; a border-colour shift alone is
    easy to miss and buttons had no focus style at all. */
 :focus-visible {
