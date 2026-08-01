@@ -59,6 +59,12 @@ def test_markup_carries_no_static_inline_styles(client: TestClient, page: str):
     assert [s for s in styles if not s.startswith("width:")] == []
 
 
+def test_no_script_uses_the_non_standard_scroll_behavior():
+    """'instant' is a Chromium-ism; other engines ignore the whole call."""
+    for path in sorted((STATIC_DIR / "js").glob("*.js")):
+        assert "'instant'" not in path.read_text(encoding="utf-8"), path.name
+
+
 def test_no_script_writes_display_directly():
     for path in sorted((STATIC_DIR / "js").glob("*.js")):
         assert "style.display" not in path.read_text(encoding="utf-8"), path.name

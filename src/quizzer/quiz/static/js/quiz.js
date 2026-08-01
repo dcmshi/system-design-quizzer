@@ -724,7 +724,7 @@ function showReview() {
   });
 
   showScreen('review');
-  window.scrollTo({ top: 0, behavior: 'instant' });
+  window.scrollTo({ top: 0, behavior: 'auto' });
 }
 
 // ── Stats screen ──────────────────────────────────────────────────────────
@@ -736,7 +736,7 @@ async function showStats() {
   docTableBody.innerHTML = '';
   setHidden(statsEmpty, true);
   showScreen('stats');
-  window.scrollTo({ top: 0, behavior: 'instant' });
+  window.scrollTo({ top: 0, behavior: 'auto' });
 
   try {
     // Overall counts
@@ -829,7 +829,7 @@ btnPlayAgain.addEventListener('click', () => {
 btnReview.addEventListener('click', () => showScreen('setup'));
 btnShowReview.addEventListener('click', showReview);
 btnRetryMissed.addEventListener('click', replayMissed);
-btnBackEnd.addEventListener('click', () => { showScreen('end'); window.scrollTo({ top: 0, behavior: 'instant' }); });
+btnBackEnd.addEventListener('click', () => { showScreen('end'); window.scrollTo({ top: 0, behavior: 'auto' }); });
 btnRetry.addEventListener('click', () => showScreen('setup'));
 
 document.getElementById('link-stats').addEventListener('click', e => {
